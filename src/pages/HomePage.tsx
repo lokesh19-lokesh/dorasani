@@ -14,7 +14,8 @@ const HERO_SLIDES = [
     description: 'Discover the timeless beauty of South Indian fashion, where heritage, artistry and elegance come together.',
     primaryCta: { label: 'Explore the Collection', href: '/shop' },
     secondaryCta: { label: 'Discover Our Heritage', href: '/heritage' },
-    slideImage: '/assets/banners/hero_slide_0_clean.jpg',
+    desktopImage: '/assets/hero/desktop/h1.png',
+    mobileImage: '/assets/hero/mobile/h1.png',
   },
   {
     id: 1,
@@ -24,27 +25,19 @@ const HERO_SLIDES = [
     description: 'Authentic 24k gold zari handlooms woven with centuries of Dravidian craftsmanship for your auspicious wedding rituals.',
     primaryCta: { label: 'Explore Bridal Silks', href: '/collections/sarees' },
     secondaryCta: { label: 'View Bridal Lookbook', href: '/shop' },
-    slideImage: '/assets/banners/hero_slide_1_clean.jpg',
+    desktopImage: '/assets/hero/desktop/h2.png',
+    mobileImage: '/assets/hero/mobile/h2.png',
   },
   {
     id: 2,
-    tag: 'THE ROYAL LEHENGA EDIT',
-    titleLine1: 'Grandeur in Swirl.',
-    titleLine2: 'Grace in Every Fold.',
-    description: 'Regal lehengas sculpted with Dravidian temple motifs, rich brocades and opulent heritage borders for royal celebrations.',
-    primaryCta: { label: 'Shop Royal Lehengas', href: '/collections/lehengas' },
-    secondaryCta: { label: 'Explore Festive Wear', href: '/collections/festive' },
-    slideImage: '/assets/banners/hero_slide_2_clean.jpg',
-  },
-  {
-    id: 3,
     tag: 'TIMELESS HEIRLOOM WEAVES',
     titleLine1: 'Adorned in Grace.',
     titleLine2: 'Cherished Forever.',
     description: 'Directly from hereditary master looms to your sacred occasions — carrying the prayers and living art of South India.',
-    primaryCta: { label: 'Discover Heirlooms', href: '/collections/ethnic-wear' },
+    primaryCta: { label: 'Shop Festive Silks', href: '/collections/festive' },
     secondaryCta: { label: 'Our Weaver Story', href: '/about' },
-    slideImage: '/assets/banners/hero_slide_3_clean.jpg',
+    desktopImage: '/assets/hero/desktop/h3.png',
+    mobileImage: '/assets/hero/mobile/h3.png',
   },
 ];
 
@@ -66,14 +59,14 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-10 sm:space-y-14 bg-[#FAF5EE]">
-      {/* 1. HERO SECTION (100% Matching IMAGE 1: Full-Width Edge-to-Edge Panoramic Hero) */}
+      {/* 1. HERO SECTION (100% Matching IMAGE 1: Full-Width Edge-to-Edge with Desktop & Mobile Art) */}
       <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF]">
         <div
-          className="relative w-full select-none min-h-[380px] sm:min-h-[420px] md:min-h-[450px] lg:min-h-[480px] xl:min-h-[500px] flex items-center"
+          className="relative w-full select-none h-[560px] sm:h-[460px] md:h-[500px] lg:h-[560px] xl:h-[600px] 2xl:h-[640px] flex items-start sm:items-center"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Background Slides: Seamless clean temple architecture + fashion model photography */}
+          {/* Background Slides: Responsive desktop and mobile artwork */}
           {HERO_SLIDES.map((slide, idx) => (
             <div
               key={slide.id}
@@ -81,19 +74,23 @@ export const HomePage: React.FC = () => {
                 currentHeroSlide === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
               }`}
             >
-              <img
-                src={slide.slideImage}
-                alt={`${slide.titleLine1} ${slide.titleLine2}`}
-                className="w-full h-full object-cover object-[75%_center] sm:object-center"
-              />
-              {/* Subtle mobile readability vignette on the left text area only */}
-              <div className="absolute inset-y-0 left-0 w-full sm:w-2/3 bg-gradient-to-r from-[#FAF5EE]/90 via-[#FAF5EE]/50 to-transparent sm:hidden pointer-events-none" />
+              <picture className="w-full h-full block">
+                <source media="(max-width: 640px)" srcSet={slide.mobileImage} />
+                <img
+                  src={slide.desktopImage}
+                  alt={`${slide.titleLine1} ${slide.titleLine2}`}
+                  className="w-full h-full object-cover object-top sm:object-center"
+                />
+              </picture>
+
+              {/* Mobile top readability vignette so text is crystal clear while model in lower half is prominent */}
+              <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
             </div>
           ))}
 
-          {/* Left Text Content: Exact typography, positions ~13-16% from left edge */}
-          <div className="relative z-10 w-full px-6 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] py-8 sm:py-12 pointer-events-none">
-            <div className="max-w-[560px]">
+          {/* Text Content Container: Properly placed in both mobile (upper half) and desktop (left side) */}
+          <div className="relative z-10 w-full px-5 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] pt-6 sm:pt-0 pointer-events-none">
+            <div className="max-w-[560px] text-center sm:text-left mx-auto sm:mx-0">
               {HERO_SLIDES.map((slide, idx) => (
                 <div
                   key={slide.id}
@@ -104,7 +101,7 @@ export const HomePage: React.FC = () => {
                   }`}
                 >
                   {/* Eyebrow */}
-                  <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.22em] text-[#18482C] uppercase mb-2 sm:mb-3">
+                  <div className="inline-flex items-center justify-center sm:justify-start gap-2 text-[10px] sm:text-xs font-semibold tracking-[0.22em] text-[#18482C] uppercase mb-1.5 sm:mb-3">
                     <span className="opacity-50 text-[10px]">⟵</span>
                     <span>{slide.tag}</span>
                     <span className="opacity-50 text-[10px]">⟶</span>
@@ -117,15 +114,15 @@ export const HomePage: React.FC = () => {
                   </h1>
 
                   {/* Description */}
-                  <p className="text-xs sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-relaxed mt-2.5 sm:mt-3.5">
+                  <p className="text-xs sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-relaxed mt-2 sm:mt-3.5 mx-auto sm:mx-0">
                     {slide.description}
                   </p>
 
                   {/* CTAs */}
-                  <div className="flex flex-wrap items-center gap-3 pt-4 sm:pt-6 pointer-events-auto">
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3 pt-3.5 sm:pt-6 pointer-events-auto">
                     <Link
                       to={slide.primaryCta.href}
-                      className="bg-[#18482C] hover:bg-[#113520] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1.5 group"
+                      className="bg-[#18482C] hover:bg-[#113520] text-white px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1.5 group whitespace-nowrap"
                     >
                       <span>{slide.primaryCta.label}</span>
                       <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -133,7 +130,7 @@ export const HomePage: React.FC = () => {
 
                     <Link
                       to={slide.secondaryCta.href}
-                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-5 sm:px-6 py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs"
+                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
                     >
                       {slide.secondaryCta.label}
                     </Link>
@@ -141,8 +138,8 @@ export const HomePage: React.FC = () => {
                 </div>
               ))}
 
-              {/* Slider Dots matching IMAGE 1 */}
-              <div className="flex items-center space-x-2 pt-5 sm:pt-6 pointer-events-auto">
+              {/* Slider Dots */}
+              <div className="flex items-center justify-center sm:justify-start space-x-2 pt-3.5 sm:pt-6 pointer-events-auto">
                 {HERO_SLIDES.map((slide, idx) => (
                   <button
                     key={slide.id}
