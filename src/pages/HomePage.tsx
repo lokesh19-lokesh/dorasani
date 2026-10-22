@@ -56,13 +56,14 @@ export const HomePage: React.FC = () => {
 
   // 4 New arrivals matching design
   const newArrivals = PRODUCTS.slice(0, 4);
+  const activeSlide = HERO_SLIDES[currentHeroSlide];
 
   return (
     <div className="space-y-10 sm:space-y-14 bg-[#FAF5EE]">
-      {/* 1. HERO SECTION (100% Matching IMAGE 1: Full-Width Edge-to-Edge with Desktop & Mobile Art) */}
+      {/* 1. HERO SECTION (Fits screen on mobile, full-width edge-to-edge) */}
       <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF]">
         <div
-          className="relative w-full select-none h-[560px] sm:h-[460px] md:h-[500px] lg:h-[560px] xl:h-[600px] 2xl:h-[640px] flex items-start sm:items-center"
+          className="relative w-full select-none h-[calc(100dvh-150px)] min-h-[520px] max-h-[850px] sm:h-[460px] md:h-[500px] lg:h-[560px] xl:h-[600px] 2xl:h-[640px] flex items-start sm:items-center"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -84,59 +85,53 @@ export const HomePage: React.FC = () => {
               </picture>
 
               {/* Mobile top readability vignette - Soft parchment glow behind top text only */}
-              <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
             </div>
           ))}
 
-          {/* Text Content Container: Properly placed in both mobile (upper half) and desktop (left side) */}
+          {/* Text Content Container: Render only active slide with key to guarantee ZERO duplicate/overlapping text */}
           <div className="relative z-10 w-full px-4 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] pt-3.5 sm:pt-0 pointer-events-none">
             <div className="max-w-[560px] text-center sm:text-left mx-auto sm:mx-0">
-              {HERO_SLIDES.map((slide, idx) => (
-                <div
-                  key={slide.id}
-                  className={`transition-all duration-500 ease-out ${
-                    currentHeroSlide === idx
-                      ? 'opacity-100 translate-y-0 relative'
-                      : 'opacity-0 translate-y-3 pointer-events-none absolute top-0 left-0 w-full'
-                  }`}
-                >
-                  {/* Eyebrow */}
-                  <div className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[9.5px] sm:text-xs font-semibold tracking-[0.2em] text-[#18482C] uppercase mb-1 sm:mb-3">
-                    <span className="opacity-50 text-[9px]">✦</span>
-                    <span>{slide.tag}</span>
-                    <span className="opacity-50 text-[9px]">✦</span>
-                  </div>
-
-                  {/* Headline in refined serif */}
-                  <h1 className="font-serif-royal text-[20px] xs:text-[22px] sm:text-4xl md:text-[42px] lg:text-[48px] font-bold text-[#18482C] leading-[1.15] tracking-tight">
-                    {slide.titleLine1}<br />
-                    <span>{slide.titleLine2}</span>
-                  </h1>
-
-                  {/* Description: Concise single line on mobile, full description on desktop */}
-                  <p className="text-[11px] sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-snug sm:leading-relaxed mt-1 sm:mt-3.5 mx-auto sm:mx-0 line-clamp-1 sm:line-clamp-none">
-                    {slide.description}
-                  </p>
-
-                  {/* CTAs */}
-                  <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 pt-2.5 sm:pt-6 pointer-events-auto">
-                    <Link
-                      to={slide.primaryCta.href}
-                      className="bg-[#18482C] hover:bg-[#113520] text-white px-3.5 sm:px-6 py-1.5 sm:py-2.5 sm:py-3 rounded-[4px] text-[11px] sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1 group whitespace-nowrap"
-                    >
-                      <span>{slide.primaryCta.label}</span>
-                      <span className="transition-transform group-hover:translate-x-1">→</span>
-                    </Link>
-
-                    <Link
-                      to={slide.secondaryCta.href}
-                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-3.5 sm:px-6 py-1.5 sm:py-2.5 sm:py-3 rounded-[4px] text-[11px] sm:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
-                    >
-                      {slide.secondaryCta.label}
-                    </Link>
-                  </div>
+              <div
+                key={activeSlide.id}
+                className="transition-all duration-300 ease-out animate-in fade-in"
+              >
+                {/* Eyebrow */}
+                <div className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[9.5px] sm:text-xs font-semibold tracking-[0.2em] text-[#18482C] uppercase mb-1 sm:mb-3">
+                  <span className="opacity-50 text-[9px]">✦</span>
+                  <span>{activeSlide.tag}</span>
+                  <span className="opacity-50 text-[9px]">✦</span>
                 </div>
-              ))}
+
+                {/* Headline in refined serif */}
+                <h1 className="font-serif-royal text-[21px] xs:text-[23px] sm:text-4xl md:text-[42px] lg:text-[48px] font-bold text-[#18482C] leading-[1.15] tracking-tight">
+                  {activeSlide.titleLine1}<br />
+                  <span>{activeSlide.titleLine2}</span>
+                </h1>
+
+                {/* Description: Concise single line on mobile, full description on desktop */}
+                <p className="text-[11px] sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-snug sm:leading-relaxed mt-1 sm:mt-3.5 mx-auto sm:mx-0 line-clamp-1 sm:line-clamp-none">
+                  {activeSlide.description}
+                </p>
+
+                {/* CTAs */}
+                <div className="flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3 pt-2.5 sm:pt-6 pointer-events-auto">
+                  <Link
+                    to={activeSlide.primaryCta.href}
+                    className="bg-[#18482C] hover:bg-[#113520] text-white px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1 group whitespace-nowrap"
+                  >
+                    <span>{activeSlide.primaryCta.label}</span>
+                    <span className="transition-transform group-hover:translate-x-1">→</span>
+                  </Link>
+
+                  <Link
+                    to={activeSlide.secondaryCta.href}
+                    className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
+                  >
+                    {activeSlide.secondaryCta.label}
+                  </Link>
+                </div>
+              </div>
 
               {/* Slider Dots */}
               <div className="flex items-center justify-center sm:justify-start space-x-1.5 sm:space-x-2 pt-2.5 sm:pt-6 pointer-events-auto">
