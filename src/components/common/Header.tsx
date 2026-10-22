@@ -45,14 +45,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
         </div>
 
         {/* 3-Column Balanced Layout - Logo centered independently of left and right content widths */}
-        <div className="w-full px-4 sm:px-8 lg:px-12 py-3 sm:py-3.5 relative z-10">
+        <div className="w-full px-3 sm:px-8 lg:px-12 py-2.5 sm:py-3.5 relative z-10">
           <div className="grid grid-cols-[auto_1fr_auto] lg:grid-cols-3 items-center">
             {/* Left Column: Mobile Hamburger or Desktop Decorative Space */}
             <div className="flex items-center">
               {/* Mobile Hamburger Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-2 -ml-2 text-[#18482C] hover:text-[#113520] transition-colors"
+                className="lg:hidden p-1.5 -ml-1 text-[#18482C] hover:text-[#113520] transition-colors"
                 aria-label="Open Navigation Menu"
               >
                 <Menu className="w-6 h-6" />
@@ -64,8 +64,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
             {/* Center Column: Perfectly Centered DORASANI Brand Logo */}
             <div className="relative flex items-center justify-center">
-              {/* Subtle Temple Skyline Sketch in Header Background */}
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-25 select-none overflow-hidden">
+              {/* Subtle Temple Skyline Sketch in Header Background (Desktop Only) */}
+              <div className="absolute inset-0 pointer-events-none hidden sm:flex items-center justify-center opacity-25 select-none overflow-hidden">
                 <img
                   src="/assets/brand/temple_skyline_transparent.png"
                   alt=""
@@ -80,13 +80,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <img
                   src="/assets/brand/dorasani_full_logo.png"
                   alt="DORASANI - Where Heritage Meets Divine Elegance"
-                  className="h-11 sm:h-12 md:h-13 lg:h-14 w-auto object-contain"
+                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain"
                 />
               </Link>
             </div>
 
-            {/* Right Column: Search field, Account, Wishlist, and Shopping Bag aligned in one row */}
-            <div className="flex items-center space-x-3 sm:space-x-5 justify-end">
+            {/* Right Column: Search field, Account, Wishlist, and Shopping Bag */}
+            <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-5 justify-end">
               {/* Desktop Search Bar */}
               <form
                 onSubmit={handleSearchSubmit}
@@ -111,10 +111,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <Search className="w-5 h-5" />
               </button>
 
-              {/* Account Link */}
+              {/* Account Link (Desktop Only, available in bottom bar on mobile) */}
               <Link
                 to={user ? '/account' : '/login'}
-                className="flex flex-col items-center p-1 text-[#18482C] hover:text-[#113520] transition-colors"
+                className="hidden sm:flex flex-col items-center p-1 text-[#18482C] hover:text-[#113520] transition-colors"
                 title={user ? `Signed in as ${user.fullName}` : 'Login / Register'}
               >
                 <User className="w-5 h-5 stroke-[1.7]" />

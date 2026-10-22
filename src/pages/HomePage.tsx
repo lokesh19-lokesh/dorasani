@@ -83,13 +83,13 @@ export const HomePage: React.FC = () => {
                 />
               </picture>
 
-              {/* Mobile top readability vignette so text is crystal clear while model in lower half is prominent */}
-              <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
+              {/* Mobile top readability vignette - Soft parchment glow behind top text only */}
+              <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
             </div>
           ))}
 
           {/* Text Content Container: Properly placed in both mobile (upper half) and desktop (left side) */}
-          <div className="relative z-10 w-full px-5 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] pt-6 sm:pt-0 pointer-events-none">
+          <div className="relative z-10 w-full px-4 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] pt-3.5 sm:pt-0 pointer-events-none">
             <div className="max-w-[560px] text-center sm:text-left mx-auto sm:mx-0">
               {HERO_SLIDES.map((slide, idx) => (
                 <div
@@ -101,28 +101,28 @@ export const HomePage: React.FC = () => {
                   }`}
                 >
                   {/* Eyebrow */}
-                  <div className="inline-flex items-center justify-center sm:justify-start gap-2 text-[10px] sm:text-xs font-semibold tracking-[0.22em] text-[#18482C] uppercase mb-1.5 sm:mb-3">
-                    <span className="opacity-50 text-[10px]">⟵</span>
+                  <div className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[9.5px] sm:text-xs font-semibold tracking-[0.2em] text-[#18482C] uppercase mb-1 sm:mb-3">
+                    <span className="opacity-50 text-[9px]">✦</span>
                     <span>{slide.tag}</span>
-                    <span className="opacity-50 text-[10px]">⟶</span>
+                    <span className="opacity-50 text-[9px]">✦</span>
                   </div>
 
                   {/* Headline in refined serif */}
-                  <h1 className="font-serif-royal text-2xl sm:text-4xl md:text-[42px] lg:text-[48px] font-bold text-[#18482C] leading-[1.12] tracking-tight">
+                  <h1 className="font-serif-royal text-[20px] xs:text-[22px] sm:text-4xl md:text-[42px] lg:text-[48px] font-bold text-[#18482C] leading-[1.15] tracking-tight">
                     {slide.titleLine1}<br />
                     <span>{slide.titleLine2}</span>
                   </h1>
 
-                  {/* Description */}
-                  <p className="text-xs sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-relaxed mt-2 sm:mt-3.5 mx-auto sm:mx-0">
+                  {/* Description: Concise single line on mobile, full description on desktop */}
+                  <p className="text-[11px] sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-snug sm:leading-relaxed mt-1 sm:mt-3.5 mx-auto sm:mx-0 line-clamp-1 sm:line-clamp-none">
                     {slide.description}
                   </p>
 
                   {/* CTAs */}
-                  <div className="flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3 pt-3.5 sm:pt-6 pointer-events-auto">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 pt-2.5 sm:pt-6 pointer-events-auto">
                     <Link
                       to={slide.primaryCta.href}
-                      className="bg-[#18482C] hover:bg-[#113520] text-white px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1.5 group whitespace-nowrap"
+                      className="bg-[#18482C] hover:bg-[#113520] text-white px-3.5 sm:px-6 py-1.5 sm:py-2.5 sm:py-3 rounded-[4px] text-[11px] sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1 group whitespace-nowrap"
                     >
                       <span>{slide.primaryCta.label}</span>
                       <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -130,7 +130,7 @@ export const HomePage: React.FC = () => {
 
                     <Link
                       to={slide.secondaryCta.href}
-                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-4 sm:px-6 py-2 sm:py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
+                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-3.5 sm:px-6 py-1.5 sm:py-2.5 sm:py-3 rounded-[4px] text-[11px] sm:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
                     >
                       {slide.secondaryCta.label}
                     </Link>
@@ -139,7 +139,7 @@ export const HomePage: React.FC = () => {
               ))}
 
               {/* Slider Dots */}
-              <div className="flex items-center justify-center sm:justify-start space-x-2 pt-3.5 sm:pt-6 pointer-events-auto">
+              <div className="flex items-center justify-center sm:justify-start space-x-1.5 sm:space-x-2 pt-2.5 sm:pt-6 pointer-events-auto">
                 {HERO_SLIDES.map((slide, idx) => (
                   <button
                     key={slide.id}
@@ -147,8 +147,8 @@ export const HomePage: React.FC = () => {
                     aria-label={`Go to slide ${idx + 1}`}
                     className={`rounded-full transition-all duration-300 ${
                       currentHeroSlide === idx
-                        ? 'w-6 h-2 bg-[#18482C]'
-                        : 'w-2 h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
+                        ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
+                        : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
                     }`}
                   />
                 ))}
