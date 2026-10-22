@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
     <>
       <header className="bg-[#FAF5EE] lg:bg-transparent transition-all duration-200 relative z-10 w-full overflow-hidden">
         {/* 3-Column Balanced Layout - Content constrained within clear center area */}
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-14 xl:px-20 py-2.5 sm:py-3.5 relative z-10">
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-14 py-2 sm:py-3 relative z-10">
           <div className="grid grid-cols-[auto_1fr_auto] lg:grid-cols-3 items-center">
             {/* Left Column: Mobile Hamburger or Desktop Decorative Space */}
             <div className="flex items-center">
@@ -65,11 +65,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
               {/* Desktop Search Bar */}
               <form
                 onSubmit={handleSearchSubmit}
-                className="hidden lg:flex items-center relative w-44 xl:w-52"
+                className="hidden lg:flex items-center relative w-40 xl:w-52"
               >
                 <input
                   type="text"
-                  placeholder="Search sarees, lehengas..."
+                  placeholder="Search sarees, silks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-[#FAF5EE]/90 hover:bg-white focus:bg-white border border-[#D8C7B5] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#18482C] placeholder:text-[#647268] focus:outline-none focus:border-[#18482C] focus:ring-1 focus:ring-[#18482C] transition-all shadow-xs backdrop-blur-xs font-medium"
