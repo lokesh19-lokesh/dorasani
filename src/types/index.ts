@@ -111,6 +111,7 @@ export interface Order {
   }[];
   courierPartner?: string;
   trackingId?: string;
+  orderNotes?: string;
 }
 
 export interface UserProfile {
@@ -123,3 +124,5 @@ export interface UserProfile {
 }
 
 export type SortOption = 'featured' | 'newest' | 'price-low-high' | 'price-high-low' | 'popular';
+
+export const IS_DORASANI_TYPES = true;

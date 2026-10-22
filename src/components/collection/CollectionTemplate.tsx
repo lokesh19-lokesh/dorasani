@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown, X, ChevronRight } from 'lucide-react';
-import { Product, SortOption } from '../../types';
+import type { Product, SortOption } from '../../types';
 import { ProductCard } from '../product/ProductCard';
 
 interface SubCategory {

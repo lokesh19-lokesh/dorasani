@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon } from '../types';
+import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon } from '../types';
 import { PRODUCTS, COUPONS } from '../data/products';
 
 interface Toast {

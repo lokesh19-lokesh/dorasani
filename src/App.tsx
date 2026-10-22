@@ -1,122 +1,110 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { StoreProvider } from './context/StoreContext';
+import { RootLayout } from './layouts/RootLayout';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Page Components
+import { HomePage } from './pages/HomePage';
+import { ShopPage } from './pages/ShopPage';
+import { SareesPage } from './pages/SareesPage';
+import { EthnicWearPage } from './pages/EthnicWearPage';
+import { LehengasPage } from './pages/LehengasPage';
+import { FestivePage } from './pages/FestivePage';
+import { NewArrivalsPage } from './pages/NewArrivalsPage';
+import { BestsellersPage } from './pages/BestsellersPage';
+import { HeritagePage } from './pages/HeritagePage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { SearchResultsPage } from './pages/SearchResultsPage';
+import { WishlistPage } from './pages/WishlistPage';
+import { CartPage } from './pages/CartPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { AccountPage } from './pages/AccountPage';
+import { TrackOrderPage } from './pages/TrackOrderPage';
+import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
+import { FAQPage } from './pages/FAQPage';
+import { ShippingPolicyPage } from './pages/ShippingPolicyPage';
+import { ReturnsPolicyPage } from './pages/ReturnsPolicyPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { TermsPage } from './pages/TermsPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
+export const App: React.FC = () => {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <StoreProvider>
+        <Routes>
+          <Route path="/" element={<RootLayout />}>
+            {/* Primary Landing & Catalog Pages */}
+            <Route index element={<HomePage />} />
+            <Route path="shop" element={<ShopPage />} />
+            <Route path="collections/all" element={<ShopPage />} />
 
-      <div className="ticks"></div>
+            {/* Category Collections (Both /collections/ and /category/ for maximum compatibility) */}
+            <Route path="collections/sarees" element={<SareesPage />} />
+            <Route path="category/sarees" element={<SareesPage />} />
+            <Route path="collections/silk-sarees" element={<SareesPage />} />
+            <Route path="category/silk-sarees" element={<SareesPage />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+            <Route path="collections/ethnic-wear" element={<EthnicWearPage />} />
+            <Route path="category/ethnic-wear" element={<EthnicWearPage />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+            <Route path="collections/lehengas" element={<LehengasPage />} />
+            <Route path="category/lehengas" element={<LehengasPage />} />
 
-export default App
+            <Route path="collections/festive" element={<FestivePage />} />
+            <Route path="category/festive" element={<FestivePage />} />
+
+            <Route path="collections/new-arrivals" element={<NewArrivalsPage />} />
+            <Route path="category/new-arrivals" element={<NewArrivalsPage />} />
+
+            <Route path="collections/bestsellers" element={<BestsellersPage />} />
+            <Route path="category/bestsellers" element={<BestsellersPage />} />
+
+            {/* Mythology, Temple Heritage & Brand Story */}
+            <Route path="heritage" element={<HeritagePage />} />
+
+            {/* Product Details (Both /product/:slug and /products/:slug) */}
+            <Route path="product/:slug" element={<ProductDetailPage />} />
+            <Route path="products/:slug" element={<ProductDetailPage />} />
+
+            {/* Search, Discovery & Wishlist */}
+            <Route path="search" element={<SearchResultsPage />} />
+            <Route path="wishlist" element={<WishlistPage />} />
+
+            {/* Checkout, Cart & Fulfillment */}
+            <Route path="cart" element={<CartPage />} />
+            <Route path="bag" element={<Navigate to="/cart" replace />} />
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="order-confirmation" element={<OrderConfirmationPage />} />
+            <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage />} />
+            <Route path="track-order" element={<TrackOrderPage />} />
+            <Route path="track-order/:orderId" element={<TrackOrderPage />} />
+
+            {/* Authentication & Profile */}
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="account" element={<AccountPage />} />
+
+            {/* Information, Customer Care & Legal */}
+            <Route path="about" element={<AboutPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="faq" element={<FAQPage />} />
+            <Route path="shipping-policy" element={<ShippingPolicyPage />} />
+            <Route path="returns-policy" element={<ReturnsPolicyPage />} />
+            <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="terms" element={<TermsPage />} />
+
+            {/* Catch-all 404 */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </StoreProvider>
+    </BrowserRouter>
+  );
+};
+
+export default App;
