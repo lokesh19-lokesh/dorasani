@@ -1,82 +1,160 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones } from 'lucide-react';
+import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CATEGORIES, PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
 
+const HERO_SLIDES = [
+  {
+    id: 0,
+    tag: 'THE ROYAL HERITAGE EDIT',
+    titleLine1: 'Woven in Tradition.',
+    titleLine2: 'Adorned in Royalty.',
+    description: 'Discover the timeless beauty of South Indian fashion, where heritage, artistry and elegance come together.',
+    primaryCta: { label: 'Explore the Collection', href: '/shop' },
+    secondaryCta: { label: 'Discover Our Heritage', href: '/heritage' },
+    slideImage: '/assets/banners/hero_slide_0_clean.jpg',
+  },
+  {
+    id: 1,
+    tag: 'BRIDAL KANJIVARAM SILKS',
+    titleLine1: 'Sacred Threads.',
+    titleLine2: 'Blessed for Eternity.',
+    description: 'Authentic 24k gold zari handlooms woven with centuries of Dravidian craftsmanship for your auspicious wedding rituals.',
+    primaryCta: { label: 'Explore Bridal Silks', href: '/collections/sarees' },
+    secondaryCta: { label: 'View Bridal Lookbook', href: '/shop' },
+    slideImage: '/assets/banners/hero_slide_1_clean.jpg',
+  },
+  {
+    id: 2,
+    tag: 'THE ROYAL LEHENGA EDIT',
+    titleLine1: 'Grandeur in Swirl.',
+    titleLine2: 'Grace in Every Fold.',
+    description: 'Regal lehengas sculpted with Dravidian temple motifs, rich brocades and opulent heritage borders for royal celebrations.',
+    primaryCta: { label: 'Shop Royal Lehengas', href: '/collections/lehengas' },
+    secondaryCta: { label: 'Explore Festive Wear', href: '/collections/festive' },
+    slideImage: '/assets/banners/hero_slide_2_clean.jpg',
+  },
+  {
+    id: 3,
+    tag: 'TIMELESS HEIRLOOM WEAVES',
+    titleLine1: 'Adorned in Grace.',
+    titleLine2: 'Cherished Forever.',
+    description: 'Directly from hereditary master looms to your sacred occasions — carrying the prayers and living art of South India.',
+    primaryCta: { label: 'Discover Heirlooms', href: '/collections/ethnic-wear' },
+    secondaryCta: { label: 'Our Weaver Story', href: '/about' },
+    slideImage: '/assets/banners/hero_slide_3_clean.jpg',
+  },
+];
+
 export const HomePage: React.FC = () => {
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-  // 4 New arrivals matching Pic 4
+  // Auto-advance slider every 6 seconds unless hovered
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentHeroSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // 4 New arrivals matching design
   const newArrivals = PRODUCTS.slice(0, 4);
 
   return (
     <div className="space-y-10 sm:space-y-14 bg-[#FAF5EE]">
-      {/* 1. HERO SECTION (100% Matching Pic 2 & Pic 3) */}
-      <section className="relative overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF]">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          {/* Panoramic Hero Art Container */}
-          <div className="relative rounded-2xl overflow-hidden border border-[#D8C7B5] shadow-lg bg-[#FAF5EE]">
-            {/* Full Panorama Background Art */}
-            <img
-              src="/assets/banners/hero_clean.jpg"
-              alt="Dorasani - Woven in Tradition. Adorned in Royalty."
-              className="w-full h-auto object-cover min-h-[280px] sm:min-h-[340px] md:min-h-[380px] lg:min-h-[420px]"
-            />
+      {/* 1. HERO SECTION (100% Matching IMAGE 1: Full-Width Edge-to-Edge Panoramic Hero) */}
+      <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF]">
+        <div
+          className="relative w-full select-none min-h-[380px] sm:min-h-[420px] md:min-h-[450px] lg:min-h-[480px] xl:min-h-[500px] flex items-center"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {/* Background Slides: Seamless clean temple architecture + fashion model photography */}
+          {HERO_SLIDES.map((slide, idx) => (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                currentHeroSlide === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              <img
+                src={slide.slideImage}
+                alt={`${slide.titleLine1} ${slide.titleLine2}`}
+                className="w-full h-full object-cover object-[75%_center] sm:object-center"
+              />
+              {/* Subtle mobile readability vignette on the left text area only */}
+              <div className="absolute inset-y-0 left-0 w-full sm:w-2/3 bg-gradient-to-r from-[#FAF5EE]/90 via-[#FAF5EE]/50 to-transparent sm:hidden pointer-events-none" />
+            </div>
+          ))}
 
-            {/* Clickable Overlay / Functional Interactive Hotspots */}
-            <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-8 md:p-12 lg:p-14 pointer-events-none">
-              {/* Left Content Hotspots for Screen Readers and Keyboard Navigation */}
-              <div className="max-w-md space-y-2 sm:space-y-4">
-                <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold tracking-[0.22em] text-[#285A3C] uppercase">
-                  <span>✦</span>
-                  <span>THE ROYAL HERITAGE EDIT</span>
-                  <span>✦</span>
+          {/* Left Text Content: Exact typography, positions ~13-16% from left edge */}
+          <div className="relative z-10 w-full px-6 sm:px-10 md:pl-[12%] lg:pl-[14%] xl:pl-[15%] py-8 sm:py-12 pointer-events-none">
+            <div className="max-w-[560px]">
+              {HERO_SLIDES.map((slide, idx) => (
+                <div
+                  key={slide.id}
+                  className={`transition-all duration-500 ease-out ${
+                    currentHeroSlide === idx
+                      ? 'opacity-100 translate-y-0 relative'
+                      : 'opacity-0 translate-y-3 pointer-events-none absolute top-0 left-0 w-full'
+                  }`}
+                >
+                  {/* Eyebrow */}
+                  <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.22em] text-[#18482C] uppercase mb-2 sm:mb-3">
+                    <span className="opacity-50 text-[10px]">⟵</span>
+                    <span>{slide.tag}</span>
+                    <span className="opacity-50 text-[10px]">⟶</span>
+                  </div>
+
+                  {/* Headline in refined serif */}
+                  <h1 className="font-serif-royal text-2xl sm:text-4xl md:text-[42px] lg:text-[48px] font-bold text-[#18482C] leading-[1.12] tracking-tight">
+                    {slide.titleLine1}<br />
+                    <span>{slide.titleLine2}</span>
+                  </h1>
+
+                  {/* Description */}
+                  <p className="text-xs sm:text-sm md:text-[14px] lg:text-[15px] text-[#302E27] max-w-[480px] leading-relaxed mt-2.5 sm:mt-3.5">
+                    {slide.description}
+                  </p>
+
+                  {/* CTAs */}
+                  <div className="flex flex-wrap items-center gap-3 pt-4 sm:pt-6 pointer-events-auto">
+                    <Link
+                      to={slide.primaryCta.href}
+                      className="bg-[#18482C] hover:bg-[#113520] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1.5 group"
+                    >
+                      <span>{slide.primaryCta.label}</span>
+                      <span className="transition-transform group-hover:translate-x-1">→</span>
+                    </Link>
+
+                    <Link
+                      to={slide.secondaryCta.href}
+                      className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-5 sm:px-6 py-2.5 sm:py-3 rounded-[4px] text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs"
+                    >
+                      {slide.secondaryCta.label}
+                    </Link>
+                  </div>
                 </div>
+              ))}
 
-                <h1 className="font-serif-royal text-2xl sm:text-4xl lg:text-5xl font-bold text-[#1A3B2B] leading-[1.12] tracking-tight">
-                  Woven in Tradition.<br />
-                  <span className="text-[#1A3B2B]">Adorned in Royalty.</span>
-                </h1>
-
-                <p className="text-[11px] sm:text-xs md:text-sm text-[#4A574E] max-w-sm leading-relaxed hidden sm:block">
-                  Discover the timeless beauty of South Indian fashion, where heritage, artistry and elegance come together.
-                </p>
-
-                {/* Interactive CTAs */}
-                <div className="flex items-center gap-2.5 pt-2 pointer-events-auto">
-                  <Link
-                    to="/shop"
-                    className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded text-xs sm:text-sm font-medium tracking-wide transition-all shadow-md flex items-center gap-1.5 group"
-                  >
-                    <span>Explore the Collection</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                  </Link>
-
-                  <Link
-                    to="/heritage"
-                    className="bg-white/95 hover:bg-white text-[#1A3B2B] border border-[#D8C7B5] hover:border-[#285A3C] px-4 sm:px-6 py-2 sm:py-2.5 rounded text-xs sm:text-sm font-medium tracking-wide transition-all text-center shadow-xs"
-                  >
-                    Discover Our Heritage
-                  </Link>
-                </div>
-
-                {/* Slider Dots matching Pic 3 */}
-                <div className="flex items-center space-x-1.5 pt-3 pointer-events-auto">
-                  {[0, 1, 2, 3].map((idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentHeroSlide(idx)}
-                      aria-label={`Slide ${idx + 1}`}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        currentHeroSlide === idx
-                          ? 'w-6 bg-[#285A3C]'
-                          : 'w-2 bg-[#BCD8AA] hover:bg-[#285A3C]'
-                      }`}
-                    />
-                  ))}
-                </div>
+              {/* Slider Dots matching IMAGE 1 */}
+              <div className="flex items-center space-x-2 pt-5 sm:pt-6 pointer-events-auto">
+                {HERO_SLIDES.map((slide, idx) => (
+                  <button
+                    key={slide.id}
+                    onClick={() => setCurrentHeroSlide(idx)}
+                    aria-label={`Go to slide ${idx + 1}`}
+                    className={`rounded-full transition-all duration-300 ${
+                      currentHeroSlide === idx
+                        ? 'w-6 h-2 bg-[#18482C]'
+                        : 'w-2 h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </div>

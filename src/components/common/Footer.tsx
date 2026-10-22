@@ -135,19 +135,13 @@ export const Footer: React.FC = () => {
       <div className="py-12 sm:py-16 px-4 sm:px-8 max-w-7xl mx-auto">
         {/* Brand Header inside Footer */}
         <div className="flex flex-col items-center text-center mb-10">
-          <div className="w-8 h-7 mb-2">
+          <Link to="/" className="inline-block transition-transform duration-300 hover:scale-102 mb-1">
             <img
-              src="/assets/brand/lotus_mark_green.png"
-              alt="Lotus Emblem"
-              className="w-full h-full object-contain mx-auto"
+              src="/assets/brand/dorasani_full_logo.png"
+              alt="DORASANI - Where Heritage Meets Divine Elegance"
+              className="h-12 sm:h-14 w-auto object-contain mx-auto"
             />
-          </div>
-          <h2 className="font-cinzel-royal text-2xl font-bold text-[#1A3B2B] tracking-[0.2em] uppercase">
-            DORASANI
-          </h2>
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#4F6355] mt-1 font-medium">
-            Where Heritage Meets Divine Elegance
-          </p>
+          </Link>
 
           {/* Social Links */}
           <div className="flex items-center space-x-4 mt-5 text-[#285A3C]">
