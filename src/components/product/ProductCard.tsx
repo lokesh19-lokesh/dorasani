@@ -28,11 +28,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
   };
 
   return (
-    <div className="group bg-white rounded-lg border border-[#EEDCD1] hover:border-[#DEC3B4] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden relative">
+    <div className="group bg-white rounded-lg border border-[#E8DCCF] hover:border-[#D8C7B5] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden relative">
       {/* Image Container */}
       <Link
         to={`/products/${product.slug}`}
-        className="relative block aspect-[4/5] overflow-hidden bg-[#FAF2EB]"
+        className="relative block aspect-[4/5] overflow-hidden bg-[#FAF5EE]"
       >
         <img
           src={product.primaryImage}
@@ -44,12 +44,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         {/* Badges (Top Left) */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
           {product.isNew && (
-            <span className="bg-[#AC1443] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+            <span className="bg-[#285A3C] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
               NEW
             </span>
           )}
           {product.isBestseller && !product.isNew && (
-            <span className="bg-[#6B1B38] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
               BESTSELLER
             </span>
           )}
@@ -61,8 +61,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
           aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           className={`absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 z-10 ${
             isWishlisted
-              ? 'bg-[#AC1443] text-white shadow-md'
-              : 'bg-white/90 text-[#441C25] hover:bg-white hover:text-[#AC1443] shadow-xs'
+              ? 'bg-[#285A3C] text-white shadow-md'
+              : 'bg-white/95 text-[#1A3B2B] hover:bg-white hover:text-[#285A3C] shadow-xs'
           }`}
         >
           <Heart
@@ -76,33 +76,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         <div>
           {/* Rating if enabled */}
           {showRating && product.rating && (
-            <div className="flex items-center gap-1 text-[11px] text-[#C99632] mb-1">
+            <div className="flex items-center gap-1 text-[11px] text-[#C29336] mb-1">
               <Star className="w-3 h-3 fill-current" />
               <span className="font-semibold">{product.rating}</span>
-              <span className="text-[#9B8086]">({product.reviewsCount})</span>
+              <span className="text-[#8E9B92]">({product.reviewsCount})</span>
             </div>
           )}
 
           {/* Title */}
           <Link
             to={`/products/${product.slug}`}
-            className="block text-xs sm:text-[13px] font-semibold text-[#2D141A] hover:text-[#AC1443] transition-colors line-clamp-1 leading-snug"
+            className="block text-xs sm:text-[13px] font-semibold text-[#1A3B2B] hover:text-[#285A3C] transition-colors line-clamp-1 leading-snug"
           >
             {product.title}
           </Link>
 
           {/* Pricing Row */}
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-xs sm:text-sm font-bold text-[#AC1443]">
+            <span className="text-xs sm:text-sm font-bold text-[#1A3B2B]">
               ₹{product.price.toLocaleString('en-IN')}
             </span>
             {product.mrp > product.price && (
-              <span className="text-[10px] sm:text-xs text-[#9B8086] line-through">
+              <span className="text-[10px] sm:text-xs text-[#8E9B92] line-through">
                 ₹{product.mrp.toLocaleString('en-IN')}
               </span>
             )}
             {product.discountPercent && (
-              <span className="text-[9px] sm:text-[10px] font-bold text-[#AC1443] bg-[#FBE5EB] px-1.5 py-0.2 rounded">
+              <span className="text-[9px] sm:text-[10px] font-bold text-[#1A3B2B] bg-[#D0E9C0] px-1.5 py-0.5 rounded">
                 {product.discountPercent}% OFF
               </span>
             )}
@@ -110,7 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         </div>
 
         {/* Bottom Action Row: Color Dots + Cart Button */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5EAE2]">
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5EFE6]">
           {/* Color Dots */}
           <div className="flex items-center space-x-1.5">
             {product.colors.map((color, idx) => (
@@ -120,7 +120,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
                 aria-label={`Select color ${color.name}`}
                 className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border transition-all ${
                   selectedColorIndex === idx
-                    ? 'ring-2 ring-[#AC1443] ring-offset-1 scale-110'
+                    ? 'ring-2 ring-[#285A3C] ring-offset-1 scale-110'
                     : 'border-black/10 hover:scale-110'
                 }`}
                 style={{ backgroundColor: color.hex }}
@@ -132,7 +132,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
           {/* Add to Bag Button */}
           <button
             onClick={handleAddToCart}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#DEC3B4] hover:border-[#AC1443] hover:bg-[#AC1443] text-[#AC1443] hover:text-white flex items-center justify-center transition-all duration-200"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md border border-[#D8C7B5] hover:border-[#285A3C] hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200"
             title="Add to Bag"
             aria-label="Add to Bag"
           >

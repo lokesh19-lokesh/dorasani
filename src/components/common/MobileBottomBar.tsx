@@ -15,7 +15,7 @@ export const MobileBottomBar: React.FC = () => {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF9F5] border-t border-[#EEDCD1] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF5EE] border-t border-[#E8DCCF] shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
       <div className="grid grid-cols-5 h-14">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -26,15 +26,15 @@ export const MobileBottomBar: React.FC = () => {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center text-[10px] tracking-wide font-medium relative transition-colors ${
                   isActive
-                    ? 'text-[#AC1443] font-semibold'
-                    : 'text-[#74565D] hover:text-[#AC1443]'
+                    ? 'text-[#285A3C] font-semibold'
+                    : 'text-[#1A3B2B] hover:text-[#285A3C]'
                 }`
               }
             >
               <div className="relative">
                 <Icon className="w-5 h-5 mb-0.5" />
                 {item.badge && item.badge > 0 ? (
-                  <span className="absolute -top-1 -right-2 bg-[#AC1443] text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-2 bg-[#285A3C] text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                     {item.badge}
                   </span>
                 ) : null}

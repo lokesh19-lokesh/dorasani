@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 
 export const Navbar: React.FC = () => {
   return (
-    <nav className="hidden lg:block bg-[#FFF9F5] border-b border-[#EEDCD1]/80 text-[13px] tracking-wider py-2 relative z-20">
+    <nav className="hidden lg:block bg-[#FAF5EE] border-b border-[#E8DCCF] text-[13px] tracking-wider py-2 relative z-20">
       <div className="max-w-7xl mx-auto px-8">
         <ul className="flex items-center justify-center space-x-6 xl:space-x-8">
           {NAV_ITEMS.map((item) => (
@@ -27,8 +27,8 @@ export const Navbar: React.FC = () => {
                 className={({ isActive }) =>
                   `relative py-1 font-medium transition-all duration-200 block ${
                     isActive
-                      ? 'text-[#AC1443] font-semibold'
-                      : 'text-[#441C25] hover:text-[#AC1443]'
+                      ? 'text-[#285A3C] font-semibold'
+                      : 'text-[#1A3B2B] hover:text-[#285A3C]'
                   }`
                 }
               >
@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
                   <>
                     <span>{item.name}</span>
                     {isActive && (
-                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#AC1443] rounded-full animate-in fade-in" />
+                      <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#285A3C] rounded-full animate-in fade-in" />
                     )}
                   </>
                 )}

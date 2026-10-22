@@ -19,7 +19,7 @@ export const supabase = isSupabaseConfigured
 if (!isSupabaseConfigured) {
   console.info(
     '%c[DORASANI]%c Running with local persistent storage fallback. To connect to live Supabase, configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.',
-    'color: #AC1443; font-weight: bold;',
+    'color: #285A3C; font-weight: bold;',
     'color: inherit;'
   );
 }

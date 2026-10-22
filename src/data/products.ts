@@ -5,15 +5,15 @@ export const CATEGORIES: Category[] = [
     id: 'sarees',
     name: 'Sarees',
     slug: 'sarees',
-    imageUrl: '/assets/categories/cat_sarees.jpg',
+    imageUrl: '/assets/categories/cat_sarees_arch.jpg',
     productCount: 328,
     subcategories: [
-      { name: 'Kanjivaram Sarees', slug: 'kanjivaram', imageUrl: '/assets/categories/cat_silk_sarees.jpg' },
-      { name: 'Banarasi Sarees', slug: 'banarasi', imageUrl: '/assets/products/banarasi_silk_saree.jpg' },
-      { name: 'Organza Sarees', slug: 'organza', imageUrl: '/assets/products/organza_floral_saree.jpg' },
-      { name: 'Chanderi Sarees', slug: 'chanderi', imageUrl: '/assets/products/chanderi_cotton_saree.jpg' },
+      { name: 'Kanjivaram Sarees', slug: 'kanjivaram', imageUrl: '/assets/categories/cat_silk_sarees_arch.jpg' },
+      { name: 'Banarasi Sarees', slug: 'banarasi', imageUrl: '/assets/products/prod_banarasi_gold_photo.jpg' },
+      { name: 'Organza Sarees', slug: 'organza', imageUrl: '/assets/products/prod_organza_floral_photo.jpg' },
+      { name: 'Chanderi Sarees', slug: 'chanderi', imageUrl: '/assets/products/prod_chanderi_cotton_photo.jpg' },
       { name: 'Cotton Sarees', slug: 'cotton', imageUrl: '/assets/products/linen_silk_saree.jpg' },
-      { name: 'Festive Sarees', slug: 'festive-sarees', imageUrl: '/assets/categories/cat_festive.jpg' },
+      { name: 'Festive Sarees', slug: 'festive-sarees', imageUrl: '/assets/categories/cat_festive_arch.jpg' },
       { name: 'Wedding Sarees', slug: 'wedding-sarees', imageUrl: '/assets/products/kanchipuram_bridal_saree.jpg' },
       { name: 'Tissue Sarees', slug: 'tissue', imageUrl: '/assets/products/organza_tissue_saree.jpg' },
     ]
@@ -22,14 +22,14 @@ export const CATEGORIES: Category[] = [
     id: 'silk-sarees',
     name: 'Silk Sarees',
     slug: 'silk-sarees',
-    imageUrl: '/assets/categories/cat_silk_sarees.jpg',
+    imageUrl: '/assets/categories/cat_silk_sarees_arch.jpg',
     productCount: 120,
   },
   {
     id: 'ethnic-wear',
     name: 'Ethnic Wear',
     slug: 'ethnic-wear',
-    imageUrl: '/assets/categories/cat_ethnic_wear.jpg',
+    imageUrl: '/assets/categories/cat_ethnic_wear_arch.jpg',
     productCount: 86,
     subcategories: [
       { name: 'Kurtis', slug: 'kurtis', imageUrl: '/assets/categories/sub_kurtis.jpg' },
@@ -44,7 +44,7 @@ export const CATEGORIES: Category[] = [
     id: 'lehengas',
     name: 'Lehengas',
     slug: 'lehengas',
-    imageUrl: '/assets/categories/cat_lehengas.jpg',
+    imageUrl: '/assets/categories/cat_lehengas_arch.jpg',
     productCount: 64,
     subcategories: [
       { name: 'Bridal Lehengas', slug: 'bridal', imageUrl: '/assets/products/bridal_silk_lehenga.jpg' },
@@ -59,29 +59,29 @@ export const CATEGORIES: Category[] = [
     id: 'festive-collection',
     name: 'Festive Collection',
     slug: 'festive',
-    imageUrl: '/assets/categories/cat_festive.jpg',
+    imageUrl: '/assets/categories/cat_festive_arch.jpg',
     productCount: 74,
     subcategories: [
-      { name: 'Navratri Styles', slug: 'navratri', imageUrl: '/assets/categories/cat_festive.jpg' },
-      { name: 'Diwali Collection', slug: 'diwali', imageUrl: '/assets/products/banarasi_silk_saree.jpg' },
-      { name: 'Pongal Collection', slug: 'pongal', imageUrl: '/assets/products/kanjivaram_silk_saree.jpg' },
-      { name: 'Wedding Guest', slug: 'wedding-guest', imageUrl: '/assets/products/chanderi_cotton_saree.jpg' },
+      { name: 'Navratri Styles', slug: 'navratri', imageUrl: '/assets/categories/cat_festive_arch.jpg' },
+      { name: 'Diwali Collection', slug: 'diwali', imageUrl: '/assets/products/prod_banarasi_gold_photo.jpg' },
+      { name: 'Pongal Collection', slug: 'pongal', imageUrl: '/assets/categories/cat_sarees_arch.jpg' },
+      { name: 'Wedding Guest', slug: 'wedding-guest', imageUrl: '/assets/products/prod_chanderi_cotton_photo.jpg' },
       { name: 'Engagement Looks', slug: 'engagement', imageUrl: '/assets/products/bridal_silk_lehenga.jpg' },
-      { name: 'Festive Sarees', slug: 'festive-sarees', imageUrl: '/assets/products/organza_floral_saree.jpg' },
+      { name: 'Festive Sarees', slug: 'festive-sarees', imageUrl: '/assets/products/prod_organza_floral_photo.jpg' },
     ]
   },
   {
     id: 'new-arrivals',
     name: 'New Arrivals',
     slug: 'new-arrivals',
-    imageUrl: '/assets/categories/cat_new_arrivals.jpg',
+    imageUrl: '/assets/categories/cat_new_arrivals_arch.jpg',
     productCount: 48,
   },
   {
     id: 'bestsellers',
     name: 'Bestsellers',
     slug: 'bestsellers',
-    imageUrl: '/assets/categories/cat_bestsellers.jpg',
+    imageUrl: '/assets/categories/cat_bestsellers_arch.jpg',
     productCount: 142,
   }
 ];
@@ -112,20 +112,20 @@ export const PRODUCTS: Product[] = [
     isBestseller: true,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/products/kanjivaram_silk_saree.jpg',
+    primaryImage: '/assets/categories/cat_sarees_arch.jpg',
     images: [
+      '/assets/categories/cat_sarees_arch.jpg',
       '/assets/products/kanjivaram_silk_saree.jpg',
       '/assets/products/product_main_large.jpg',
       '/assets/products/thumb_1.jpg',
       '/assets/products/thumb_2.jpg',
-      '/assets/products/thumb_3.jpg',
       '/assets/products/blouse_piece.jpg'
     ],
     colors: [
-      { name: 'Rani Pink', hex: '#AC1443' },
-      { name: 'Deep Wine', hex: '#63132B' },
-      { name: 'Mustard Gold', hex: '#D4AF37' },
-      { name: 'Forest Green', hex: '#1C5B39' }
+      { name: 'Olive Green', hex: '#4B5320' },
+      { name: 'Terracotta', hex: '#8B3A3A' },
+      { name: 'Rose Pink', hex: '#C74375' },
+      { name: 'Sage Green', hex: '#8FA89B' }
     ]
   },
   {
@@ -153,16 +153,16 @@ export const PRODUCTS: Product[] = [
     isBestseller: true,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/products/organza_floral_saree.jpg',
+    primaryImage: '/assets/products/prod_organza_floral_photo.jpg',
     images: [
+      '/assets/products/prod_organza_floral_photo.jpg',
       '/assets/products/organza_floral_saree.jpg',
       '/assets/products/thumb_2.jpg'
     ],
     colors: [
-      { name: 'Mehendi Green', hex: '#26532B' },
-      { name: 'Ruby Wine', hex: '#771638' },
-      { name: 'Blush Pink', hex: '#EAA4B8' },
-      { name: 'Ivory Cream', hex: '#FDF4EB' }
+      { name: 'Rani Pink', hex: '#C71585' },
+      { name: 'Hot Pink', hex: '#E0218A' },
+      { name: 'Blush Rose', hex: '#F4C2C2' }
     ]
   },
   {
@@ -172,8 +172,7 @@ export const PRODUCTS: Product[] = [
     subtitle: 'Regal Weaves of Heritage Artisans',
     description: 'Opulent Banarasi silk saree adorned with floral jaal in gold and silver zari. A classic heirloom drape for auspicious beginnings.',
     price: 2999,
-    mrp: 3999,
-    discountPercent: 25,
+    mrp: 2999,
     category: 'Sarees',
     categorySlug: 'sarees',
     subCategory: 'Silk Sarees',
@@ -186,20 +185,21 @@ export const PRODUCTS: Product[] = [
     rating: 4.9,
     reviewsCount: 156,
     soldCount: 460,
-    isNew: true,
+    isNew: false,
     isBestseller: true,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/products/banarasi_silk_saree.jpg',
+    primaryImage: '/assets/products/prod_banarasi_gold_photo.jpg',
     images: [
+      '/assets/products/prod_banarasi_gold_photo.jpg',
       '/assets/products/banarasi_silk_saree.jpg',
       '/assets/products/thumb_3.jpg'
     ],
     colors: [
-      { name: 'Lavender Blush', hex: '#A88AB3' },
-      { name: 'Rose Gold', hex: '#D68C9F' },
-      { name: 'Crimson', hex: '#A61D3B' },
-      { name: 'Sand Gold', hex: '#D1B48C' }
+      { name: 'Royal Gold', hex: '#DAA520' },
+      { name: 'Deep Maroon', hex: '#800000' },
+      { name: 'Magenta', hex: '#D12D7D' },
+      { name: 'Royal Purple', hex: '#5B2C6F' }
     ]
   },
   {
@@ -221,22 +221,21 @@ export const PRODUCTS: Product[] = [
     blouseIncluded: true,
     length: '6.3 meters',
     rating: 4.6,
-    reviewsCount: 87,
+    reviewsCount: 84,
     soldCount: 290,
     isNew: false,
-    isBestseller: true,
+    isBestseller: false,
     isFestive: false,
     inStock: true,
-    primaryImage: '/assets/products/chanderi_cotton_saree.jpg',
+    primaryImage: '/assets/products/prod_chanderi_cotton_photo.jpg',
     images: [
-      '/assets/products/chanderi_cotton_saree.jpg',
-      '/assets/products/thumb_4.jpg'
+      '/assets/products/prod_chanderi_cotton_photo.jpg',
+      '/assets/products/chanderi_cotton_saree.jpg'
     ],
     colors: [
-      { name: 'Peach Warmth', hex: '#E8A598' },
-      { name: 'Golden Almond', hex: '#CDB18B' },
-      { name: 'Pistachio Sage', hex: '#D0E9C0' },
-      { name: 'Copper Rust', hex: '#A85A3A' }
+      { name: 'Dark Green', hex: '#2E473B' },
+      { name: 'Blush Pink', hex: '#C96565' },
+      { name: 'Peach', hex: '#D9A08B' }
     ]
   },
   {

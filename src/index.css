@@ -1,30 +1,36 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #AC1443;
-  --color-primary-dark: #860E33;
-  --color-primary-light: #C72558;
-  --color-primary-50: #FDF2F4;
-  --color-primary-100: #FBE5EB;
+  /* Royal Temple Forest Green (Replacing old crimson #AC1443) */
+  --color-primary: #285A3C;
+  --color-primary-dark: #1E432D;
+  --color-primary-light: #37734E;
+  --color-primary-50: #F3F8F1;
+  --color-primary-100: #E3EFE0;
   
-  /* Specified updated pastel pistachio */
+  /* Specified Pastel Pistachio */
   --color-pistachio: rgb(208, 233, 192);
   --color-pistachio-hex: #D0E9C0;
-  --color-pistachio-dark: #2F6923;
-  --color-pistachio-bg: rgba(208, 233, 192, 0.35);
+  --color-pistachio-dark: #1A3B2B;
+  --color-pistachio-bg: rgba(208, 233, 192, 0.45);
+  --color-pistachio-border: #BCD8AA;
 
-  --color-cream: #FFF9F5;
-  --color-cream-surface: #FDF4EC;
+  /* Warm Antique Parchment / Cream */
+  --color-cream: #FAF5EE;
+  --color-cream-surface: #F5EFE6;
   --color-cream-card: #FFFFFF;
-  --color-border: #EEDCD1;
-  --color-border-dark: #DEC3B4;
+  --color-border: #E8DCCF;
+  --color-border-dark: #D8C7B5;
 
-  --color-text-main: #2D141A;
-  --color-text-muted: #74565D;
-  --color-text-light: #9B8086;
+  /* Text tokens */
+  --color-text-main: #1A3B2B;
+  --color-text-body: #3A443D;
+  --color-text-muted: #647268;
+  --color-text-light: #8E9B92;
 
-  --color-gold: #C99632;
-  --color-gold-light: #FAF2DF;
+  /* Gold / Temple Accents */
+  --color-gold: #C29336;
+  --color-gold-light: #F9F3E5;
 
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-cinzel: 'Cinzel', serif;

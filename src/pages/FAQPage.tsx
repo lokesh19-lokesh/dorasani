@@ -33,15 +33,15 @@ export const FAQPage: React.FC = () => {
 
   return (
     <div className="space-y-10 pb-16">
-      <div className="bg-[#FAF2EB] border-b border-[#EEDCD1] py-10 sm:py-16 px-4 sm:px-8 text-center">
+      <div className="bg-[#D0E9C0]/40 border-b border-[#BCD8AA] py-10 sm:py-16 px-4 sm:px-8 text-center">
         <div className="max-w-2xl mx-auto space-y-2">
-          <span className="text-xs font-semibold tracking-[0.25em] text-[#C99632] uppercase">
+          <span className="text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
             ✦ COMMON QUERIES ✦
           </span>
-          <h1 className="font-serif-royal text-3xl sm:text-4xl font-bold text-[#2D141A]">
+          <h1 className="font-serif-royal text-3xl sm:text-4xl font-bold text-[#1A3B2B]">
             Frequently Asked Questions
           </h1>
-          <p className="text-xs sm:text-sm text-[#74565D]">
+          <p className="text-xs sm:text-sm text-[#4F6355]">
             Everything you need to know about our handlooms, shipping, and care.
           </p>
         </div>
@@ -51,21 +51,25 @@ export const FAQPage: React.FC = () => {
         {faqs.map((item, i) => (
           <div
             key={i}
-            className="bg-white rounded-xl border border-[#EEDCD1] overflow-hidden shadow-xs"
+            className="bg-white rounded-xl border border-[#D8C7B5] overflow-hidden shadow-xs transition-colors hover:border-[#BCD8AA]"
           >
             <button
               onClick={() => setOpenIdx(openIdx === i ? null : i)}
-              className="w-full p-4 sm:p-5 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-[#2D141A] hover:text-[#AC1443] transition-colors"
+              className="w-full p-4 sm:p-5 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-[#1A3B2B] hover:text-[#285A3C] transition-colors"
             >
               <span>{item.q}</span>
               {openIdx === i ? (
-                <Minus className="w-4 h-4 text-[#AC1443] shrink-0" />
+                <div className="w-6 h-6 rounded-full bg-[#D0E9C0] flex items-center justify-center shrink-0">
+                  <Minus className="w-4 h-4 text-[#285A3C]" />
+                </div>
               ) : (
-                <Plus className="w-4 h-4 text-[#74565D] shrink-0" />
+                <div className="w-6 h-6 rounded-full bg-[#FAF5EE] flex items-center justify-center shrink-0">
+                  <Plus className="w-4 h-4 text-[#4F6355]" />
+                </div>
               )}
             </button>
             {openIdx === i && (
-              <div className="px-4 sm:px-5 pb-5 text-xs text-[#74565D] leading-relaxed border-t border-[#F5EAE2] pt-3">
+              <div className="px-4 sm:px-5 pb-5 text-xs text-[#4F6355] leading-relaxed border-t border-[#E8DCCF] pt-3">
                 {item.a}
               </div>
             )}
@@ -75,3 +79,4 @@ export const FAQPage: React.FC = () => {
     </div>
   );
 };
+

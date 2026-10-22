@@ -14,7 +14,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
       className="group flex flex-col items-center text-center transition-all duration-300"
     >
       {/* Arch Shaped Image Container */}
-      <div className="w-full aspect-[3/4] max-w-[130px] sm:max-w-[150px] arch-card-shape overflow-hidden border border-[#DEC3B4] shadow-xs group-hover:shadow-md group-hover:border-[#AC1443] transition-all duration-300 bg-[#FDF4EC] relative">
+      <div className="w-full aspect-[3/4] max-w-[130px] sm:max-w-[150px] arch-card-shape overflow-hidden border border-[#D8C7B5] shadow-xs group-hover:shadow-md group-hover:border-[#285A3C] transition-all duration-300 bg-[#FAF5EE] relative">
         <img
           src={category.imageUrl}
           alt={category.name}
@@ -26,10 +26,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
 
       {/* Category Name & Action Arrow */}
       <div className="mt-2.5 flex items-center justify-center gap-1.5">
-        <span className="text-xs sm:text-[13px] font-medium text-[#2D141A] group-hover:text-[#AC1443] transition-colors">
+        <span className="text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
           {category.name}
         </span>
-        <div className="w-4 h-4 rounded-full border border-[#DEC3B4] group-hover:border-[#AC1443] group-hover:bg-[#AC1443] text-[#74565D] group-hover:text-white flex items-center justify-center transition-all text-[9px]">
+        <div className="w-4 h-4 rounded-full border border-[#D8C7B5] group-hover:border-[#285A3C] group-hover:bg-[#285A3C] text-[#647268] group-hover:text-white flex items-center justify-center transition-all text-[9px]">
           <ArrowRight className="w-2.5 h-2.5" />
         </div>
       </div>

@@ -141,24 +141,24 @@ export const TrackOrderPage: React.FC = () => {
   return (
     <div className="space-y-8 pb-16">
       {/* 1. Breadcrumbs */}
-      <div className="bg-[#FAF2EB] border-b border-[#EEDCD1] py-3.5 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex items-center space-x-1.5 text-xs text-[#74565D]">
-          <Link to="/" className="hover:text-[#AC1443]">Home</Link>
+      <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto flex items-center space-x-1.5 text-xs text-[#4F6355]">
+          <Link to="/" className="hover:text-[#285A3C]">Home</Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <Link to="/account" className="hover:text-[#AC1443]">My Orders</Link>
+          <Link to="/account" className="hover:text-[#285A3C]">My Orders</Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <span className="font-semibold text-[#AC1443]">Track Order #{currentOrder.orderNumber}</span>
+          <span className="font-semibold text-[#285A3C]">Track Order #{currentOrder.orderNumber}</span>
         </div>
       </div>
 
       {/* 2. Banner with Order Lookup */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-[#FAF2EB] rounded-2xl border border-[#EEDCD1] p-6 sm:p-10 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="bg-[#FAF5EE] rounded-2xl border border-[#D8C7B5] p-6 sm:p-10 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
-            <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#2D141A]">
+            <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#1A3B2B]">
               Track Your Order
             </h1>
-            <p className="text-xs sm:text-sm text-[#74565D]">
+            <p className="text-xs sm:text-sm text-[#4F6355]">
               Stay updated on your order status and track your delivery in real time.
             </p>
           </div>
@@ -169,11 +169,11 @@ export const TrackOrderPage: React.FC = () => {
               value={trackingIdInput}
               onChange={(e) => setTrackingIdInput(e.target.value)}
               placeholder="Enter Order # or Tracking ID"
-              className="bg-white border border-r-0 border-[#DEC3B4] rounded-l px-3.5 py-2 text-xs text-[#2D141A] focus:outline-none focus:border-[#AC1443]"
+              className="bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3.5 py-2 text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
             />
             <button
               type="submit"
-              className="bg-[#AC1443] hover:bg-[#860E33] text-white px-5 rounded-r font-semibold text-xs transition-colors"
+              className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-5 rounded-r font-semibold text-xs transition-colors"
             >
               Track
             </button>
@@ -183,38 +183,38 @@ export const TrackOrderPage: React.FC = () => {
 
       {/* 3. Order Top Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-[#EEDCD1] shadow-xs">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-[#D8C7B5] shadow-xs">
           <div>
-            <span className="text-[11px] text-[#74565D] font-bold uppercase flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5 text-[#AC1443]" /> Order Number
+            <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5 text-[#285A3C]" /> Order Number
             </span>
-            <p className="font-bold text-sm text-[#2D141A] mt-0.5">#{currentOrder.orderNumber}</p>
+            <p className="font-bold text-sm text-[#1A3B2B] mt-0.5">#{currentOrder.orderNumber}</p>
           </div>
 
           <div>
-            <span className="text-[11px] text-[#74565D] font-bold uppercase flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#AC1443]" /> Order Date
+            <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-[#285A3C]" /> Order Date
             </span>
-            <p className="font-bold text-sm text-[#2D141A] mt-0.5">{currentOrder.date}</p>
+            <p className="font-bold text-sm text-[#1A3B2B] mt-0.5">{currentOrder.date}</p>
           </div>
 
           <div>
-            <span className="text-[11px] text-[#74565D] font-bold uppercase flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-[#AC1443]" /> Total Amount
+            <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total Amount
             </span>
-            <p className="font-bold text-sm text-[#AC1443] mt-0.5">
+            <p className="font-bold text-sm text-[#285A3C] mt-0.5">
               ₹{currentOrder.total.toLocaleString('en-IN')}{' '}
-              <span className="text-[10px] text-[#74565D] font-normal">(Paid via {currentOrder.paymentMethod.toUpperCase()})</span>
+              <span className="text-[10px] text-[#4F6355] font-normal">(Paid via {currentOrder.paymentMethod.toUpperCase()})</span>
             </p>
           </div>
 
           <div>
-            <span className="text-[11px] text-[#74565D] font-bold uppercase flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-[#2F6923]" /> Order Status
+            <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-[#285A3C]" /> Order Status
             </span>
-            <p className="font-bold text-sm text-[#2F6923] mt-0.5 flex items-center gap-1">
+            <p className="font-bold text-sm text-[#285A3C] mt-0.5 flex items-center gap-1">
               <span>Out for Delivery</span>
-              <span className="text-[10px] font-normal text-[#74565D]">(Arriving Today)</span>
+              <span className="text-[10px] font-normal text-[#4F6355]">(Arriving Today)</span>
             </p>
           </div>
         </div>
@@ -222,51 +222,51 @@ export const TrackOrderPage: React.FC = () => {
 
       {/* 4. Horizontal Delivery Progress Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-white rounded-xl border border-[#EEDCD1] p-6 shadow-xs">
+        <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 shadow-xs">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 relative">
             {/* Step 1 */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#AC1443] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
                 ✓
               </div>
-              <h4 className="font-bold text-xs text-[#2D141A]">Order Placed</h4>
-              <p className="text-[10px] text-[#74565D]">21 Oct, 09:41 AM</p>
+              <h4 className="font-bold text-xs text-[#1A3B2B]">Order Placed</h4>
+              <p className="text-[10px] text-[#4F6355]">21 Oct, 09:41 AM</p>
             </div>
 
             {/* Step 2 */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#AC1443] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
                 ✓
               </div>
-              <h4 className="font-bold text-xs text-[#2D141A]">Processing</h4>
-              <p className="text-[10px] text-[#74565D]">21 Oct, 11:30 AM</p>
+              <h4 className="font-bold text-xs text-[#1A3B2B]">Processing</h4>
+              <p className="text-[10px] text-[#4F6355]">21 Oct, 11:30 AM</p>
             </div>
 
             {/* Step 3 */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#AC1443] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
                 ✓
               </div>
-              <h4 className="font-bold text-xs text-[#2D141A]">Shipped</h4>
-              <p className="text-[10px] text-[#74565D]">22 Oct, 10:15 AM</p>
+              <h4 className="font-bold text-xs text-[#1A3B2B]">Shipped</h4>
+              <p className="text-[10px] text-[#4F6355]">22 Oct, 10:15 AM</p>
             </div>
 
             {/* Step 4: Active */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#AC1443] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-md animate-bounce">
+              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-md animate-bounce">
                 🚚
               </div>
-              <h4 className="font-bold text-xs text-[#AC1443]">Out for Delivery</h4>
-              <p className="text-[10px] text-[#74565D]">23 Oct, 08:20 AM</p>
+              <h4 className="font-bold text-xs text-[#285A3C]">Out for Delivery</h4>
+              <p className="text-[10px] text-[#4F6355]">23 Oct, 08:20 AM</p>
             </div>
 
             {/* Step 5 */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#FAF2EB] border border-[#DEC3B4] text-[#9B8086] flex items-center justify-center text-xs font-bold mb-1">
+              <div className="w-7 h-7 rounded-full bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92] flex items-center justify-center text-xs font-bold mb-1">
                 5
               </div>
-              <h4 className="font-bold text-xs text-[#9B8086]">Delivered</h4>
-              <p className="text-[10px] text-[#9B8086]">Expected by 06:00 PM</p>
+              <h4 className="font-bold text-xs text-[#8E9B92]">Delivered</h4>
+              <p className="text-[10px] text-[#8E9B92]">Expected by 06:00 PM</p>
             </div>
           </div>
         </div>
@@ -276,8 +276,8 @@ export const TrackOrderPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: Items in Order */}
-          <div className="lg:col-span-4 bg-white rounded-xl border border-[#EEDCD1] p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#2D141A] pb-2 border-b border-[#EEDCD1]">
+          <div className="lg:col-span-4 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5]">
               Items in this Order ({currentOrder.items.length})
             </h3>
             <div className="space-y-3">
@@ -286,14 +286,14 @@ export const TrackOrderPage: React.FC = () => {
                   <img
                     src={item.imageUrl}
                     alt={item.productTitle}
-                    className="w-12 h-14 object-cover rounded border border-[#EEDCD1]"
+                    className="w-12 h-14 object-cover rounded border border-[#D8C7B5]"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#2D141A] truncate">{item.productTitle}</p>
-                    <p className="text-[11px] text-[#74565D]">
+                    <p className="font-semibold text-[#1A3B2B] truncate">{item.productTitle}</p>
+                    <p className="text-[11px] text-[#4F6355]">
                       {item.variantColor} | Qty: {item.quantity}
                     </p>
-                    <p className="font-bold text-[#AC1443]">₹{item.price.toLocaleString('en-IN')}</p>
+                    <p className="font-bold text-[#1A3B2B]">₹{item.price.toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               ))}
@@ -301,59 +301,59 @@ export const TrackOrderPage: React.FC = () => {
           </div>
 
           {/* Center: Live Tracking Milestones */}
-          <div className="lg:col-span-5 bg-white rounded-xl border border-[#EEDCD1] p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#2D141A] pb-2 border-b border-[#EEDCD1] flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#AC1443]" />
+          <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#285A3C]" />
               <span>Tracking Details</span>
             </h3>
 
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#AC1443]/30 text-xs">
+            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#285A3C]/30 text-xs">
               {/* Event 1 */}
               <div className="relative">
-                <span className="absolute -left-6 top-0.5 w-3.5 h-3.5 rounded-full bg-[#AC1443] ring-4 ring-[#FBE5EB]" />
-                <h4 className="font-bold text-[#AC1443]">Out for Delivery</h4>
-                <p className="text-[10px] text-[#74565D]">23 Oct 2026, 08:20 AM</p>
-                <p className="text-xs text-[#2D141A] mt-0.5">
+                <span className="absolute -left-6 top-0.5 w-3.5 h-3.5 rounded-full bg-[#285A3C] ring-4 ring-[#D0E9C0]" />
+                <h4 className="font-bold text-[#285A3C]">Out for Delivery</h4>
+                <p className="text-[10px] text-[#4F6355]">23 Oct 2026, 08:20 AM</p>
+                <p className="text-xs text-[#1A3B2B] mt-0.5">
                   Your package is out for delivery and will arrive today.
                 </p>
               </div>
 
               {/* Event 2 */}
               <div className="relative">
-                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#AC1443]" />
-                <h4 className="font-semibold text-[#2D141A]">In Transit</h4>
-                <p className="text-[10px] text-[#74565D]">22 Oct 2026, 09:45 PM</p>
-                <p className="text-xs text-[#74565D]">
+                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#285A3C]" />
+                <h4 className="font-semibold text-[#1A3B2B]">In Transit</h4>
+                <p className="text-[10px] text-[#4F6355]">22 Oct 2026, 09:45 PM</p>
+                <p className="text-xs text-[#4F6355]">
                   Your package has reached Hyderabad Sortation Center.
                 </p>
               </div>
 
               {/* Event 3 */}
               <div className="relative">
-                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#AC1443]" />
-                <h4 className="font-semibold text-[#2D141A]">Shipped</h4>
-                <p className="text-[10px] text-[#74565D]">22 Oct 2026, 10:15 AM</p>
-                <p className="text-xs text-[#74565D]">
+                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#285A3C]" />
+                <h4 className="font-semibold text-[#1A3B2B]">Shipped</h4>
+                <p className="text-[10px] text-[#4F6355]">22 Oct 2026, 10:15 AM</p>
+                <p className="text-xs text-[#4F6355]">
                   Your package has been shipped from our Kanchipuram central warehouse.
                 </p>
               </div>
 
               {/* Event 4 */}
               <div className="relative">
-                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#AC1443]" />
-                <h4 className="font-semibold text-[#2D141A]">Processing</h4>
-                <p className="text-[10px] text-[#74565D]">21 Oct 2026, 11:30 AM</p>
-                <p className="text-xs text-[#74565D]">
+                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#285A3C]" />
+                <h4 className="font-semibold text-[#1A3B2B]">Processing</h4>
+                <p className="text-[10px] text-[#4F6355]">21 Oct 2026, 11:30 AM</p>
+                <p className="text-xs text-[#4F6355]">
                   Your handloom garments were ironed, quality verified, and packed.
                 </p>
               </div>
 
               {/* Event 5 */}
               <div className="relative">
-                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#AC1443]" />
-                <h4 className="font-semibold text-[#2D141A]">Order Placed</h4>
-                <p className="text-[10px] text-[#74565D]">21 Oct 2026, 09:41 AM</p>
-                <p className="text-xs text-[#74565D]">
+                <span className="absolute -left-6 top-0.5 w-3 h-3 rounded-full bg-[#285A3C]" />
+                <h4 className="font-semibold text-[#1A3B2B]">Order Placed</h4>
+                <p className="text-[10px] text-[#4F6355]">21 Oct 2026, 09:41 AM</p>
+                <p className="text-xs text-[#4F6355]">
                   Your order has been confirmed.
                 </p>
               </div>
@@ -363,31 +363,31 @@ export const TrackOrderPage: React.FC = () => {
           {/* Right: Courier Partner & Help */}
           <div className="lg:col-span-3 space-y-4">
             {/* Delivery Address */}
-            <div className="bg-white rounded-xl border border-[#EEDCD1] p-5 shadow-xs text-xs space-y-2">
-              <h3 className="font-bold uppercase tracking-wider text-[#2D141A] pb-2 border-b border-[#EEDCD1] flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#AC1443]" />
+            <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-2">
+              <h3 className="font-bold uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#285A3C]" />
                 <span>Delivery Address</span>
               </h3>
-              <p className="font-bold text-[#2D141A]">{currentOrder.shippingAddress.fullName}</p>
-              <p className="text-[#74565D]">{currentOrder.shippingAddress.streetAddress}</p>
-              <p className="text-[#74565D]">{currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} - {currentOrder.shippingAddress.pincode}</p>
-              <p className="text-[#74565D]">Phone: {currentOrder.shippingAddress.phone}</p>
+              <p className="font-bold text-[#1A3B2B]">{currentOrder.shippingAddress.fullName}</p>
+              <p className="text-[#4F6355]">{currentOrder.shippingAddress.streetAddress}</p>
+              <p className="text-[#4F6355]">{currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} - {currentOrder.shippingAddress.pincode}</p>
+              <p className="text-[#4F6355]">Phone: {currentOrder.shippingAddress.phone}</p>
             </div>
 
             {/* Courier Partner Card */}
-            <div className="bg-[#FAF2EB] rounded-xl border border-[#EEDCD1] p-5 shadow-xs text-xs space-y-3">
-              <h3 className="font-bold uppercase tracking-wider text-[#2D141A] flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-[#AC1443]" />
+            <div className="bg-[#FAF5EE] rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-3">
+              <h3 className="font-bold uppercase tracking-wider text-[#1A3B2B] flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-[#285A3C]" />
                 <span>Shipping Partner</span>
               </h3>
 
               <div className="space-y-1">
-                <p className="font-bold text-sm text-[#2D141A]">Delhivery Express</p>
-                <div className="flex items-center justify-between text-[#74565D]">
+                <p className="font-bold text-sm text-[#1A3B2B]">Delhivery Express</p>
+                <div className="flex items-center justify-between text-[#4F6355]">
                   <span>ID: {currentOrder.trackingId || '149087654321'}</span>
                   <button
                     onClick={handleCopyTracking}
-                    className="p-1 text-[#AC1443] hover:underline flex items-center gap-1 font-semibold"
+                    className="p-1 text-[#285A3C] hover:underline flex items-center gap-1 font-semibold"
                   >
                     <Copy className="w-3 h-3" />
                     <span>Copy</span>
@@ -399,22 +399,22 @@ export const TrackOrderPage: React.FC = () => {
                 href={`https://www.delhivery.com/track/package/${currentOrder.trackingId || '149087654321'}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full bg-white border border-[#DEC3B4] hover:border-[#AC1443] text-[#2D141A] py-2 rounded font-semibold text-center block transition-colors shadow-xs"
+                className="w-full bg-white border border-[#BCD8AA] hover:border-[#285A3C] text-[#1A3B2B] py-2 rounded font-semibold text-center block transition-colors shadow-xs"
               >
                 Track on Delhivery
               </a>
             </div>
 
             {/* Support Box */}
-            <div className="bg-white rounded-xl border border-[#EEDCD1] p-5 shadow-xs text-xs space-y-2 text-center">
-              <HelpCircle className="w-5 h-5 text-[#AC1443] mx-auto" />
-              <h4 className="font-bold text-[#2D141A]">Need Help With Your Order?</h4>
-              <p className="text-[#74565D] text-[11px]">
+            <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-2 text-center">
+              <HelpCircle className="w-5 h-5 text-[#285A3C] mx-auto" />
+              <h4 className="font-bold text-[#1A3B2B]">Need Help With Your Order?</h4>
+              <p className="text-[#4F6355] text-[11px]">
                 Facing any delays or require address changes? Our customer support team is available 24/7.
               </p>
               <Link
                 to="/contact"
-                className="inline-block text-[#AC1443] font-bold hover:underline pt-1"
+                className="inline-block text-[#285A3C] font-bold hover:underline pt-1"
               >
                 Contact Customer Support →
               </Link>

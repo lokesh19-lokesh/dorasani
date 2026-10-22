@@ -18,7 +18,7 @@ export const RootLayout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FFF9F5] text-[#2D141A]">
+    <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
       <AnnouncementBar />
       <Header onOpenCart={() => setIsCartOpen(true)} />
       <Navbar />
