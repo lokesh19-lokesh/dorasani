@@ -28,8 +28,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
   return (
     <>
       <header className="bg-[#FAF5EE] lg:bg-transparent transition-all duration-200 relative z-10 w-full overflow-hidden">
-        {/* 3-Column Balanced Layout - Logo centered independently of left and right content widths */}
-        <div className="w-full px-3 sm:px-8 lg:px-12 py-2.5 sm:py-3.5 relative z-10">
+        {/* 3-Column Balanced Layout - Content constrained within clear center area */}
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-14 xl:px-20 py-2.5 sm:py-3.5 relative z-10">
           <div className="grid grid-cols-[auto_1fr_auto] lg:grid-cols-3 items-center">
             {/* Left Column: Mobile Hamburger or Desktop Decorative Space */}
             <div className="flex items-center">
@@ -61,20 +61,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
             </div>
 
             {/* Right Column: Search field, Account, Wishlist, and Shopping Bag */}
-            <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-5 justify-end">
+            <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 justify-end">
               {/* Desktop Search Bar */}
               <form
                 onSubmit={handleSearchSubmit}
-                className="hidden lg:flex items-center relative w-48 xl:w-56"
+                className="hidden lg:flex items-center relative w-44 xl:w-52"
               >
                 <input
                   type="text"
-                  placeholder="Search for sarees, lehengas..."
+                  placeholder="Search sarees, lehengas..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-[#D8C7B5] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#18482C] placeholder:text-[#8E9B92] focus:outline-none focus:border-[#18482C] focus:ring-1 focus:ring-[#18482C] transition-all shadow-2xs"
+                  className="w-full bg-[#FAF5EE]/90 hover:bg-white focus:bg-white border border-[#D8C7B5] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#18482C] placeholder:text-[#647268] focus:outline-none focus:border-[#18482C] focus:ring-1 focus:ring-[#18482C] transition-all shadow-xs backdrop-blur-xs font-medium"
                 />
-                <Search className="w-3.5 h-3.5 text-[#647268] absolute left-3 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3 pointer-events-none" />
               </form>
 
               {/* Mobile Search Icon Toggle */}
@@ -86,55 +86,90 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <Search className="w-5 h-5" />
               </button>
 
-              {/* Account Link (Desktop Only, available in bottom bar on mobile) */}
-              <Link
-                to={user ? '/account' : '/login'}
-                className="hidden sm:flex flex-col items-center p-1 text-[#18482C] hover:text-[#113520] transition-colors"
-                title={user ? `Signed in as ${user.fullName}` : 'Login / Register'}
-              >
-                <User className="w-5 h-5 stroke-[1.7]" />
-                <span className="hidden lg:inline text-[10px] font-medium tracking-wider mt-0.5">
-                  Account
-                </span>
-              </Link>
+              {/* Desktop Account, Wishlist, Bag Action Group */}
+              <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-[#FAF5EE]/90 backdrop-blur-md px-3 py-1 rounded-full border border-[#D8C7B5] shadow-xs">
+                {/* Account Link */}
+                <Link
+                  to={user ? '/account' : '/login'}
+                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70"
+                  title={user ? `Signed in as ${user.fullName}` : 'Login / Register'}
+                >
+                  <User className="w-4 h-4 stroke-[2]" />
+                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                    {user ? 'Account' : 'Login'}
+                  </span>
+                </Link>
 
-              {/* Wishlist Link */}
-              <Link
-                to="/wishlist"
-                className="flex flex-col items-center p-1 text-[#18482C] hover:text-[#113520] transition-colors relative"
-                title="View Wishlist"
-              >
-                <div className="relative">
-                  <Heart className="w-5 h-5 stroke-[1.7]" />
+                <span className="text-[#18482C]/25 text-xs">|</span>
+
+                {/* Wishlist Link */}
+                <Link
+                  to="/wishlist"
+                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
+                  title="View Wishlist"
+                >
+                  <div className="relative">
+                    <Heart className="w-4 h-4 stroke-[2]" />
+                    {wishlistCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-[#18482C] text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                        {wishlistCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                    Wishlist
+                  </span>
+                </Link>
+
+                <span className="text-[#18482C]/25 text-xs">|</span>
+
+                {/* Bag (Cart) Button */}
+                <button
+                  onClick={onOpenCart}
+                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
+                  title="View Shopping Bag"
+                >
+                  <div className="relative">
+                    <ShoppingBag className="w-4 h-4 stroke-[2]" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-[#18482C] text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                        {cartCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                    Bag
+                  </span>
+                </button>
+              </div>
+
+              {/* Mobile Wishlist & Cart Icons */}
+              <div className="sm:hidden flex items-center space-x-1">
+                <Link
+                  to="/wishlist"
+                  className="p-1.5 text-[#18482C] relative"
+                  title="View Wishlist"
+                >
+                  <Heart className="w-5 h-5 stroke-[1.8]" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-[#18482C] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute 0 top-0.5 right-0 bg-[#18482C] text-white text-[8.5px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                       {wishlistCount}
                     </span>
                   )}
-                </div>
-                <span className="hidden lg:inline text-[10px] font-medium tracking-wider mt-0.5">
-                  Wishlist
-                </span>
-              </Link>
-
-              {/* Bag (Cart) Button */}
-              <button
-                onClick={onOpenCart}
-                className="flex flex-col items-center p-1 text-[#18482C] hover:text-[#113520] transition-colors relative"
-                title="View Shopping Bag"
-              >
-                <div className="relative">
-                  <ShoppingBag className="w-5 h-5 stroke-[1.7]" />
+                </Link>
+                <button
+                  onClick={onOpenCart}
+                  className="p-1.5 text-[#18482C] relative"
+                  title="View Shopping Bag"
+                >
+                  <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-[#18482C] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute 0 top-0.5 right-0 bg-[#18482C] text-white text-[8.5px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                       {cartCount}
                     </span>
                   )}
-                </div>
-                <span className="hidden lg:inline text-[10px] font-medium tracking-wider mt-0.5">
-                  Bag
-                </span>
-              </button>
+                </button>
+              </div>
             </div>
           </div>
 

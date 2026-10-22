@@ -17,18 +17,18 @@ const NAV_ITEMS = [
 
 export const Navbar: React.FC = () => {
   return (
-    <nav className="hidden lg:block bg-transparent text-[13px] tracking-wide py-2.5 relative z-10 w-full">
-      <div className="w-full px-4 sm:px-8">
-        <ul className="flex items-center justify-center space-x-6 xl:space-x-8">
+    <nav className="hidden lg:block bg-transparent py-2.5 relative z-10 w-full">
+      <div className="max-w-[1240px] mx-auto px-4 flex justify-center">
+        <ul className="inline-flex items-center justify-center flex-wrap gap-x-3.5 xl:gap-x-6 gap-y-1 bg-[#FAF5EE]/90 backdrop-blur-md px-5 xl:px-7 py-1.5 rounded-full border border-[#D8C7B5] shadow-xs">
           {NAV_ITEMS.map((item) => (
-            <li key={item.path}>
+            <li key={item.path} className="shrink-0">
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `relative py-1 font-medium transition-all duration-200 block ${
+                  `relative py-0.5 px-2 font-semibold text-[12.5px] xl:text-[13px] tracking-wide transition-all duration-200 block rounded-full ${
                     isActive
-                      ? 'text-[#18482C] font-semibold'
-                      : 'text-[#18482C]/85 hover:text-[#18482C]'
+                      ? 'text-[#113520] font-bold bg-[#D0E9C0]/60'
+                      : 'text-[#18482C] hover:text-[#0D2818] hover:bg-white/60'
                   }`
                 }
               >
@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
                   <>
                     <span>{item.name}</span>
                     {isActive && (
-                      <span className="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-[#18482C] rounded-full animate-in fade-in" />
+                      <span className="absolute -bottom-1 left-2 right-2 h-[2px] bg-[#18482C] rounded-full animate-in fade-in" />
                     )}
                   </>
                 )}
