@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 
 export const Navbar: React.FC = () => {
   return (
-    <nav className="hidden lg:block bg-[#FAF5EE] border-b border-[#E8DCCF] text-[13px] tracking-wide py-2.5 relative z-20 w-full">
+    <nav className="hidden lg:block bg-transparent text-[13px] tracking-wide py-2.5 relative z-10 w-full">
       <div className="w-full px-4 sm:px-8">
         <ul className="flex items-center justify-center space-x-6 xl:space-x-8">
           {NAV_ITEMS.map((item) => (

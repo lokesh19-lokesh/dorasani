@@ -20,8 +20,19 @@ export const RootLayout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
       <AnnouncementBar />
-      <Header onOpenCart={() => setIsCartOpen(true)} />
-      <Navbar />
+
+      {/* Desktop Header and Navbar unified wrapper with navbar.png background */}
+      <div className="sticky top-0 z-30 w-full bg-[#FAF5EE] border-b border-[#E8DCCF]">
+        <div className="hidden lg:block absolute inset-0 pointer-events-none select-none z-0 overflow-hidden">
+          <img
+            src="/assets/hero/desktop/navbar.png"
+            alt=""
+            className="w-full h-full object-cover object-top"
+          />
+        </div>
+        <Header onOpenCart={() => setIsCartOpen(true)} />
+        <Navbar />
+      </div>
 
       <main className="flex-1 pb-16 lg:pb-0">
         <Outlet />
