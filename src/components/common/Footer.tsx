@@ -354,7 +354,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Copyright */}
         <div className="pt-8 mt-8 border-t border-[#D8C7B5] text-center text-[11px] text-[#4F6355] pb-16 lg:pb-0 flex flex-col items-center gap-1.5">
-          <p>© 2024 DORASANI. All rights reserved.</p>
+          <p>© 2026 DORASANI. All rights reserved.</p>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('dorasani:replay-preloader'))}
             className="inline-flex items-center gap-1 text-[11px] text-[#285A3C] hover:text-[#18482C] font-serif italic underline underline-offset-4 cursor-pointer transition-colors"
