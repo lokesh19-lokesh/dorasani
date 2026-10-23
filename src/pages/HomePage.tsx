@@ -151,203 +151,208 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. SHOP BY CATEGORY (100% Matching Pic 2 & Pic 4) */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex-1 text-center">
-            <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] flex items-center justify-center gap-2">
-              <span className="text-[#285A3C] text-sm">✦</span>
-              <span>Shop by Category</span>
-              <span className="text-[#285A3C] text-sm">✦</span>
-            </h2>
-          </div>
+      {/* ── DESKTOP-ONLY TEMPLE BACKGROUND WRAPPER (Shop by Category, New Arrivals, Service-Benefits) ── */}
+      <div className="w-full relative lg:bg-[url('/assets/hero/ShopbyCategoryandNewArrivalsbackground.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-7 lg:pb-2">
+        {/* 2. SHOP BY CATEGORY (100% Matching Pic 2 & Pic 4) */}
+        <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-5 sm:mb-6">
+            <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3">
+              <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+              <span className="text-[#C29336] text-[10px]">✦</span>
+              <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] tracking-tight">
+                Shop by Category
+              </h2>
+              <span className="text-[#C29336] text-[10px]">✦</span>
+              <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+            </div>
 
-          <Link
-            to="/shop"
-            className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* 7 Category Arch Cards + Right Celebration Banner */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Category Cards (7 items) */}
-          <div className="lg:col-span-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3 sm:gap-4 items-end">
-            {CATEGORIES.slice(0, 7).map((cat) => (
-              <CategoryCard key={cat.id} category={cat} />
-            ))}
-          </div>
-
-          {/* Right Feature Card: A Celebration of Our Heritage */}
-          <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
-            <Link to="/collections/festive" className="block relative h-full min-h-[220px]">
-              <img
-                src="/assets/hero/ShopbyCategoryhomepage.png"
-                alt="A Celebration of Our Heritage - Festive Styles"
-                className="w-full h-full object-cover object-center min-h-[220px] transition-transform duration-500 group-hover:scale-102"
-              />
-              {/* Overlay Content matching Reference Design */}
-              <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-6 md:px-7 lg:px-5 xl:px-6 z-10 max-w-[62%] sm:max-w-[55%] pointer-events-none">
-                <h3 className="font-serif-royal text-xl sm:text-2xl lg:text-[22px] xl:text-[26px] font-bold text-[#143D24] leading-[1.15] tracking-tight">
-                  A Celebration<br />
-                  <span>of Our Heritage</span>
-                </h3>
-
-                {/* Subtle Golden Ornamental Divider */}
-                <div className="flex items-center gap-1.5 my-2 sm:my-2.5">
-                  <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
-                  <span className="text-[#C29336] text-[9px] leading-none">✦</span>
-                  <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
-                </div>
-
-                <p className="text-xs sm:text-[13px] text-[#2C3B30] font-normal leading-snug sm:leading-relaxed mb-3 sm:mb-4">
-                  Elegant styles for festivals, weddings and meaningful occasions.
-                </p>
-
-                <div>
-                  <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded shadow-md transition-colors pointer-events-auto">
-                    <span>Explore Festive Styles</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
+            <Link
+              to="/shop"
+              className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors shrink-0"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* 3. NEW ARRIVALS */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-4 sm:mb-5">
-          <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3">
-            <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
-            <span className="text-[#C29336] text-[10px]">✦</span>
-            <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] tracking-tight">
-              New Arrivals
-            </h2>
-            <span className="text-[#C29336] text-[10px]">✦</span>
-            <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
-          </div>
+          {/* 7 Category Arch Cards + Right Celebration Banner */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Category Cards (7 items) */}
+            <div className="lg:col-span-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3 sm:gap-4 items-end">
+              {CATEGORIES.slice(0, 7).map((cat) => (
+                <CategoryCard key={cat.id} category={cat} />
+              ))}
+            </div>
 
-          <Link
-            to="/collections/new-arrivals"
-            className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors shrink-0"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* 4 Product Cards + Right Legacy Banner */}
-        <div className="flex flex-col lg:flex-row gap-3.5 xl:gap-4 items-stretch">
-          {/* 4 Products on Left - decreased width and height to fit */}
-          <div className="w-full lg:w-[55%] xl:w-[54%] shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3">
-            {newArrivals.map((product) => (
-              <ProductCard key={product.id} product={product} compact={true} />
-            ))}
-          </div>
-
-          {/* Right Feature Card: Increased width, decreased height, full image visible */}
-          <div className="w-full lg:w-[45%] xl:w-[46%] flex-1 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
-            <Link to="/about" className="block relative w-full h-full min-h-[190px] sm:min-h-[210px]">
-              <img
-                src="/assets/hero/NewArrivalsbrander.png"
-                alt="A Legacy of Beauty. A Spirit of Tradition."
-                className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
-              />
-              {/* Overlay Content matching Picture 3 and Picture 4 */}
-              <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
-                <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
-                  <h3 className="font-serif-royal text-sm sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
-                    A Legacy of Beauty.<br />
-                    <span>A Spirit of Tradition.</span>
+            {/* Right Feature Card: A Celebration of Our Heritage */}
+            <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
+              <Link to="/collections/festive" className="block relative h-full min-h-[220px]">
+                <img
+                  src="/assets/hero/ShopbyCategoryhomepage.png"
+                  alt="A Celebration of Our Heritage - Festive Styles"
+                  className="w-full h-full object-cover object-center min-h-[220px] transition-transform duration-500 group-hover:scale-102"
+                />
+                {/* Overlay Content matching Reference Design */}
+                <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-6 md:px-7 lg:px-5 xl:px-6 z-10 max-w-[62%] sm:max-w-[55%] pointer-events-none">
+                  <h3 className="font-serif-royal text-xl sm:text-2xl lg:text-[22px] xl:text-[26px] font-bold text-[#143D24] leading-[1.15] tracking-tight">
+                    A Celebration<br />
+                    <span>of Our Heritage</span>
                   </h3>
 
-                  <p className="text-[10px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1.5 sm:my-2 line-clamp-2 sm:line-clamp-3">
-                    DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
+                  {/* Subtle Golden Ornamental Divider */}
+                  <div className="flex items-center gap-1.5 my-2 sm:my-2.5">
+                    <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
+                    <span className="text-[#C29336] text-[9px] leading-none">✦</span>
+                    <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
+                  </div>
+
+                  <p className="text-xs sm:text-[13px] text-[#2C3B30] font-normal leading-snug sm:leading-relaxed mb-3 sm:mb-4">
+                    Elegant styles for festivals, weddings and meaningful occasions.
                   </p>
 
-                  <div className="pt-0.5">
-                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[11px] sm:text-xs font-semibold px-3.5 sm:px-4 py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
-                      <span>Our Story</span>
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded shadow-md transition-colors pointer-events-auto">
+                      <span>Explore Festive Styles</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. NEW ARRIVALS */}
+        <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 mt-7 sm:mt-8 lg:mt-7">
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
+            <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3">
+              <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+              <span className="text-[#C29336] text-[10px]">✦</span>
+              <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] tracking-tight">
+                New Arrivals
+              </h2>
+              <span className="text-[#C29336] text-[10px]">✦</span>
+              <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+            </div>
+
+            <Link
+              to="/collections/new-arrivals"
+              className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors shrink-0"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* 4. PASTEL PISTACHIO TRUST STRIP (100% Matching Pic 2 & Pic 4) */}
-      <section className="relative overflow-hidden bg-[#D0E9C0] border-y border-[#BCD8AA] py-6 sm:py-8 mt-12">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-[#1A3B2B]">
-            {/* 1. Thoughtfully Curated Fashion */}
-            <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
-              <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0]">
-                <Sparkles className="w-6 h-6 text-[#1A3B2B]" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
-                  Thoughtfully Curated Fashion
-                </h4>
-                <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
-                  Premium fabrics and timeless designs
-                </p>
-              </div>
+          {/* 4 Product Cards + Right Legacy Banner */}
+          <div className="flex flex-col lg:flex-row gap-3.5 xl:gap-4 items-stretch">
+            {/* 4 Products on Left - decreased width and height to fit */}
+            <div className="w-full lg:w-[55%] xl:w-[54%] shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3">
+              {newArrivals.map((product) => (
+                <ProductCard key={product.id} product={product} compact={true} />
+              ))}
             </div>
 
-            {/* 2. Secure Payments */}
-            <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
-              <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0]">
-                <ShieldCheck className="w-6 h-6 text-[#1A3B2B]" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
-                  Secure Payments
-                </h4>
-                <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
-                  100% safe and encrypted
-                </p>
-              </div>
-            </div>
+            {/* Right Feature Card: Increased width, decreased height, full image visible */}
+            <div className="w-full lg:w-[45%] xl:w-[46%] flex-1 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
+              <Link to="/about" className="block relative w-full h-full min-h-[190px] sm:min-h-[210px]">
+                <img
+                  src="/assets/hero/NewArrivalsbrander.png"
+                  alt="A Legacy of Beauty. A Spirit of Tradition."
+                  className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
+                />
+                {/* Overlay Content matching Picture 3 and Picture 4 */}
+                <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
+                  <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
+                    <h3 className="font-serif-royal text-sm sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
+                      A Legacy of Beauty.<br />
+                      <span>A Spirit of Tradition.</span>
+                    </h3>
 
-            {/* 3. Reliable Delivery */}
-            <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
-              <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0]">
-                <Truck className="w-6 h-6 text-[#1A3B2B]" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
-                  Reliable Delivery
-                </h4>
-                <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
-                  Pan India shipping
-                </p>
-              </div>
-            </div>
+                    <p className="text-[10px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1.5 sm:my-2 line-clamp-2 sm:line-clamp-3">
+                      DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
+                    </p>
 
-            {/* 4. Customer Support */}
-            <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
-              <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0]">
-                <Headphones className="w-6 h-6 text-[#1A3B2B]" />
+                    <div className="pt-0.5">
+                      <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[11px] sm:text-xs font-semibold px-3.5 sm:px-4 py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
+                        <span>Our Story</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 4. PASTEL PISTACHIO TRUST STRIP (Integrated with painted green band on desktop) */}
+        <section className="relative overflow-hidden bg-[#D0E9C0] lg:bg-transparent border-y border-[#BCD8AA] lg:border-y-0 py-6 sm:py-8 lg:py-5 lg:pb-6 mt-12 lg:mt-6">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-[#1A3B2B]">
+              {/* 1. Thoughtfully Curated Fashion */}
+              <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
+                <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0] lg:bg-transparent">
+                  <Sparkles className="w-6 h-6 text-[#1A3B2B]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
+                    Thoughtfully Curated Fashion
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
+                    Premium fabrics and timeless designs
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
-                  Customer Support
-                </h4>
-                <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
-                  Here to help always
-                </p>
+
+              {/* 2. Secure Payments */}
+              <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
+                <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0] lg:bg-transparent">
+                  <ShieldCheck className="w-6 h-6 text-[#1A3B2B]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
+                    Secure Payments
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
+                    100% safe and encrypted
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. Reliable Delivery */}
+              <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
+                <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0] lg:bg-transparent">
+                  <Truck className="w-6 h-6 text-[#1A3B2B]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
+                    Reliable Delivery
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
+                    Pan India shipping
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. Customer Support */}
+              <div className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
+                <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0] lg:bg-transparent">
+                  <Headphones className="w-6 h-6 text-[#1A3B2B]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
+                    Customer Support
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
+                    Here to help always
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* 5. CUSTOMER TESTIMONIALS */}
       <section className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 text-center">
