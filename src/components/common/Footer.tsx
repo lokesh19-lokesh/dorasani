@@ -359,9 +359,9 @@ export const Footer: React.FC = () => {
             onClick={() => window.dispatchEvent(new CustomEvent('dorasani:replay-preloader'))}
             className="inline-flex items-center gap-1 text-[11px] text-[#285A3C] hover:text-[#18482C] font-serif italic underline underline-offset-4 cursor-pointer transition-colors"
           >
-            <span>✦</span>
+            {/* <span>✦</span>
             <span>Replay Cinematic Experience</span>
-            <span>✦</span>
+            <span>✦</span> */}
           </button>
           <p className="text-[10px] text-[#8E9B92]">
             Inspired by Temple Architecture & Traditional Indian Weaves
