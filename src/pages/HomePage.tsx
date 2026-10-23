@@ -218,20 +218,22 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. NEW ARRIVALS (100% Matching Pic 2 & Pic 4) */}
+      {/* 3. NEW ARRIVALS */}
       <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex-1 text-center">
-            <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] flex items-center justify-center gap-2">
-              <span className="text-[#285A3C] text-sm">✦</span>
-              <span>New Arrivals</span>
-              <span className="text-[#285A3C] text-sm">✦</span>
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
+          <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3">
+            <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+            <span className="text-[#C29336] text-[10px]">✦</span>
+            <h2 className="font-serif-royal text-xl sm:text-2xl md:text-3xl font-bold text-[#1A3B2B] tracking-tight">
+              New Arrivals
             </h2>
+            <span className="text-[#C29336] text-[10px]">✦</span>
+            <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
           </div>
 
           <Link
             to="/collections/new-arrivals"
-            className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors"
+            className="flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D] transition-colors shrink-0"
           >
             <span>View All</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -239,36 +241,36 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* 4 Product Cards + Right Legacy Banner */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* 4 Products on Left */}
-          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="flex flex-col lg:flex-row gap-3.5 xl:gap-4 items-stretch">
+          {/* 4 Products on Left - decreased width and height to fit */}
+          <div className="w-full lg:w-[55%] xl:w-[54%] shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 md:gap-3">
             {newArrivals.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} compact={true} />
             ))}
           </div>
 
-          {/* Right Feature Card: A Legacy of Beauty. A Spirit of Tradition. */}
-          <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] flex flex-col h-full">
-            <Link to="/about" className="block relative w-full h-full min-h-[280px] sm:min-h-[310px]">
+          {/* Right Feature Card: Increased width, decreased height, full image visible */}
+          <div className="w-full lg:w-[45%] xl:w-[46%] flex-1 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
+            <Link to="/about" className="block relative w-full h-full min-h-[190px] sm:min-h-[210px]">
               <img
                 src="/assets/hero/NewArrivalsbrander.png"
                 alt="A Legacy of Beauty. A Spirit of Tradition."
-                className="w-full h-full object-cover object-[20%_center] sm:object-center transition-transform duration-500 group-hover:scale-102"
+                className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
               />
               {/* Overlay Content matching Picture 3 and Picture 4 */}
-              <div className="absolute inset-0 flex flex-col justify-center items-end pr-4 sm:pr-6 md:pr-7 lg:pr-5 xl:pr-7 pl-6 z-10 pointer-events-none">
-                <div className="max-w-[62%] sm:max-w-[58%] text-left">
-                  <h3 className="font-serif-royal text-base sm:text-lg md:text-xl lg:text-[20px] xl:text-[23px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
+              <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
+                <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
+                  <h3 className="font-serif-royal text-sm sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
                     A Legacy of Beauty.<br />
                     <span>A Spirit of Tradition.</span>
                   </h3>
 
-                  <p className="text-[11px] sm:text-xs text-[#2C3B30] font-normal leading-relaxed my-2 sm:my-2.5">
+                  <p className="text-[10px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1.5 sm:my-2 line-clamp-2 sm:line-clamp-3">
                     DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
                   </p>
 
                   <div className="pt-0.5">
-                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-4 sm:px-5 py-2 rounded shadow-md transition-colors pointer-events-auto">
+                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[11px] sm:text-xs font-semibold px-3.5 sm:px-4 py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
                       <span>Our Story</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>

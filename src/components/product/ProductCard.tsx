@@ -7,9 +7,16 @@ import { useStore } from '../../context/StoreContext';
 interface ProductCardProps {
   product: Product;
   showRating?: boolean;
+  imageAspectRatio?: string;
+  compact?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = false }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  showRating = false,
+  imageAspectRatio,
+  compact = false,
+}) => {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const { toggleWishlist, isInWishlist, addToCart } = useStore();
   const isWishlisted = isInWishlist(product.id);
@@ -28,11 +35,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
   };
 
   return (
-    <div className="group bg-white rounded-lg border border-[#E8DCCF] hover:border-[#D8C7B5] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden relative">
-      {/* Image Container - Aspect 4/3 to match Picture 3 reference and show full seated temple scene */}
+    <div className="group bg-white rounded-lg border border-[#E8DCCF] hover:border-[#D8C7B5] hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden relative h-full">
+      {/* Image Container - Aspect ratio adjusted for sleek proportional fit */}
       <Link
         to={`/products/${product.slug}`}
-        className="relative block aspect-[4/3] overflow-hidden bg-[#FAF5EE]"
+        className={`relative block ${imageAspectRatio || (compact ? 'aspect-[16/11]' : 'aspect-[4/3]')} overflow-hidden bg-[#FAF5EE]`}
       >
         <img
           src={product.primaryImage}
@@ -42,14 +49,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         />
 
         {/* Badges (Top Left) */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 z-10">
           {product.isNew && (
-            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
+            <span className={`bg-[#1E432D] text-white ${compact ? 'text-[8px] sm:text-[8.5px] px-1.5 py-0.5' : 'text-[9px] px-2 py-0.5'} font-bold rounded uppercase tracking-wider shadow-xs`}>
               NEW
             </span>
           )}
           {product.isBestseller && !product.isNew && (
-            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
+            <span className={`bg-[#1E432D] text-white ${compact ? 'text-[8px] sm:text-[8.5px] px-1.5 py-0.5' : 'text-[9px] px-2 py-0.5'} font-bold rounded uppercase tracking-wider shadow-xs`}>
               BESTSELLER
             </span>
           )}
@@ -59,20 +66,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         <button
           onClick={handleToggleWishlist}
           aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-          className={`absolute top-2 right-2 w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full flex items-center justify-center transition-all duration-200 z-10 border border-[#E8DCCF] ${
+          className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 ${
+            compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'
+          } rounded-full flex items-center justify-center transition-all duration-200 z-10 border border-[#E8DCCF] ${
             isWishlisted
               ? 'bg-[#285A3C] text-white shadow-md'
               : 'bg-white/95 text-[#18482C] hover:bg-white hover:text-[#285A3C] shadow-2xs'
           }`}
         >
           <Heart
-            className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`}
+            className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isWishlisted ? 'fill-current' : ''}`}
           />
         </button>
       </Link>
 
       {/* Content Details */}
-      <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between bg-white">
+      <div className={`${compact ? 'p-2 sm:p-2.5' : 'p-3 sm:p-3.5'} flex flex-col flex-1 justify-between bg-white`}>
         <div>
           {/* Rating if enabled */}
           {showRating && product.rating && (
@@ -86,23 +95,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
           {/* Title */}
           <Link
             to={`/products/${product.slug}`}
-            className="block text-xs sm:text-[13px] font-semibold text-[#1A3B2B] hover:text-[#285A3C] transition-colors line-clamp-1 leading-snug"
+            className={`block ${compact ? 'text-[11.5px] sm:text-[12.5px]' : 'text-xs sm:text-[13px]'} font-semibold text-[#1A3B2B] hover:text-[#285A3C] transition-colors line-clamp-1 leading-snug`}
           >
             {product.title}
           </Link>
 
           {/* Pricing Row */}
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-xs sm:text-sm font-bold text-[#1A3B2B]">
+          <div className={`flex items-center gap-1 sm:gap-1.5 ${compact ? 'mt-1' : 'mt-1.5'} flex-wrap`}>
+            <span className={`${compact ? 'text-[11.5px] sm:text-xs' : 'text-xs sm:text-sm'} font-bold text-[#1A3B2B]`}>
               ₹{product.price.toLocaleString('en-IN')}
             </span>
             {product.mrp > product.price && (
-              <span className="text-[10px] sm:text-xs text-[#8E9B92] line-through">
+              <span className="text-[9.5px] sm:text-[10px] text-[#8E9B92] line-through">
                 ₹{product.mrp.toLocaleString('en-IN')}
               </span>
             )}
             {product.discountPercent && (
-              <span className="text-[9px] sm:text-[10px] font-bold text-[#1A3B2B] bg-[#D0E9C0] px-1.5 py-0.5 rounded">
+              <span className="text-[8px] sm:text-[8.5px] font-bold text-[#1A3B2B] bg-[#D0E9C0] px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded">
                 {product.discountPercent}% OFF
               </span>
             )}
@@ -110,15 +119,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         </div>
 
         {/* Bottom Action Row: Color Dots + Cart Button */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#F5EFE6]">
+        <div className={`flex items-center justify-between ${compact ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-[#F5EFE6]`}>
           {/* Color Dots */}
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1 sm:space-x-1.5">
             {product.colors.map((color, idx) => (
               <button
                 key={color.name}
                 onClick={() => setSelectedColorIndex(idx)}
                 aria-label={`Select color ${color.name}`}
-                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border transition-all ${
+                className={`${compact ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3 h-3 sm:w-3.5 sm:h-3.5'} rounded-full border transition-all ${
                   selectedColorIndex === idx
                     ? 'ring-2 ring-[#285A3C] ring-offset-1 scale-110'
                     : 'border-black/10 hover:scale-110'
@@ -132,11 +141,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
           {/* Add to Bag Button */}
           <button
             onClick={handleAddToCart}
-            className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200"
+            className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200`}
             title="Add to Bag"
             aria-label="Add to Bag"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
+            <ShoppingBag className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
           </button>
         </div>
       </div>
