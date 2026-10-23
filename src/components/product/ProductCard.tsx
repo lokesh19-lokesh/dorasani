@@ -29,27 +29,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
 
   return (
     <div className="group bg-white rounded-lg border border-[#E8DCCF] hover:border-[#D8C7B5] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden relative">
-      {/* Image Container */}
+      {/* Image Container - Aspect 4/3 to match Picture 3 reference and show full seated temple scene */}
       <Link
         to={`/products/${product.slug}`}
-        className="relative block aspect-[4/5] overflow-hidden bg-[#FAF5EE]"
+        className="relative block aspect-[4/3] overflow-hidden bg-[#FAF5EE]"
       >
         <img
           src={product.primaryImage}
           alt={product.title}
-          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
 
         {/* Badges (Top Left) */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
           {product.isNew && (
-            <span className="bg-[#285A3C] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
               NEW
             </span>
           )}
           {product.isBestseller && !product.isNew && (
-            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+            <span className="bg-[#1E432D] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
               BESTSELLER
             </span>
           )}
@@ -59,14 +59,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
         <button
           onClick={handleToggleWishlist}
           aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-          className={`absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 z-10 ${
+          className={`absolute top-2 right-2 w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full flex items-center justify-center transition-all duration-200 z-10 border border-[#E8DCCF] ${
             isWishlisted
               ? 'bg-[#285A3C] text-white shadow-md'
-              : 'bg-white/95 text-[#1A3B2B] hover:bg-white hover:text-[#285A3C] shadow-xs'
+              : 'bg-white/95 text-[#18482C] hover:bg-white hover:text-[#285A3C] shadow-2xs'
           }`}
         >
           <Heart
-            className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`}
+            className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`}
           />
         </button>
       </Link>
@@ -132,7 +132,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, showRating = 
           {/* Add to Bag Button */}
           <button
             onClick={handleAddToCart}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md border border-[#D8C7B5] hover:border-[#285A3C] hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200"
+            className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200"
             title="Add to Bag"
             aria-label="Add to Bag"
           >

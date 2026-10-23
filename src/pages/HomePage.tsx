@@ -140,8 +140,8 @@ export const HomePage: React.FC = () => {
                     onClick={() => setCurrentHeroSlide(idx)}
                     aria-label={`Go to slide ${idx + 1}`}
                     className={`rounded-full transition-all duration-300 ${currentHeroSlide === idx
-                        ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
-                        : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
+                      ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
+                      : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
                       }`}
                   />
                 ))}
@@ -251,7 +251,7 @@ export const HomePage: React.FC = () => {
           <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
             <Link to="/about" className="block relative h-full">
               <img
-                src="/assets/banners/legacy_tradition.jpg"
+                src="/assets/hero/NewArrivalsbrander.png"
                 alt="A Legacy of Beauty. A Spirit of Tradition."
                 className="w-full h-full object-cover object-center min-h-[240px] transition-transform duration-500 group-hover:scale-102"
               />

@@ -109,13 +109,13 @@ export const PRODUCTS: Product[] = [
     reviewsCount: 124,
     soldCount: 520,
     isNew: true,
-    isBestseller: true,
+    isBestseller: false,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/categories/cat_sarees_arch.jpg',
+    primaryImage: '/assets/products/kanjivaram_silk_saree.jpg',
     images: [
-      '/assets/categories/cat_sarees_arch.jpg',
       '/assets/products/kanjivaram_silk_saree.jpg',
+      '/assets/categories/cat_sarees_arch.jpg',
       '/assets/products/product_main_large.jpg',
       '/assets/products/thumb_1.jpg',
       '/assets/products/thumb_2.jpg',
@@ -150,12 +150,11 @@ export const PRODUCTS: Product[] = [
     reviewsCount: 98,
     soldCount: 340,
     isNew: false,
-    isBestseller: true,
+    isBestseller: false,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/products/prod_organza_floral_photo.jpg',
+    primaryImage: '/assets/products/organza_floral_saree.jpg',
     images: [
-      '/assets/products/prod_organza_floral_photo.jpg',
       '/assets/products/organza_floral_saree.jpg',
       '/assets/products/thumb_2.jpg'
     ],
@@ -186,12 +185,11 @@ export const PRODUCTS: Product[] = [
     reviewsCount: 156,
     soldCount: 460,
     isNew: false,
-    isBestseller: true,
+    isBestseller: false,
     isFestive: true,
     inStock: true,
-    primaryImage: '/assets/products/prod_banarasi_gold_photo.jpg',
+    primaryImage: '/assets/products/banarasi_silk_saree.jpg',
     images: [
-      '/assets/products/prod_banarasi_gold_photo.jpg',
       '/assets/products/banarasi_silk_saree.jpg',
       '/assets/products/thumb_3.jpg'
     ],
@@ -227,7 +225,7 @@ export const PRODUCTS: Product[] = [
     isBestseller: false,
     isFestive: false,
     inStock: true,
-    primaryImage: '/assets/products/prod_chanderi_cotton_photo.jpg',
+    primaryImage: '/assets/products/chanderi_cotton_saree.jpg',
     images: [
       '/assets/products/prod_chanderi_cotton_photo.jpg',
       '/assets/products/chanderi_cotton_saree.jpg'
