@@ -347,14 +347,6 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Decorative corner lotuses matching Pic 2/4 */}
-        <div className="absolute bottom-0 left-0 w-24 h-16 pointer-events-none opacity-80">
-          <img src="/assets/brand/pillar_left.jpg" alt="" className="w-full h-full object-cover object-bottom" />
-        </div>
-        <div className="absolute bottom-0 right-0 w-24 h-16 pointer-events-none opacity-80">
-          <img src="/assets/brand/pillar_right.jpg" alt="" className="w-full h-full object-cover object-bottom" />
-        </div>
       </section>
 
       {/* 5. CUSTOMER TESTIMONIALS */}
