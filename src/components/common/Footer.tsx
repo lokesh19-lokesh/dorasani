@@ -365,12 +365,14 @@ export const Footer: React.FC = () => {
             >
               <span>The Bubbles Media</span>
               {/* Floating Bubbles on hover */}
-              <span className="pointer-events-none absolute inset-x-0 -top-1 h-12 overflow-visible opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-300">
-                <span className="bubble-particle left-[8%] w-3 h-3" style={{ '--drift': '-8px', '--duration': '1.3s', '--delay': '0s' } as React.CSSProperties} />
-                <span className="bubble-particle left-[28%] w-4 h-4" style={{ '--drift': '6px', '--duration': '1.6s', '--delay': '0.15s' } as React.CSSProperties} />
-                <span className="bubble-particle left-[50%] w-2.5 h-2.5" style={{ '--drift': '-5px', '--duration': '1.1s', '--delay': '0.35s' } as React.CSSProperties} />
-                <span className="bubble-particle left-[72%] w-3.5 h-3.5" style={{ '--drift': '8px', '--duration': '1.5s', '--delay': '0.1s' } as React.CSSProperties} />
-                <span className="bubble-particle left-[90%] w-2 h-2" style={{ '--drift': '-3px', '--duration': '1.2s', '--delay': '0.45s' } as React.CSSProperties} />
+              <span className="pointer-events-none absolute inset-x-0 -top-2 h-14 overflow-visible opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-300">
+                <span className="bubble-particle left-[4%] w-3 h-3" style={{ '--drift': '-10px', '--duration': '1.4s', '--delay': '0s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[20%] w-4.5 h-4.5" style={{ '--drift': '8px', '--duration': '1.8s', '--delay': '0.15s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[36%] w-2.5 h-2.5" style={{ '--drift': '-6px', '--duration': '1.2s', '--delay': '0.35s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[52%] w-4 h-4" style={{ '--drift': '10px', '--duration': '1.6s', '--delay': '0.05s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[68%] w-3 h-3" style={{ '--drift': '-8px', '--duration': '1.3s', '--delay': '0.25s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[82%] w-5 h-5" style={{ '--drift': '6px', '--duration': '1.9s', '--delay': '0.1s' } as React.CSSProperties} />
+                <span className="bubble-particle left-[94%] w-3.5 h-3.5" style={{ '--drift': '-4px', '--duration': '1.5s', '--delay': '0.4s' } as React.CSSProperties} />
               </span>
             </a>
           </div>
