@@ -5,7 +5,7 @@ import { useStore } from '../context/StoreContext';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('Maddiboina Lokesh');
-  const [phone, setPhone] = useState('+91 98765 43210');
+  const [phone, setPhone] = useState('+91 99xxxxxxxx');
   const [email, setEmail] = useState('lokesh@example.com');
   const [password, setPassword] = useState('password123');
   const [confirmPassword, setConfirmPassword] = useState('password123');

@@ -31,7 +31,7 @@ export const CheckoutPage: React.FC = () => {
 
   // Form states matching design defaults
   const [fullName, setFullName] = useState(user?.fullName || 'Maddiboina Lokesh');
-  const [phone, setPhone] = useState(user?.phone || '+91 98765 43210');
+  const [phone, setPhone] = useState(user?.phone || '+91 99xxxxxxxx');
   const [email, setEmail] = useState(user?.email || 'lokesh@example.com');
   const [whatsappUpdates, setWhatsappUpdates] = useState(true);
 
@@ -212,11 +212,10 @@ export const CheckoutPage: React.FC = () => {
                       type="button"
                       key={type}
                       onClick={() => setAddressType(type)}
-                      className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                        addressType === type
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${addressType === type
                           ? 'bg-[#285A3C] text-white'
                           : 'bg-[#FAF5EE] text-[#4F6355] hover:bg-[#D0E9C0]/40'
-                      }`}
+                        }`}
                     >
                       {type}
                     </button>
@@ -291,11 +290,10 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    deliveryOption === 'standard'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${deliveryOption === 'standard'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -314,11 +312,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    deliveryOption === 'express'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${deliveryOption === 'express'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -352,11 +349,10 @@ export const CheckoutPage: React.FC = () => {
               <div className="space-y-2 text-xs">
                 {/* UPI */}
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    paymentMethod === 'upi'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${paymentMethod === 'upi'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -380,11 +376,10 @@ export const CheckoutPage: React.FC = () => {
 
                 {/* Card */}
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    paymentMethod === 'card'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${paymentMethod === 'card'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -406,11 +401,10 @@ export const CheckoutPage: React.FC = () => {
 
                 {/* Net Banking */}
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    paymentMethod === 'netbanking'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${paymentMethod === 'netbanking'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -432,11 +426,10 @@ export const CheckoutPage: React.FC = () => {
 
                 {/* COD */}
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
-                    paymentMethod === 'cod'
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${paymentMethod === 'cod'
                       ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                       : 'border-[#BCD8AA] bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input

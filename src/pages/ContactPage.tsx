@@ -66,7 +66,7 @@ export const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-bold text-[#1A3B2B]">Customer Care Phone</p>
-                  <p>+91 98765 43210 (Mon - Sat, 9:30 AM - 7:30 PM)</p>
+                  <p>+91 99xxxxxxxx (Mon - Sat, 9:30 AM - 7:30 PM)</p>
                 </div>
               </div>
 

@@ -62,7 +62,7 @@ const INITIAL_ADDRESS: Address = {
   id: 'addr-default',
   addressType: 'Home',
   fullName: 'Maddiboina Lokesh',
-  phone: '+91 98765 43210',
+  phone: '+91 99xxxxxxxx',
   streetAddress: 'Flat No. 101, Sri Sai Residency, KPHB Colony',
   landmark: 'Near KPHB Metro Station',
   city: 'Hyderabad',
@@ -75,7 +75,7 @@ const INITIAL_USER: UserProfile = {
   id: 'user-default',
   fullName: 'Maddiboina Lokesh',
   email: 'lokesh@example.com',
-  phone: '+91 98765 43210',
+  phone: '+91 99xxxxxxxx',
   whatsappOptIn: true,
 };
 
@@ -296,7 +296,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'addr-work',
       addressType: 'Work',
       fullName: 'Maddiboina Lokesh',
-      phone: '+91 98765 43210',
+      phone: '+91 99xxxxxxxx',
       streetAddress: 'Plot 42, Hitech City Main Road, Madhapur',
       landmark: 'Cyber Towers',
       city: 'Hyderabad',
@@ -487,7 +487,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `usr-${Date.now()}`,
       fullName: name,
       email,
-      phone: '+91 98765 43210',
+      phone: '+91 99xxxxxxxx',
       whatsappOptIn: true,
     };
     setUser(newUser);

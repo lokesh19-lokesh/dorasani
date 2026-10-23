@@ -248,19 +248,32 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Right Feature Card: A Legacy of Beauty. A Spirit of Tradition. */}
-          <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
-            <Link to="/about" className="block relative h-full">
+          <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] flex flex-col h-full">
+            <Link to="/about" className="block relative w-full h-full min-h-[280px] sm:min-h-[310px]">
               <img
                 src="/assets/hero/NewArrivalsbrander.png"
                 alt="A Legacy of Beauty. A Spirit of Tradition."
-                className="w-full h-full object-cover object-center min-h-[240px] transition-transform duration-500 group-hover:scale-102"
+                className="w-full h-full object-cover object-[20%_center] sm:object-center transition-transform duration-500 group-hover:scale-102"
               />
-              {/* Interactive Button for Our Story */}
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 lg:translate-x-0 lg:left-36 z-10">
-                <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-5 py-2 rounded shadow-md transition-colors">
-                  <span>Our Story</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
+              {/* Overlay Content matching Picture 3 and Picture 4 */}
+              <div className="absolute inset-0 flex flex-col justify-center items-end pr-4 sm:pr-6 md:pr-7 lg:pr-5 xl:pr-7 pl-6 z-10 pointer-events-none">
+                <div className="max-w-[62%] sm:max-w-[58%] text-left">
+                  <h3 className="font-serif-royal text-base sm:text-lg md:text-xl lg:text-[20px] xl:text-[23px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
+                    A Legacy of Beauty.<br />
+                    <span>A Spirit of Tradition.</span>
+                  </h3>
+
+                  <p className="text-[11px] sm:text-xs text-[#2C3B30] font-normal leading-relaxed my-2 sm:my-2.5">
+                    DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
+                  </p>
+
+                  <div className="pt-0.5">
+                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-4 sm:px-5 py-2 rounded shadow-md transition-colors pointer-events-auto">
+                      <span>Our Story</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
               </div>
             </Link>
           </div>

@@ -30,7 +30,7 @@ export const TrackOrderPage: React.FC = () => {
       id: 'addr-1',
       addressType: 'Home' as const,
       fullName: 'Devi Priya',
-      phone: '+91 98765 43210',
+      phone: '+91 99xxxxxxxx',
       streetAddress: 'Flat 402, Royal Residency, Road No. 10',
       landmark: 'Near Lotus Pond',
       city: 'Hyderabad',
