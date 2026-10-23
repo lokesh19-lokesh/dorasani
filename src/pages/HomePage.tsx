@@ -59,9 +59,9 @@ export const HomePage: React.FC = () => {
   const activeSlide = HERO_SLIDES[currentHeroSlide];
 
   return (
-    <div className="space-y-10 sm:space-y-14 bg-[#FAF5EE]">
+    <div className="space-y-10 sm:space-y-14 lg:space-y-0 bg-[#FAF5EE]">
       {/* 1. HERO SECTION (Screen-fit on mobile, exact 2171/724 proportional fit on desktop with ZERO cutting) */}
-      <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF]">
+      <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF] lg:border-b-0">
         <div
           className="relative w-full select-none h-[calc(100dvh-150px)] min-h-[520px] max-h-[850px] sm:h-auto sm:aspect-[2171/724] sm:min-h-0 sm:max-h-none flex items-start sm:items-center"
           onMouseEnter={() => setIsPaused(true)}
@@ -152,7 +152,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ── DESKTOP-ONLY TEMPLE BACKGROUND WRAPPER (Shop by Category, New Arrivals, Service-Benefits) ── */}
-      <div className="w-full relative lg:bg-[url('/assets/hero/ShopbyCategoryandNewArrivalsbackground.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-7 lg:pb-2">
+      <div className="w-full relative lg:mt-0 lg:bg-[url('/assets/hero/ShopbyCategoryandNewArrivalsbackground.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-5 lg:pb-2">
         {/* 2. SHOP BY CATEGORY (100% Matching Pic 2 & Pic 4) */}
         <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-5 sm:mb-6">
@@ -355,7 +355,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* 5. CUSTOMER TESTIMONIALS */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 text-center">
+      <section className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 text-center lg:mt-12">
         <span className="text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
           ✦ Real Experiences ✦
         </span>
