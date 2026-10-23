@@ -7,9 +7,11 @@ import { Footer } from '../components/common/Footer';
 import { MobileBottomBar } from '../components/common/MobileBottomBar';
 import { CartDrawer } from '../components/cart/CartDrawer';
 import { ToastContainer } from '../components/common/ToastContainer';
+import { Preloader } from '../components/common/Preloader';
 
 export const RootLayout: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showPreloader, setShowPreloader] = useState(true);
   const location = useLocation();
 
   // Scroll to top on route navigation
@@ -17,8 +19,19 @@ export const RootLayout: React.FC = () => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // Support replaying preloader on demand (e.g. dev testing or custom user action)
+  useEffect(() => {
+    const handleReplay = () => setShowPreloader(true);
+    window.addEventListener('dorasani:replay-preloader', handleReplay);
+    return () => window.removeEventListener('dorasani:replay-preloader', handleReplay);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
+      {showPreloader && (
+        <Preloader onComplete={() => setShowPreloader(false)} />
+      )}
+
       <AnnouncementBar />
 
       {/* Desktop Header and Navbar unified wrapper with navbar.png background */}

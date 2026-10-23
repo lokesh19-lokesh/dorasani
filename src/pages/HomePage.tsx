@@ -71,9 +71,8 @@ export const HomePage: React.FC = () => {
           {HERO_SLIDES.map((slide, idx) => (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                currentHeroSlide === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
-              }`}
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${currentHeroSlide === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
+                }`}
             >
               <picture className="w-full h-full block">
                 <source media="(max-width: 640px)" srcSet={slide.mobileImage} />
@@ -140,11 +139,10 @@ export const HomePage: React.FC = () => {
                     key={slide.id}
                     onClick={() => setCurrentHeroSlide(idx)}
                     aria-label={`Go to slide ${idx + 1}`}
-                    className={`rounded-full transition-all duration-300 ${
-                      currentHeroSlide === idx
+                    className={`rounded-full transition-all duration-300 ${currentHeroSlide === idx
                         ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
                         : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
-                    }`}
+                      }`}
                   />
                 ))}
               </div>
@@ -184,18 +182,36 @@ export const HomePage: React.FC = () => {
 
           {/* Right Feature Card: A Celebration of Our Heritage */}
           <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
-            <Link to="/collections/festive" className="block relative h-full">
+            <Link to="/collections/festive" className="block relative h-full min-h-[220px]">
               <img
-                src="/assets/banners/celebration_heritage.jpg"
+                src="/assets/hero/ShopbyCategoryhomepage.png"
                 alt="A Celebration of Our Heritage - Festive Styles"
                 className="w-full h-full object-cover object-center min-h-[220px] transition-transform duration-500 group-hover:scale-102"
               />
-              {/* Invisible interactive area for Explore Festive Styles */}
-              <div className="absolute bottom-4 left-4 z-10">
-                <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-4 py-2 rounded shadow-md transition-colors">
-                  <span>Explore Festive Styles</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
+              {/* Overlay Content matching Reference Design */}
+              <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-6 md:px-7 lg:px-5 xl:px-6 z-10 max-w-[62%] sm:max-w-[55%] pointer-events-none">
+                <h3 className="font-serif-royal text-xl sm:text-2xl lg:text-[22px] xl:text-[26px] font-bold text-[#143D24] leading-[1.15] tracking-tight">
+                  A Celebration<br />
+                  <span>of Our Heritage</span>
+                </h3>
+
+                {/* Subtle Golden Ornamental Divider */}
+                <div className="flex items-center gap-1.5 my-2 sm:my-2.5">
+                  <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
+                  <span className="text-[#C29336] text-[9px] leading-none">✦</span>
+                  <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
+                </div>
+
+                <p className="text-xs sm:text-[13px] text-[#2C3B30] font-normal leading-snug sm:leading-relaxed mb-3 sm:mb-4">
+                  Elegant styles for festivals, weddings and meaningful occasions.
+                </p>
+
+                <div>
+                  <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded shadow-md transition-colors pointer-events-auto">
+                    <span>Explore Festive Styles</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
               </div>
             </Link>
           </div>
