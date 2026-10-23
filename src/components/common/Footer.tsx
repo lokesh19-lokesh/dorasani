@@ -33,68 +33,66 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="bg-[#abd9af] border-t border-[#8EC493] mt-auto text-[#0F2E1B]">
-      {/* 1. Trust Indicators Strip - Commented out as requested */}
-      {/*
-      <div className="bg-[#D0E9C0]/35 border-b border-[#BCD8AA] py-8 sm:py-10 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#285A3C]/10 flex items-center justify-center shrink-0 text-[#285A3C]">
-              <Sparkles className="w-6 h-6" />
+      {/* 1. Trust Indicators Strip - Mobile/Tablet view only (hidden on lg desktop) */}
+      <div className="lg:hidden bg-[#9DCF9F] border-b border-[#8EC493] py-6 sm:py-8 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 gap-4 sm:gap-6">
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#18482C]/15 flex items-center justify-center shrink-0 text-[#0A2414]">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-[#1A3B2B]">
+              <h4 className="font-bold text-xs sm:text-sm text-[#0A2414]">
                 Thoughtfully Curated Fashion
               </h4>
-              <p className="text-xs text-[#4F6355] mt-0.5">
+              <p className="text-[10px] sm:text-xs text-[#143D24] mt-0.5 font-medium">
                 Premium fabrics & timeless designs
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#285A3C]/10 flex items-center justify-center shrink-0 text-[#285A3C]">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#18482C]/15 flex items-center justify-center shrink-0 text-[#0A2414]">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-[#1A3B2B]">
+              <h4 className="font-bold text-xs sm:text-sm text-[#0A2414]">
                 Secure Payments
               </h4>
-              <p className="text-xs text-[#4F6355] mt-0.5">
+              <p className="text-[10px] sm:text-xs text-[#143D24] mt-0.5 font-medium">
                 100% safe & encrypted checkout
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#285A3C]/10 flex items-center justify-center shrink-0 text-[#285A3C]">
-              <Truck className="w-6 h-6" />
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#18482C]/15 flex items-center justify-center shrink-0 text-[#0A2414]">
+              <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-[#1A3B2B]">
+              <h4 className="font-bold text-xs sm:text-sm text-[#0A2414]">
                 Reliable Delivery
               </h4>
-              <p className="text-xs text-[#4F6355] mt-0.5">
+              <p className="text-[10px] sm:text-xs text-[#143D24] mt-0.5 font-medium">
                 Pan India express shipping
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#285A3C]/10 flex items-center justify-center shrink-0 text-[#285A3C]">
-              <Headphones className="w-6 h-6" />
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#18482C]/15 flex items-center justify-center shrink-0 text-[#0A2414]">
+              <Headphones className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="font-semibold text-sm text-[#1A3B2B]">
+              <h4 className="font-bold text-xs sm:text-sm text-[#0A2414]">
                 Customer Support
               </h4>
-              <p className="text-xs text-[#4F6355] mt-0.5">
+              <p className="text-[10px] sm:text-xs text-[#143D24] mt-0.5 font-medium">
                 Here to help always, 7 days a week
               </p>
             </div>
           </div>
         </div>
       </div>
-      */}
 
       {/* 2. Newsletter Section */}
       <div className="py-10 sm:py-12 px-4 sm:px-8 border-b border-[#8EC493] bg-[#abd9af] relative overflow-hidden text-center">
