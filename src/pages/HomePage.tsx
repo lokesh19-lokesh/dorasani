@@ -185,33 +185,33 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* Right Feature Card: A Celebration of Our Heritage */}
-            <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE]">
-              <Link to="/collections/festive" className="block relative h-full min-h-[220px]">
+            <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] min-h-[200px] lg:min-h-[225px] xl:min-h-[240px] flex flex-col">
+              <Link to="/collections/festive" className="block relative w-full h-full flex-1 aspect-[1922/818] lg:aspect-auto">
                 <img
                   src="/assets/hero/ShopbyCategoryhomepage.png"
                   alt="A Celebration of Our Heritage - Festive Styles"
-                  className="w-full h-full object-cover object-center min-h-[220px] transition-transform duration-500 group-hover:scale-102"
+                  className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-102"
                 />
                 {/* Overlay Content matching Reference Design */}
-                <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-6 md:px-7 lg:px-5 xl:px-6 z-10 max-w-[62%] sm:max-w-[55%] pointer-events-none">
-                  <h3 className="font-serif-royal text-xl sm:text-2xl lg:text-[22px] xl:text-[26px] font-bold text-[#143D24] leading-[1.15] tracking-tight">
+                <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-6 md:px-7 lg:px-4 xl:px-5 z-10 max-w-[62%] sm:max-w-[58%] lg:max-w-[58%] xl:max-w-[56%] pointer-events-none">
+                  <h3 className="font-serif-royal text-base sm:text-xl lg:text-[18px] xl:text-[21px] font-bold text-[#143D24] leading-[1.14] tracking-tight">
                     A Celebration<br />
                     <span>of Our Heritage</span>
                   </h3>
 
                   {/* Subtle Golden Ornamental Divider */}
-                  <div className="flex items-center gap-1.5 my-2 sm:my-2.5">
-                    <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
-                    <span className="text-[#C29336] text-[9px] leading-none">✦</span>
-                    <div className="w-8 sm:w-12 h-px bg-[#C29336]/60" />
+                  <div className="flex items-center gap-1.5 my-1 sm:my-1.5 xl:my-2">
+                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+                    <span className="text-[#C29336] text-[8px] sm:text-[9px] leading-none">✦</span>
+                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
                   </div>
 
-                  <p className="text-xs sm:text-[13px] text-[#2C3B30] font-normal leading-snug sm:leading-relaxed mb-3 sm:mb-4">
+                  <p className="text-[10.5px] sm:text-xs xl:text-[12.5px] text-[#2C3B30] font-normal leading-snug mb-2 sm:mb-2.5 xl:mb-3 line-clamp-2">
                     Elegant styles for festivals, weddings and meaningful occasions.
                   </p>
 
                   <div>
-                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-xs font-semibold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded shadow-md transition-colors pointer-events-auto">
+                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1 sm:py-1.5 rounded shadow-md transition-colors pointer-events-auto">
                       <span>Explore Festive Styles</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
@@ -253,9 +253,9 @@ export const HomePage: React.FC = () => {
               ))}
             </div>
 
-            {/* Right Feature Card: Increased width, decreased height, full image visible */}
-            <div className="w-full lg:w-[45%] xl:w-[46%] flex-1 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
-              <Link to="/about" className="block relative w-full h-full min-h-[190px] sm:min-h-[210px]">
+            {/* Right Feature Card: Increased width, decreased height, full image visible without empty space on mobile */}
+            <div className="w-full lg:w-[45%] xl:w-[46%] rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
+              <Link to="/about" className="block relative w-full h-full aspect-[2097/750] lg:aspect-auto min-h-0 lg:min-h-[200px]">
                 <img
                   src="/assets/hero/NewArrivalsbrander.png"
                   alt="A Legacy of Beauty. A Spirit of Tradition."
@@ -264,17 +264,17 @@ export const HomePage: React.FC = () => {
                 {/* Overlay Content matching Picture 3 and Picture 4 */}
                 <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
                   <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
-                    <h3 className="font-serif-royal text-sm sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
+                    <h3 className="font-serif-royal text-xs sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
                       A Legacy of Beauty.<br />
                       <span>A Spirit of Tradition.</span>
                     </h3>
 
-                    <p className="text-[10px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1.5 sm:my-2 line-clamp-2 sm:line-clamp-3">
+                    <p className="text-[9.5px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1 sm:my-2 line-clamp-2 sm:line-clamp-3">
                       DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
                     </p>
 
                     <div className="pt-0.5">
-                      <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[11px] sm:text-xs font-semibold px-3.5 sm:px-4 py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
+                      <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[10px] sm:text-xs font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
                         <span>Our Story</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </span>
