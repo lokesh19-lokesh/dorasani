@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="bg-[#abd9af] border-t border-[#8EC493] mt-auto text-[#0F2E1B]">
-      {/* 1. Trust Indicators Strip - Mobile/Tablet view only (hidden on lg desktop) */}
+      {/* 1. Trust Indicators Strip - Mobile/Tablet view only (hidden on lg desktop) - Commented out
       <div className="lg:hidden bg-[#9DCF9F] border-b border-[#8EC493] py-6 sm:py-8 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-2 gap-4 sm:gap-6">
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
@@ -93,6 +93,7 @@ export const Footer: React.FC = () => {
           </div>
         </div>
       </div>
+      */}
 
       {/* 2. Newsletter Section */}
       <div className="py-10 sm:py-12 px-4 sm:px-8 border-b border-[#8EC493] bg-[#abd9af] relative overflow-hidden text-center">
