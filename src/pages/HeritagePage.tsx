@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Landmark, Users, HeartHandshake } from 'lucide-react';
+import { SubpageHero } from '../components/common/SubpageHero';
 
 export const HeritagePage: React.FC = () => {
   const stories = [
@@ -56,36 +57,21 @@ export const HeritagePage: React.FC = () => {
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">
       {/* 1. Hero Banner */}
-      <section className="bg-[#D0E9C0]/40 border-b border-[#BCD8AA] py-12 sm:py-20 px-4 sm:px-8 text-center relative overflow-hidden">
-        <div className="max-w-3xl mx-auto space-y-4 relative z-10">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
-            <span>✦</span>
-            <span>OUR SACRED ROOTS</span>
-            <span>✦</span>
-          </div>
-
-          <h1 className="font-serif-royal text-3xl sm:text-5xl font-bold text-[#1A3B2B]">
-            Mythology & Heritage
-          </h1>
-          <p className="font-serif-royal text-sm sm:text-lg text-[#285A3C] italic font-semibold">
-            Threads of Tradition, Stories of a Timeless Land
-          </p>
-
-          <p className="text-xs sm:text-sm text-[#4F6355] max-w-2xl mx-auto leading-relaxed pt-2">
-            At DORASANI, every weave carries a story — inspired by the divine heritage, temple architecture and cultural richness of South India. Our collections are a tribute to the artisans, traditions and timeless beauty that have flourished for centuries.
-          </p>
-
-          <div className="pt-4">
-            <Link
-              to="/about"
-              className="inline-flex items-center gap-2 bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs sm:text-sm font-semibold px-7 py-3 rounded shadow-md transition-all group"
-            >
-              <span>Explore Our Story</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      <SubpageHero
+        desktopImage="/assets/hero/subpageshero/heritagedesktop.png"
+        mobileImage="/assets/hero/subpageshero/heritagemobile.png"
+        tag="Our Sacred Roots"
+        title="Mythology & Heritage"
+        subtitle="At DORASANI, every weave carries a story — inspired by divine heritage, Dravidian temple art and the living traditions of South Indian artisans."
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'Mythology & Heritage' },
+        ]}
+        textPosition="right"
+        highlights={['Temple Architecture Motifs', 'Living Handloom Traditions', 'Generations of Grace']}
+        cta={{ label: 'Explore Our Story', href: '/about' }}
+        secondaryCta={{ label: 'View Collection', href: '/shop' }}
+      />
 
       {/* 2. Four Pillars */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">

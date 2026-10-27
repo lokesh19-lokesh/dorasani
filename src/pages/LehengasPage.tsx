@@ -8,12 +8,16 @@ export const LehengasPage: React.FC = () => {
 
   return (
     <CollectionTemplate
+      desktopBanner="/assets/hero/subpageshero/lehengasdesktop.png"
+      mobileBanner="/assets/hero/subpageshero/lehengasmobile.png"
+      bannerTag="Royal Silhouettes"
       title="The Lehengas Collection"
-      subtitle="Royal silhouettes for your most cherished moments."
+      subtitle="Grand volumetric silhouettes, heavy temple zari borders and intricate handwork tailored for weddings and milestones."
       breadcrumbs={[
         { name: 'Home', path: '/' },
         { name: 'Lehengas' },
       ]}
+      highlights={['Voluminous Flares', 'Intricate Zardozi Work', 'Heirloom Keepsakes']}
       products={lehengaProducts}
       subCategories={lehengaSub}
     />

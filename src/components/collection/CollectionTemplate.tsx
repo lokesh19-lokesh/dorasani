@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown, X, ChevronRight } from 'lucide-react';
 import type { Product, SortOption } from '../../types';
 import { ProductCard } from '../product/ProductCard';
+import { SubpageHero } from '../common/SubpageHero';
 
 interface SubCategory {
   name: string;
@@ -16,6 +17,11 @@ interface CollectionTemplateProps {
   breadcrumbs: { name: string; path?: string }[];
   products: Product[];
   subCategories?: SubCategory[];
+  desktopBanner?: string;
+  mobileBanner?: string;
+  bannerTag?: string;
+  textPosition?: 'left' | 'right' | 'center';
+  highlights?: string[];
   bannerImage?: string;
 }
 
@@ -25,6 +31,12 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   breadcrumbs,
   products,
   subCategories,
+  desktopBanner,
+  mobileBanner,
+  bannerTag,
+  textPosition = 'left',
+  highlights,
+  bannerImage,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
@@ -100,44 +112,66 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
-      {/* 1. Header Banner & Breadcrumbs */}
-      <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] pt-4 pb-8 sm:pb-12 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto space-y-4">
-          {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
-            {breadcrumbs.map((crumb, idx) => (
-              <React.Fragment key={crumb.name}>
-                {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />}
-                {crumb.path ? (
-                  <Link to={crumb.path} className="hover:text-[#285A3C]">
-                    {crumb.name}
-                  </Link>
-                ) : (
-                  <span className="font-semibold text-[#285A3C]">{crumb.name}</span>
-                )}
-              </React.Fragment>
-            ))}
-          </nav>
+      {/* 1. Hero Banner */}
+      {desktopBanner || mobileBanner || bannerImage ? (
+        <SubpageHero
+          desktopImage={desktopBanner || bannerImage || mobileBanner || ''}
+          mobileImage={mobileBanner || desktopBanner || bannerImage || ''}
+          tag={bannerTag}
+          title={title}
+          subtitle={subtitle}
+          breadcrumbs={breadcrumbs}
+          textPosition={textPosition}
+          highlights={highlights}
+        />
+      ) : (
+        <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] pt-4 pb-8 sm:pb-12 px-4 sm:px-8">
+          <div className="max-w-7xl mx-auto space-y-4">
+            {/* Breadcrumbs */}
+            <nav className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
+              {breadcrumbs.map((crumb, idx) => (
+                <React.Fragment key={crumb.name}>
+                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />}
+                  {crumb.path ? (
+                    <Link to={crumb.path} className="hover:text-[#285A3C]">
+                      {crumb.name}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-[#285A3C]">{crumb.name}</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </nav>
 
-          {/* Banner Title & Description */}
-          <div className="max-w-2xl">
-            <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#1A3B2B]">
-              {title}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#4F6355] mt-1.5 leading-relaxed">
-              {subtitle}
-            </p>
+            {/* Banner Title & Description */}
+            <div className="max-w-2xl">
+              <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#1A3B2B]">
+                {title}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#4F6355] mt-1.5 leading-relaxed">
+                {subtitle}
+              </p>
+            </div>
           </div>
+        </div>
+      )}
 
-          {/* Sub-categories horizontal pill bar (if provided, like on Sarees / Ethnic Wear page) */}
-          {subCategories && subCategories.length > 0 && (
-            <div className="pt-4 overflow-x-auto no-scrollbar flex items-center gap-4 sm:gap-6">
+      {/* Sub-categories horizontal bar (if provided, like on Sarees / Ethnic Wear page) */}
+      {subCategories && subCategories.length > 0 && (
+        <div className="bg-[#FAF5EE]/70 border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="text-[11px] font-bold tracking-[0.2em] text-[#1A3B2B] uppercase flex items-center gap-1.5 shrink-0">
+              <span className="text-[#C99632]">✦</span>
+              <span>Explore Categories</span>
+              <span className="text-[#C99632]">✦</span>
+            </div>
+            <div className="overflow-x-auto no-scrollbar flex items-center gap-4 sm:gap-6 py-1">
               {subCategories.map((sub) => (
                 <div
                   key={sub.slug}
                   className="flex flex-col items-center shrink-0 cursor-pointer group"
                 >
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-[#D8C7B5] group-hover:border-[#285A3C] shadow-xs transition-all">
+                  <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border border-[#D8C7B5] group-hover:border-[#285A3C] shadow-xs transition-all">
                     {sub.imageUrl ? (
                       <img
                         src={sub.imageUrl}
@@ -156,9 +190,9 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 2. Main Content: Sidebar Filters + Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
