@@ -98,30 +98,56 @@ export const HeritagePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. Our Heritage Story Feature */}
+      {/* 3. Our Heritage Story Feature with heritagebannersection2 background */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-[#FAF5EE] rounded-2xl border border-[#D8C7B5] p-6 sm:p-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-6 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-md aspect-[16/10]">
-            <img
-              src="/assets/heritage/heritage_columns.jpg"
-              alt="South Indian Temple Pillars & Heritage"
-              className="w-full h-full object-cover"
-            />
-          </div>
+        <div className="relative rounded-2xl sm:rounded-3xl border border-[#D8C7B5] overflow-hidden shadow-lg min-h-[460px] sm:min-h-[500px] lg:min-h-[540px] flex items-center justify-end p-5 sm:p-8 lg:p-12">
+          {/* Background Image */}
+          <img
+            src="/assets/hero/heritagebannersection2.png"
+            alt="DORASANI Heritage - Land of Temples and Textiles"
+            className="absolute inset-0 w-full h-full object-cover object-[18%_center] sm:object-left lg:object-center"
+          />
 
-          <div className="lg:col-span-6 space-y-4">
-            <span className="text-xs font-semibold tracking-[0.2em] text-[#285A3C] uppercase">
-              ✦ A Living Legacy ✦
-            </span>
-            <h2 className="font-serif-royal text-2xl sm:text-3xl font-bold text-[#1A3B2B]">
+          {/* Artistic Gradient Overlays for optimal contrast & depth */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-black/20 sm:bg-gradient-to-r sm:from-transparent sm:via-[#FAF5EE]/30 sm:to-[#FAF5EE]/90" />
+
+          {/* Frosted Royal Parchment Content Card (Positioned on the right so model on left shines) */}
+          <div className="relative z-10 w-full max-w-xl lg:max-w-2xl bg-[#FAF5EE]/92 backdrop-blur-md border border-[#D8C7B5]/90 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-[1px] bg-[#C89D3C]" />
+              <span className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
+                ✦ A Living Legacy ✦
+              </span>
+              <span className="w-6 h-[1px] bg-[#C89D3C]" />
+            </div>
+
+            <h2 className="font-serif-royal text-2xl sm:text-3xl lg:text-3xl font-bold text-[#1A3B2B] leading-tight">
               Our Heritage: A Land of Temples, Textiles and Timeless Beauty
             </h2>
-            <p className="text-xs sm:text-sm text-[#4F6355] leading-relaxed">
+
+            <p className="text-xs sm:text-sm text-[#384C3F] leading-relaxed">
               South India's rich cultural heritage, magnificent temples, intricate art and classical traditions inspire every DORASANI creation. From the detailed carvings of temple gopurams to the elegance of classical dance and vibrant hues of festive celebrations, our designs reflect the soul of this sacred land.
             </p>
-            <p className="text-xs sm:text-sm text-[#4F6355] leading-relaxed">
+
+            <p className="text-xs sm:text-sm text-[#384C3F] leading-relaxed">
               We work directly with traditional weaving clusters across Kanchipuram, Banaras, Chanderi, and Pochampally to sustain authentic handloom heritage for modern generations.
             </p>
+
+            {/* Highlights Chips */}
+            <div className="pt-2 flex flex-wrap gap-2 sm:gap-2.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-[#1A3B2B] bg-[#EAE2D5]/70 border border-[#D8C7B5] px-3 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C89D3C]" />
+                Temple Gopuram Artistry
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-[#1A3B2B] bg-[#EAE2D5]/70 border border-[#D8C7B5] px-3 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C89D3C]" />
+                Living Handloom Clusters
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-[#1A3B2B] bg-[#EAE2D5]/70 border border-[#D8C7B5] px-3 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C89D3C]" />
+                Heirloom Pure Silks
+              </span>
+            </div>
           </div>
         </div>
       </section>
