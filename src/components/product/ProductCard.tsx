@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Star } from 'lucide-react';
 import { WishlistIcon } from '../common/WishlistIcon';
@@ -18,14 +18,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   imageAspectRatio,
   compact = false,
 }) => {
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const { toggleWishlist, isInWishlist, addToCart } = useStore();
   const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const color = product.colors[selectedColorIndex]?.name || 'Standard';
+    const color = product.colors[0]?.name || 'Standard';
     addToCart(product, color, 1);
   };
 
@@ -120,30 +119,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Bottom Action Row: Color Dots + Cart Button */}
+        {/* Bottom Action Row: Fabric Tag + Cart Button */}
         <div className={`flex items-center justify-between ${compact ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-[#F5EFE6]`}>
-          {/* Color Dots */}
-          <div className="flex items-center space-x-1 sm:space-x-1.5">
-            {product.colors.map((color, idx) => (
-              <button
-                key={color.name}
-                onClick={() => setSelectedColorIndex(idx)}
-                aria-label={`Select color ${color.name}`}
-                className={`${compact ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3 h-3 sm:w-3.5 sm:h-3.5'} rounded-full border transition-all ${
-                  selectedColorIndex === idx
-                    ? 'ring-2 ring-[#285A3C] ring-offset-1 scale-110'
-                    : 'border-black/10 hover:scale-110'
-                }`}
-                style={{ backgroundColor: color.hex }}
-                title={color.name}
-              />
-            ))}
-          </div>
+          <span className={`${compact ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'} text-[#7A8A7E] font-medium tracking-wide uppercase truncate max-w-[70%]`}>
+            {product.fabric || 'Pure Silk'}
+          </span>
 
           {/* Add to Bag Button */}
           <button
             onClick={handleAddToCart}
-            className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200`}
+            className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200 shrink-0`}
             title="Add to Bag"
             aria-label="Add to Bag"
           >

@@ -41,7 +41,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
   const [selectedOccasion, setSelectedOccasion] = useState<string[]>([]);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [maxPrice, setMaxPrice] = useState<number>(30000);
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -50,16 +49,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   // Available filter options
   const fabrics = ['Silk', 'Cotton', 'Organza', 'Georgette', 'Velvet'];
   const occasions = ['Wedding', 'Festive', 'Party Wear', 'Daily Wear'];
-  const colors = [
-    { name: 'Temple Green', hex: '#285A3C' },
-    { name: 'Wine', hex: '#63132B' },
-    { name: 'Mustard', hex: '#D4AF37' },
-    { name: 'Emerald', hex: '#1C5B39' },
-    { name: 'Pastel Pistachio', hex: '#D0E9C0' },
-    { name: 'Sky Blue', hex: '#268494' },
-    { name: 'Lavender', hex: '#A88AB3' },
-    { name: 'Peach', hex: '#EAA4B8' },
-  ];
 
   // Filtering logic
   const filteredProducts = useMemo(() => {
@@ -99,7 +88,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     setSelectedCategory('all');
     setSelectedFabric([]);
     setSelectedOccasion([]);
-    setSelectedColor(null);
     setMaxPrice(30000);
     setSortBy('featured');
   };
@@ -107,7 +95,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   const activeFilterCount =
     (selectedFabric.length > 0 ? selectedFabric.length : 0) +
     (selectedOccasion.length > 0 ? selectedOccasion.length : 0) +
-    (selectedColor ? 1 : 0) +
     (maxPrice < 30000 ? 1 : 0);
 
   return (
@@ -263,30 +250,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               />
             </div>
 
-            {/* Colors */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase">
-                Color
-              </label>
-              <div className="grid grid-cols-4 gap-2 pt-1">
-                {colors.map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() =>
-                      setSelectedColor(selectedColor === color.name ? null : color.name)
-                    }
-                    className={`w-7 h-7 rounded-full border transition-all mx-auto ${
-                      selectedColor === color.name
-                        ? 'ring-2 ring-[#285A3C] ring-offset-2 scale-110'
-                        : 'border-black/10 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-            </div>
-
             {/* Fabric */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase">
@@ -371,7 +334,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                   No products match your selected filters
                 </h3>
                 <p className="text-xs text-[#4F6355] mt-1">
-                  Try adjusting your price range, fabric, or color options.
+                  Try adjusting your price range or fabric options.
                 </p>
                 <button
                   onClick={clearAllFilters}
