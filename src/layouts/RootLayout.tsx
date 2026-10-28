@@ -11,24 +11,40 @@ import { Preloader } from '../components/common/Preloader';
 
 export const RootLayout: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [showPreloader, setShowPreloader] = useState(true);
   const location = useLocation();
+  const isHomePage = location.pathname === '/';
+
+  // Only show preloader on the home page ('/')
+  const [showPreloader, setShowPreloader] = useState(() => {
+    return typeof window !== 'undefined' && window.location.pathname === '/';
+  });
 
   // Scroll to top on route navigation
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Support replaying preloader on demand (e.g. dev testing or custom user action)
+  // Dismiss preloader immediately if not on home page
   useEffect(() => {
-    const handleReplay = () => setShowPreloader(true);
+    if (!isHomePage && showPreloader) {
+      setShowPreloader(false);
+    }
+  }, [isHomePage, showPreloader]);
+
+  // Support replaying preloader on demand (e.g. dev testing or custom user action) on home page
+  useEffect(() => {
+    const handleReplay = () => {
+      if (location.pathname === '/') {
+        setShowPreloader(true);
+      }
+    };
     window.addEventListener('dorasani:replay-preloader', handleReplay);
     return () => window.removeEventListener('dorasani:replay-preloader', handleReplay);
-  }, []);
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
-      {showPreloader && (
+      {showPreloader && isHomePage && (
         <Preloader onComplete={() => setShowPreloader(false)} />
       )}
 
