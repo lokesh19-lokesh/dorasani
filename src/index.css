@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
+  --font-serif: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
+  --font-cormorant: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
+}
+
 :root {
   /* Royal Temple Forest Green (Replacing old crimson #AC1443) */
   --color-primary: #285A3C;
@@ -32,9 +38,21 @@
   --color-gold: #C29336;
   --color-gold-light: #F9F3E5;
 
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-cinzel: 'Cinzel', serif;
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  /* Single Unified Premium Typography: Cormorant Garamond */
+  --font-cormorant: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
+  --font-serif: var(--font-cormorant);
+  --font-cinzel: var(--font-cormorant);
+  --font-sans: var(--font-cormorant);
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+optgroup {
+  font-family: var(--font-cormorant);
 }
 
 body {
@@ -42,9 +60,11 @@ body {
   padding: 0;
   background-color: var(--color-cream);
   color: var(--color-text-main);
-  font-family: var(--font-sans);
+  font-family: var(--font-cormorant);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -52,15 +72,13 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  font-family: var(--font-cormorant);
 }
 
-/* Custom Typography Helpers */
-.font-serif-royal {
-  font-family: var(--font-serif);
-}
-
+/* Custom Typography Helpers - all unified to Cormorant Garamond */
+.font-serif-royal,
 .font-cinzel-royal {
-  font-family: var(--font-cinzel);
+  font-family: var(--font-cormorant);
 }
 
 /* Temple Arch Shapes for Category Cards */
