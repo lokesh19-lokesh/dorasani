@@ -84,7 +84,10 @@ export const HomePage: React.FC = () => {
               </picture>
 
               {/* Mobile top readability vignette - Soft parchment glow behind top text only */}
-              <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent sm:hidden pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent sm:hidden pointer-events-none" />
+
+              {/* Desktop directional soft parchment scrim behind text container */}
+              <div className="hidden sm:block absolute inset-y-0 left-0 w-[60%] lg:w-[50%] xl:w-[46%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent pointer-events-none z-[1]" />
             </div>
           ))}
 
@@ -96,20 +99,20 @@ export const HomePage: React.FC = () => {
                 className="transition-all duration-300 ease-out animate-in fade-in"
               >
                 {/* Eyebrow */}
-                <div className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[9.5px] sm:text-[10px] md:text-[11px] xl:text-xs font-semibold tracking-[0.2em] text-[#18482C] uppercase mb-1 sm:mb-1.5 xl:mb-2.5">
-                  <span className="opacity-50 text-[9px]">✦</span>
+                <div className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-[9.5px] sm:text-[10px] md:text-[11px] xl:text-xs font-bold tracking-[0.22em] text-[#0D2818] uppercase mb-1 sm:mb-1.5 xl:mb-2.5 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
+                  <span className="text-[#966d1f] text-[9px]">✦</span>
                   <span>{activeSlide.tag}</span>
-                  <span className="opacity-50 text-[9px]">✦</span>
+                  <span className="text-[#966d1f] text-[9px]">✦</span>
                 </div>
 
                 {/* Headline in refined royal serif */}
-                <h1 className="font-serif-royal text-[21px] xs:text-[23px] sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[44px] 2xl:text-[48px] font-bold text-[#18482C] leading-[1.12] tracking-tight">
+                <h1 className="font-serif-royal text-[22px] xs:text-[24px] sm:text-2xl md:text-3xl lg:text-[38px] xl:text-[44px] 2xl:text-[48px] font-bold text-[#0D2818] leading-[1.12] tracking-tight [text-shadow:_0_1px_3px_rgba(255,255,255,0.95)]">
                   {activeSlide.titleLine1}<br />
                   <span>{activeSlide.titleLine2}</span>
                 </h1>
 
                 {/* Description: Clean, high-legibility styling */}
-                <p className="text-[11px] sm:text-xs md:text-[13px] lg:text-[14px] xl:text-[15px] text-[#2C2B26] max-w-[420px] xl:max-w-[460px] leading-snug sm:leading-relaxed mt-1 sm:mt-2 xl:mt-3 mx-auto sm:mx-0 line-clamp-1 sm:line-clamp-none font-medium sm:font-normal">
+                <p className="text-[12px] sm:text-[13px] md:text-[13.5px] lg:text-[15px] xl:text-[16px] text-[#14321F] font-semibold sm:font-medium max-w-[440px] xl:max-w-[480px] leading-relaxed mt-1.5 sm:mt-2.5 xl:mt-3.5 mx-auto sm:mx-0 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                   {activeSlide.description}
                 </p>
 
@@ -117,7 +120,7 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 pt-2.5 sm:pt-3.5 xl:pt-5 pointer-events-auto">
                   <Link
                     to={activeSlide.primaryCta.href}
-                    className="bg-[#18482C] hover:bg-[#113520] text-white px-3.5 sm:px-5 xl:px-6 py-1.5 sm:py-2 xl:py-2.5 rounded-[4px] text-xs sm:text-[13px] xl:text-sm font-semibold tracking-wide transition-all shadow-sm flex items-center gap-1 group whitespace-nowrap"
+                    className="bg-[#18482C] hover:bg-[#113520] text-white px-3.5 sm:px-5 xl:px-6 py-1.5 sm:py-2 xl:py-2.5 rounded-[4px] text-xs sm:text-[13px] xl:text-sm font-semibold tracking-wide transition-all shadow-md flex items-center gap-1 group whitespace-nowrap"
                   >
                     <span>{activeSlide.primaryCta.label}</span>
                     <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -125,7 +128,7 @@ export const HomePage: React.FC = () => {
 
                   <Link
                     to={activeSlide.secondaryCta.href}
-                    className="bg-white/95 hover:bg-white text-[#18482C] border border-[#D8C7B5] hover:border-[#18482C] px-3.5 sm:px-5 xl:px-6 py-1.5 sm:py-2 xl:py-2.5 rounded-[4px] text-xs sm:text-[13px] xl:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
+                    className="bg-white hover:bg-[#FAF5EE] text-[#0D2818] border border-[#D8C7B5] hover:border-[#18482C] px-3.5 sm:px-5 xl:px-6 py-1.5 sm:py-2 xl:py-2.5 rounded-[4px] text-xs sm:text-[13px] xl:text-sm font-semibold tracking-wide transition-all shadow-xs whitespace-nowrap"
                   >
                     {activeSlide.secondaryCta.label}
                   </Link>
@@ -192,26 +195,29 @@ export const HomePage: React.FC = () => {
                   alt="A Celebration of Our Heritage - Festive Styles"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-102"
                 />
+                {/* Soft directional scrim for crystal-clear text legibility */}
+                <div className="absolute inset-y-0 left-0 w-[72%] sm:w-[65%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
+
                 {/* Overlay Content matching Reference Design */}
                 <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-6 md:px-7 lg:px-4 xl:px-5 z-10 max-w-[62%] sm:max-w-[58%] lg:max-w-[58%] xl:max-w-[56%] pointer-events-none">
-                  <h3 className="font-serif-royal text-base sm:text-xl lg:text-[18px] xl:text-[21px] font-bold text-[#143D24] leading-[1.14] tracking-tight">
+                  <h3 className="font-serif-royal text-base sm:text-xl lg:text-[18px] xl:text-[21px] font-bold text-[#0D2818] leading-[1.14] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                     A Celebration<br />
                     <span>of Our Heritage</span>
                   </h3>
 
                   {/* Subtle Golden Ornamental Divider */}
                   <div className="flex items-center gap-1.5 my-1 sm:my-1.5 xl:my-2">
-                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
-                    <span className="text-[#C29336] text-[8px] sm:text-[9px] leading-none">✦</span>
-                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/60" />
+                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/80" />
+                    <span className="text-[#966d1f] text-[8px] sm:text-[9px] leading-none">✦</span>
+                    <div className="w-6 sm:w-10 h-px bg-[#C29336]/80" />
                   </div>
 
-                  <p className="text-[10.5px] sm:text-xs xl:text-[12.5px] text-[#2C3B30] font-normal leading-snug mb-2 sm:mb-2.5 xl:mb-3 line-clamp-2">
+                  <p className="text-[11px] sm:text-[12px] xl:text-[13px] text-[#14321F] font-semibold sm:font-medium leading-snug mb-2 sm:mb-2.5 xl:mb-3 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                     Elegant styles for festivals, weddings and meaningful occasions.
                   </p>
 
                   <div>
-                    <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1 sm:py-1.5 rounded shadow-md transition-colors pointer-events-auto">
+                    <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1 sm:py-1.5 rounded shadow-md transition-colors pointer-events-auto">
                       <span>Explore Festive Styles</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
@@ -261,20 +267,23 @@ export const HomePage: React.FC = () => {
                   alt="A Legacy of Beauty. A Spirit of Tradition."
                   className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
                 />
+                {/* Soft directional scrim behind text on right side */}
+                <div className="absolute inset-y-0 right-0 w-[72%] sm:w-[65%] bg-gradient-to-l from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
+
                 {/* Overlay Content matching Picture 3 and Picture 4 */}
                 <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
                   <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
-                    <h3 className="font-serif-royal text-xs sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#143D24] leading-[1.18] tracking-tight">
+                    <h3 className="font-serif-royal text-xs sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#0D2818] leading-[1.18] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                       A Legacy of Beauty.<br />
                       <span>A Spirit of Tradition.</span>
                     </h3>
 
-                    <p className="text-[9.5px] sm:text-[11px] xl:text-xs text-[#2C3B30] font-normal leading-relaxed my-1 sm:my-2 line-clamp-2 sm:line-clamp-3">
+                    <p className="text-[10px] sm:text-[11.5px] xl:text-xs text-[#14321F] font-semibold sm:font-medium leading-relaxed my-1 sm:my-2 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                       DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.
                     </p>
 
                     <div className="pt-0.5">
-                      <span className="inline-flex items-center gap-1.5 bg-[#285A3C] group-hover:bg-[#1E432D] text-white text-[10px] sm:text-xs font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
+                      <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10px] sm:text-xs font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
                         <span>Our Story</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </span>
