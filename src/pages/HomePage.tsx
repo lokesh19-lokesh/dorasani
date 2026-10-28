@@ -152,7 +152,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ── DESKTOP-ONLY TEMPLE BACKGROUND WRAPPER (Shop by Category, New Arrivals, Service-Benefits) ── */}
-      <div className="w-full relative lg:mt-0 lg:bg-[url('/assets/hero/ShopbyCategoryandNewArrivalsbackground.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-5 lg:pb-2">
+      <div className="w-full relative lg:mt-0 lg:bg-[url('/assets/hero/ShopbyCategoryhomepage1.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-5 lg:pb-2">
         {/* 2. SHOP BY CATEGORY (100% Matching Pic 2 & Pic 4) */}
         <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-5 sm:mb-6">
