@@ -50,8 +50,9 @@ export const RootLayout: React.FC = () => {
 
       <AnnouncementBar />
 
-      {/* Desktop Header and Navbar unified wrapper with navbar.png background */}
-      <div className="sticky top-0 z-30 w-full bg-[#FAF5EE] border-b border-[#E8DCCF]">
+      {/* Desktop Header and Navbar unified wrapper with #abd9af plain background */}
+      <div className="sticky top-0 z-30 w-full bg-[#abd9af] border-b border-[#96c89b] shadow-xs">
+        {/* Present navbar background image (commented out):
         <div className="hidden lg:block absolute inset-0 pointer-events-none select-none z-0 overflow-hidden">
           <img
             src="/assets/hero/desktop/navbar.png"
@@ -59,6 +60,7 @@ export const RootLayout: React.FC = () => {
             className="w-full h-full object-cover object-top"
           />
         </div>
+        */}
         <Header onOpenCart={() => setIsCartOpen(true)} />
         <Navbar />
       </div>

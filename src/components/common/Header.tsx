@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
   return (
     <>
-      <header className="bg-[#FAF5EE] lg:bg-transparent transition-all duration-200 relative z-10 w-full overflow-hidden">
+      <header className="bg-transparent transition-all duration-200 relative z-10 w-full overflow-hidden">
         {/* 3-Column Balanced Layout - Content constrained within clear center area */}
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-14 py-2 sm:py-3 relative z-10">
           <div className="grid grid-cols-[auto_1fr_auto] lg:grid-cols-3 items-center">
@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
               {/* Mobile Hamburger Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-1.5 -ml-1 text-[#18482C] hover:text-[#113520] transition-colors"
+                className="lg:hidden p-1.5 -ml-1 text-[#113520] hover:text-[#06180c] transition-colors"
                 aria-label="Open Navigation Menu"
               >
                 <Menu className="w-6 h-6" />
@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <img
                   src="/assets/brand/dorasani_full_logo.png"
                   alt="DORASANI - Where Heritage Meets Divine Elegance"
-                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain"
+                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]"
                 />
               </Link>
             </div>
@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                   placeholder="Search sarees, silks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#FAF5EE]/90 hover:bg-white focus:bg-white border border-[#D8C7B5] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#18482C] placeholder:text-[#647268] focus:outline-none focus:border-[#18482C] focus:ring-1 focus:ring-[#18482C] transition-all shadow-xs backdrop-blur-xs font-medium"
+                  className="w-full bg-white/95 hover:bg-white focus:bg-white border border-[#8ec893] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#113520] placeholder:text-[#3f654b] focus:outline-none focus:border-[#113520] focus:ring-1 focus:ring-[#113520] transition-all shadow-xs backdrop-blur-xs font-medium"
                 />
                 <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3 pointer-events-none" />
               </form>
@@ -80,14 +80,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
               {/* Mobile Search Icon Toggle */}
               <button
                 onClick={() => setIsSearchExpandedMobile(!isSearchExpandedMobile)}
-                className="lg:hidden p-1.5 text-[#18482C] hover:text-[#113520] transition-colors"
+                className="lg:hidden p-1.5 text-[#113520] hover:text-[#06180c] transition-colors"
                 aria-label="Toggle Search"
               >
                 <Search className="w-5 h-5" />
               </button>
 
               {/* Desktop Account, Wishlist, Bag Action Group */}
-              <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-[#FAF5EE]/90 backdrop-blur-md px-3 py-1 rounded-full border border-[#D8C7B5] shadow-xs">
+              <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-[#8ec893] shadow-xs">
                 {/* Account Link */}
                 <Link
                   to={user ? '/account' : '/login'}
