@@ -7,26 +7,26 @@ export const HeritagePage: React.FC = () => {
   const stories = [
     {
       title: 'Goddesses of Grace',
-      description: 'Collections inspired by strength, beauty and divine feminine energy in ancient temple mythology.',
-      image: '/assets/heritage/goddesses_of_grace.jpg',
+      description: 'Collections inspired by strength, beauty and divine feminine energy.',
+      image: '/assets/hero/heritage/Goddesses_of_Grace.png',
       link: '/collections/sarees',
     },
     {
       title: 'Temple Architecture',
-      description: 'Intricate gopuram silhouettes, lotus pillars, and Dravidian carvings woven in metallic zari.',
-      image: '/assets/heritage/temple_architecture.jpg',
+      description: 'Designs inspired by the intricate carvings of South Indian temples.',
+      image: '/assets/hero/heritage/Temple_Architecture.png',
       link: '/collections/sarees',
     },
     {
       title: 'Classical Arts',
-      description: 'Influenced by the sacred rhythm of Bharatanatyam, Carnatic melody, and regal court traditions.',
-      image: '/assets/heritage/classical_arts.jpg',
+      description: 'Influenced by Bharatanatyam, music and cultural traditions.',
+      image: '/assets/hero/heritage/Classical_Arts.png',
       link: '/collections/ethnic-wear',
     },
     {
       title: 'Nature & Heritage',
-      description: 'Motifs of the sacred peacock (Mayil), imperial elephant (Gaja), and auspicious lotus (Padma).',
-      image: '/assets/heritage/nature_heritage.jpg',
+      description: 'Motifs from flora, fauna and the timeless beauty of our land.',
+      image: '/assets/hero/heritage/Nature_Heritage.png',
       link: '/collections/lehengas',
     },
   ];
@@ -166,40 +166,59 @@ export const HeritagePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {stories.map((s, idx) => (
-            <div
+            <Link
               key={idx}
-              className="bg-white rounded-xl border border-[#D8C7B5] overflow-hidden shadow-xs hover:shadow-md transition-all group flex flex-col justify-between hover:border-[#BCD8AA]"
+              to={s.link}
+              className="group relative block transition-all duration-300 hover:-translate-y-1 focus:outline-none"
+              style={{
+                filter: 'drop-shadow(0 2px 8px rgba(197, 160, 89, 0.16))',
+              }}
             >
-              <div>
-                <div className="aspect-[4/3] overflow-hidden bg-[#FAF5EE]">
-                  <img
-                    src={s.image}
-                    alt={s.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="p-4 space-y-1.5">
-                  <h3 className="font-serif-royal text-base font-bold text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
-                    {s.title}
-                  </h3>
-                  <p className="text-xs text-[#4F6355] leading-relaxed">
-                    {s.description}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 pt-0">
-                <Link
-                  to={s.link}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#285A3C] hover:text-[#1E432D]"
+              {/* Outer Golden Notched Frame */}
+              <div
+                className="p-[1.5px] transition-all duration-300 group-hover:brightness-105"
+                style={{
+                  background: 'linear-gradient(135deg, #DEBA85 0%, #C89953 50%, #DEBA85 100%)',
+                  clipPath: 'polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px)',
+                }}
+              >
+                {/* Inner Ivory Card Container */}
+                <div
+                  className="bg-[#FFFCF6] p-2 sm:p-2.5 pb-3 sm:pb-3.5 flex flex-col justify-between h-full"
+                  style={{
+                    clipPath: 'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)',
+                  }}
                 >
-                  <span>Explore Collection</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </Link>
+                  <div>
+                    {/* Natural Ratio Artwork Image */}
+                    <div className="aspect-[2.2/1] overflow-hidden rounded-md bg-[#FAF5EE]">
+                      <img
+                        src={s.image}
+                        alt={s.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="pt-2.5 px-1">
+                      <h3 className="font-serif-royal text-[15px] sm:text-base font-bold text-[#8B1D40] tracking-wide mb-1 leading-snug group-hover:text-[#6D1531] transition-colors">
+                        {s.title}
+                      </h3>
+                      <div className="flex items-center justify-between gap-2.5">
+                        <p className="text-xs text-[#42413B] leading-snug flex-1">
+                          {s.description}
+                        </p>
+                        <div className="w-7 h-7 rounded-full border border-[#963451] flex items-center justify-center text-[#963451] group-hover:bg-[#8B1D40] group-hover:text-white group-hover:border-[#8B1D40] transition-all duration-200 shrink-0">
+                          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
