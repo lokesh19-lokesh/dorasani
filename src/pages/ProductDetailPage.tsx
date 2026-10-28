@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  Heart,
   Share2,
   Star,
   ShoppingBag,
@@ -14,6 +13,7 @@ import {
   Check,
   MapPin
 } from 'lucide-react';
+import { WishlistIcon } from '../components/common/WishlistIcon';
 import { PRODUCTS } from '../data/products';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
@@ -144,14 +144,17 @@ export const ProductDetailPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => toggleWishlist(product)}
-                    className={`p-2 rounded-full border transition-colors ${
+                    className={`p-2 rounded-full border transition-all ${
                       isWishlisted
-                        ? 'bg-[#285A3C] border-[#285A3C] text-white'
-                        : 'border-[#BCD8AA] hover:border-[#285A3C] hover:text-[#285A3C]'
+                        ? 'bg-white border-[#BCD8AA] text-[#18482C] shadow-sm'
+                        : 'border-[#BCD8AA] hover:border-[#18482C] hover:text-[#0D2818] text-[#18482C]'
                     }`}
                     title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                   >
-                    <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+                    <WishlistIcon
+                      className="w-4 h-4"
+                      filled={isWishlisted}
+                    />
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Heart, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 import { MobileDrawer } from './MobileDrawer';
 
@@ -109,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                   title="View Wishlist"
                 >
                   <div className="relative">
-                    <Heart className="w-4 h-4 stroke-[2]" />
+                    <WishlistIcon className="w-4 h-4 text-[#18482C]" strokeWidth={1.75} />
                     {wishlistCount > 0 && (
                       <span className="absolute -top-1.5 -right-2 bg-[#18482C] text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                         {wishlistCount}
@@ -150,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                   className="p-1.5 text-[#18482C] relative"
                   title="View Wishlist"
                 >
-                  <Heart className="w-5 h-5 stroke-[1.8]" />
+                  <WishlistIcon className="w-5 h-5 text-[#18482C]" strokeWidth={1.75} />
                   {wishlistCount > 0 && (
                     <span className="absolute 0 top-0.5 right-0 bg-[#18482C] text-white text-[8.5px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                       {wishlistCount}

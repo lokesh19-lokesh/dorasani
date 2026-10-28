@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { X, ChevronRight, User, Package, Heart, Sparkles, MapPin } from 'lucide-react';
+import { X, ChevronRight, User, Package, Sparkles, MapPin } from 'lucide-react';
+import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 
 interface MobileDrawerProps {
@@ -129,7 +130,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
             onClick={onClose}
             className="flex items-center gap-2 text-[#1A3B2B] hover:text-[#285A3C] py-1"
           >
-            <Heart className="w-4 h-4 text-[#285A3C]" />
+            <WishlistIcon className="w-4 h-4 text-[#285A3C]" />
             <span>My Wishlist</span>
           </Link>
           <Link

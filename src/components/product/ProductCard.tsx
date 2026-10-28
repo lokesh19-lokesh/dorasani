@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { ShoppingBag, Star } from 'lucide-react';
+import { WishlistIcon } from '../common/WishlistIcon';
 import type { Product } from '../../types';
 import { useStore } from '../../context/StoreContext';
 
@@ -67,15 +68,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onClick={handleToggleWishlist}
           aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 ${
-            compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'
-          } rounded-full flex items-center justify-center transition-all duration-200 z-10 border border-[#E8DCCF] ${
+            compact ? 'w-6.5 h-6.5 sm:w-7 sm:h-7' : 'w-7.5 h-7.5 sm:w-8 sm:h-8'
+          } rounded-full flex items-center justify-center transition-all duration-300 z-10 ${
             isWishlisted
-              ? 'bg-[#285A3C] text-white shadow-md'
-              : 'bg-white/95 text-[#18482C] hover:bg-white hover:text-[#285A3C] shadow-2xs'
+              ? 'bg-white text-[#18482C] border border-[#BCD8AA] shadow-md scale-105'
+              : 'bg-white/92 backdrop-blur-md text-[#18482C] hover:text-[#0D2818] border border-[#E8DCCF]/90 hover:bg-white shadow-2xs hover:scale-105 active:scale-95'
           }`}
         >
-          <Heart
-            className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${isWishlisted ? 'fill-current' : ''}`}
+          <WishlistIcon
+            className={compact ? 'w-3 h-3 sm:w-3.5 sm:h-3.5' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'}
+            filled={isWishlisted}
           />
         </button>
       </Link>

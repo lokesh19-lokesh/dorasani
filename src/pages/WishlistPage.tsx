@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Share2, MoreVertical, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Share2, MoreVertical, Trash2, ArrowRight } from 'lucide-react';
+import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
 
 export const WishlistPage: React.FC = () => {
@@ -40,7 +41,7 @@ export const WishlistPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         {wishlist.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8 max-w-md mx-auto">
-            <Heart className="w-12 h-12 text-[#BCD8AA] mx-auto mb-3" />
+            <WishlistIcon className="w-12 h-12 text-[#BCD8AA] mx-auto mb-3" strokeWidth={1.2} />
             <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
               Your wishlist is empty
             </h3>
@@ -99,13 +100,13 @@ export const WishlistPage: React.FC = () => {
                         />
                       </Link>
 
-                      {/* Remove from Wishlist Heart Button */}
+                      {/* Remove from Wishlist Bookmark Button */}
                       <button
                         onClick={() => removeFromWishlist(item.product.id)}
-                        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center shadow-md transition-transform hover:scale-110"
+                        className="absolute top-2.5 right-2.5 w-7.5 h-7.5 rounded-full bg-white text-[#18482C] border border-[#BCD8AA] flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-95"
                         title="Remove from Wishlist"
                       >
-                        <Heart className="w-3.5 h-3.5 fill-current" />
+                        <WishlistIcon className="w-3.5 h-3.5" filled={true} />
                       </button>
                     </div>
 
@@ -157,7 +158,7 @@ export const WishlistPage: React.FC = () => {
             {/* Right Side Promo Panel */}
             <div className="hidden lg:block lg:col-span-3 bg-[#FAF5EE] rounded-xl border border-[#D8C7B5] p-6 text-center space-y-4">
               <div className="w-12 h-12 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center mx-auto">
-                <Heart className="w-6 h-6 fill-current" />
+                <WishlistIcon className="w-6 h-6" filled={true} />
               </div>
               <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
                 Your Wishlist Is Special

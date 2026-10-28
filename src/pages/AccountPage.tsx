@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Package,
-  Heart,
   MapPin,
   CreditCard,
   User,
@@ -11,6 +10,7 @@ import {
   LogOut,
   Truck
 } from 'lucide-react';
+import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
 
 export const AccountPage: React.FC = () => {
@@ -86,7 +86,7 @@ export const AccountPage: React.FC = () => {
                 to="/wishlist"
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-[#1A3B2B] hover:bg-[#FAF5EE] transition-colors"
               >
-                <Heart className="w-4 h-4 text-[#285A3C]" />
+                <WishlistIcon className="w-4 h-4 text-[#285A3C]" />
                 <span>Wishlist ({wishlist.length})</span>
               </Link>
 
@@ -175,7 +175,7 @@ export const AccountPage: React.FC = () => {
                 className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs hover:border-[#285A3C] transition-colors block"
               >
                 <div className="flex items-center justify-between text-[#285A3C]">
-                  <Heart className="w-5 h-5 fill-current" />
+                  <WishlistIcon className="w-5 h-5" filled={true} />
                   <span className="text-xl font-bold">{wishlist.length}</span>
                 </div>
                 <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Wishlist Items</h4>

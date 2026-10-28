@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Sparkles, LayoutGrid, Heart, User } from 'lucide-react';
+import { Home, Sparkles, LayoutGrid, User } from 'lucide-react';
+import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 
 export const MobileBottomBar: React.FC = () => {
@@ -10,7 +11,7 @@ export const MobileBottomBar: React.FC = () => {
     { name: 'Home', path: '/', icon: Home },
     { name: 'Shop', path: '/shop', icon: Sparkles },
     { name: 'Categories', path: '/collections/sarees', icon: LayoutGrid },
-    { name: 'Wishlist', path: '/wishlist', icon: Heart, badge: wishlistCount },
+    { name: 'Wishlist', path: '/wishlist', icon: WishlistIcon, badge: wishlistCount },
     { name: 'Account', path: '/account', icon: User },
   ];
 
