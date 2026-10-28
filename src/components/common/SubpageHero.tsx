@@ -36,14 +36,12 @@ export const SubpageHero: React.FC<SubpageHeroProps> = ({
     <section className="relative w-full overflow-hidden border-b border-[#D8C7B5] bg-[#FAF5EE]">
       {/* 1. Main Background Media Container */}
       <div className="relative w-full h-[430px] xs:h-[460px] sm:h-[500px] md:h-auto md:aspect-[2170/725] md:min-h-[380px] md:max-h-[520px] flex flex-col md:flex-row md:items-center">
-        {/* Responsive Art Directed Image with optimized focal position for desktop and mobile */}
+        {/* Direct Responsive Image, exactly like HomePage hero with no effects */}
         <picture className="absolute inset-0 w-full h-full block">
           <source media="(max-width: 768px)" srcSet={mobileImage} />
           <img
             src={desktopImage}
             alt={title}
-            fetchPriority="high"
-            decoding="async"
             className="w-full h-full object-cover object-[center_28%] md:object-center select-none"
           />
         </picture>
