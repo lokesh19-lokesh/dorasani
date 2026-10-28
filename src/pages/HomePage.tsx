@@ -14,7 +14,7 @@ const HERO_SLIDES = [
     description: 'Discover the timeless beauty of South Indian fashion, where heritage, artistry and elegance come together.',
     primaryCta: { label: 'Explore the Collection', href: '/shop' },
     secondaryCta: { label: 'Discover Our Heritage', href: '/heritage' },
-    desktopImage: '/assets/hero/desktop/h1.png',
+    desktopImage: '/assets/hero/desktop/h11.png',
     mobileImage: '/assets/hero/mobile/h1.png',
   },
   {
@@ -25,7 +25,7 @@ const HERO_SLIDES = [
     description: 'Authentic 24k gold zari handlooms woven with centuries of Dravidian craftsmanship for your auspicious wedding rituals.',
     primaryCta: { label: 'Explore Bridal Silks', href: '/collections/sarees' },
     secondaryCta: { label: 'View Bridal Lookbook', href: '/shop' },
-    desktopImage: '/assets/hero/desktop/h2.png',
+    desktopImage: '/assets/hero/desktop/h21.png',
     mobileImage: '/assets/hero/mobile/h2.png',
   },
   {
@@ -36,7 +36,7 @@ const HERO_SLIDES = [
     description: 'Directly from hereditary master looms to your sacred occasions — carrying the prayers and living art of South India.',
     primaryCta: { label: 'Shop Festive Silks', href: '/collections/festive' },
     secondaryCta: { label: 'Our Weaver Story', href: '/about' },
-    desktopImage: '/assets/hero/desktop/h3.png',
+    desktopImage: '/assets/hero/desktop/h31.png',
     mobileImage: '/assets/hero/mobile/h3.png',
   },
 ];
