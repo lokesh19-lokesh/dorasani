@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <img
                   src="/assets/brand/dorasani_full_logo.png"
                   alt="DORASANI - Where Heritage Meets Divine Elegance"
-                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]"
+                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain"
                 />
               </Link>
             </div>
