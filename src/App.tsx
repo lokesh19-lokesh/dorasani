@@ -8,7 +8,9 @@ import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
 import { SareesPage } from './pages/SareesPage';
 import { EthnicWearPage } from './pages/EthnicWearPage';
+import { KurtisPage } from './pages/KurtisPage';
 import { LehengasPage } from './pages/LehengasPage';
+import { KidsWearPage } from './pages/KidsWearPage';
 import { FestivePage } from './pages/FestivePage';
 import { NewArrivalsPage } from './pages/NewArrivalsPage';
 import { BestsellersPage } from './pages/BestsellersPage';
@@ -52,8 +54,16 @@ export const App: React.FC = () => {
             <Route path="collections/ethnic-wear" element={<EthnicWearPage />} />
             <Route path="category/ethnic-wear" element={<EthnicWearPage />} />
 
+            <Route path="collections/kurtis" element={<KurtisPage />} />
+            <Route path="category/kurtis" element={<KurtisPage />} />
+            <Route path="collections/kurthis" element={<KurtisPage />} />
+            <Route path="category/kurthis" element={<KurtisPage />} />
+
             <Route path="collections/lehengas" element={<LehengasPage />} />
             <Route path="category/lehengas" element={<LehengasPage />} />
+
+            <Route path="collections/kids-wear" element={<KidsWearPage />} />
+            <Route path="category/kids-wear" element={<KidsWearPage />} />
 
             <Route path="collections/festive" element={<FestivePage />} />
             <Route path="category/festive" element={<FestivePage />} />

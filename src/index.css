@@ -1,11 +1,5 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
-  --font-serif: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
-  --font-cormorant: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
-}
-
 :root {
   /* Royal Temple Forest Green (Replacing old crimson #AC1443) */
   --color-primary: #285A3C;
@@ -77,7 +71,9 @@ body {
 
 /* Custom Typography Helpers - all unified to Cormorant Garamond */
 .font-serif-royal,
-.font-cinzel-royal {
+.font-cinzel-royal,
+.font-sans,
+.font-serif {
   font-family: var(--font-cormorant);
 }
 

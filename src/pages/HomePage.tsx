@@ -178,12 +178,14 @@ export const HomePage: React.FC = () => {
             </Link>
           </div>
 
-          {/* 7 Category Arch Cards + Right Celebration Banner */}
+          {/* Category Arch Cards + Right Celebration Banner */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* Category Cards (7 items) */}
-            <div className="lg:col-span-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3 sm:gap-4 items-end">
-              {CATEGORIES.slice(0, 7).map((cat) => (
-                <CategoryCard key={cat.id} category={cat} />
+            {/* Category Cards (Including Kurthis & Kids Wear) */}
+            <div className="lg:col-span-8 flex gap-3 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none items-end">
+              {CATEGORIES.map((cat) => (
+                <div key={cat.id} className="min-w-[96px] sm:min-w-[106px] xl:min-w-[112px] flex-1 shrink-0">
+                  <CategoryCard category={cat} />
+                </div>
               ))}
             </div>
 

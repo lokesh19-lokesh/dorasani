@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Truck, RotateCcw, ShieldCheck, Headphones, ChevronDown } from 'lucide-react';
+import { Truck, RotateCcw, ShieldCheck, Headphones } from 'lucide-react';
 
 export const AnnouncementBar: React.FC = () => {
   return (
@@ -35,11 +35,6 @@ export const AnnouncementBar: React.FC = () => {
           <Link to="/faq" className="hover:text-[#113520] transition-colors whitespace-nowrap">
             Help
           </Link>
-          <span className="text-[#18482C]/30 font-light">|</span>
-          <div className="flex items-center gap-1 cursor-pointer hover:text-[#113520]">
-            <span>English</span>
-            <ChevronDown className="w-3 h-3 text-[#18482C]" />
-          </div>
         </div>
       </div>
 

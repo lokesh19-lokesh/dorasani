@@ -187,9 +187,10 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-[#143D24]">
               <li><Link to="/collections/sarees" className="hover:text-[#000000] font-medium transition-colors">Sarees Collection</Link></li>
-              <li><Link to="/collections/sarees" className="hover:text-[#000000] font-medium transition-colors">Kanjivaram Silk</Link></li>
+              <li><Link to="/collections/kurtis" className="hover:text-[#000000] font-medium transition-colors">Kurthis & Tunics</Link></li>
               <li><Link to="/collections/ethnic-wear" className="hover:text-[#000000] font-medium transition-colors">Ethnic Wear</Link></li>
               <li><Link to="/collections/lehengas" className="hover:text-[#000000] font-medium transition-colors">Lehengas</Link></li>
+              <li><Link to="/collections/kids-wear" className="hover:text-[#000000] font-medium transition-colors">Kids Wear</Link></li>
               <li><Link to="/collections/festive" className="hover:text-[#000000] font-medium transition-colors">Festive Edit</Link></li>
               <li><Link to="/collections/new-arrivals" className="hover:text-[#000000] font-medium transition-colors">New Arrivals</Link></li>
               <li><Link to="/collections/bestsellers" className="hover:text-[#000000] font-medium transition-colors">Bestsellers</Link></li>

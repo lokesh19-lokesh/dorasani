@@ -41,6 +41,19 @@ export const CATEGORIES: Category[] = [
     ]
   },
   {
+    id: 'kurtis',
+    name: 'Kurthis',
+    slug: 'kurtis',
+    imageUrl: '/assets/categories/cat_kurtis_arch.jpg',
+    productCount: 52,
+    subcategories: [
+      { name: 'Silk Kurthis', slug: 'silk-kurtis', imageUrl: '/assets/categories/cat_kurtis_arch.jpg' },
+      { name: 'Anarkali Kurthis', slug: 'anarkali-kurtis', imageUrl: '/assets/categories/cat_kurtis_arch.jpg' },
+      { name: 'Straight Kurthis', slug: 'straight-kurtis', imageUrl: '/assets/categories/cat_kurtis_arch.jpg' },
+      { name: 'Festive Kurthis', slug: 'festive-kurtis', imageUrl: '/assets/categories/cat_kurtis_arch.jpg' },
+    ]
+  },
+  {
     id: 'lehengas',
     name: 'Lehengas',
     slug: 'lehengas',
@@ -53,6 +66,19 @@ export const CATEGORIES: Category[] = [
       { name: 'Festive Lehengas', slug: 'festive', imageUrl: '/assets/products/festive_lehenga.jpg' },
       { name: 'Designer Lehengas', slug: 'designer', imageUrl: '/assets/products/designer_lehenga.jpg' },
       { name: 'Pastel Lehengas', slug: 'pastel', imageUrl: '/assets/products/pastel_organza_lehenga.jpg' },
+    ]
+  },
+  {
+    id: 'kids-wear',
+    name: 'Kids Wear',
+    slug: 'kids-wear',
+    imageUrl: '/assets/categories/cat_kids_wear_arch.jpg',
+    productCount: 46,
+    subcategories: [
+      { name: 'Pattu Pavadai', slug: 'pattu-pavadai', imageUrl: '/assets/categories/cat_kids_wear_arch.jpg' },
+      { name: 'Girls Lehengas', slug: 'girls-lehengas', imageUrl: '/assets/categories/cat_kids_wear_arch.jpg' },
+      { name: 'Boys Kurta Sets', slug: 'boys-kurta', imageUrl: '/assets/categories/cat_kids_wear_arch.jpg' },
+      { name: 'Festive Dhoti Sets', slug: 'dhoti-sets', imageUrl: '/assets/categories/cat_kids_wear_arch.jpg' },
     ]
   },
   {
@@ -635,6 +661,66 @@ export const PRODUCTS: Product[] = [
     colors: [
       { name: 'Rani Rose', hex: '#B2204B' },
       { name: 'Turquoise', hex: '#268494' }
+    ]
+  },
+  {
+    id: 'prod-royal-silk-kurti',
+    slug: 'embroidered-royal-silk-kurti',
+    title: 'Embroidered Royal Silk Kurti',
+    subtitle: 'Pure Raw Silk with Zari Embroidery',
+    description: 'A regal royal blue silk kurti set featuring intricate golden temple zari embroidery work across the neckline and hem. Paired with a matching rich woven dupatta for festive grace.',
+    price: 2499,
+    mrp: 3499,
+    discountPercent: 28,
+    category: 'Kurthis',
+    categorySlug: 'kurtis',
+    subCategory: 'Silk Kurthis',
+    fabric: 'Pure Silk',
+    occasion: 'Festive',
+    careInstructions: 'Dry Clean Only',
+    rating: 4.9,
+    reviewsCount: 78,
+    soldCount: 210,
+    isNew: true,
+    isBestseller: true,
+    isFestive: true,
+    inStock: true,
+    primaryImage: '/assets/categories/cat_kurtis_arch.jpg',
+    images: ['/assets/categories/cat_kurtis_arch.jpg'],
+    colors: [
+      { name: 'Royal Sapphire', hex: '#1C3F94' },
+      { name: 'Emerald Green', hex: '#18482C' },
+      { name: 'Rani Pink', hex: '#AC1443' }
+    ]
+  },
+  {
+    id: 'prod-kids-pattu-pavadai',
+    slug: 'traditional-kids-pattu-pavadai',
+    title: 'Traditional Silk Pattu Pavadai',
+    subtitle: 'Pure Kanchipuram Weave for Little Royals',
+    description: 'An authentic South Indian pure silk Pattu Pavadai set for young girls, woven with pure zari borders, temple buttas, and radiant royal blue and gold tones.',
+    price: 1899,
+    mrp: 2799,
+    discountPercent: 32,
+    category: 'Kids Wear',
+    categorySlug: 'kids-wear',
+    subCategory: 'Pattu Pavadai',
+    fabric: 'Kanchipuram Silk',
+    occasion: 'Festive & Ceremonial',
+    careInstructions: 'Dry Clean Only',
+    rating: 5.0,
+    reviewsCount: 94,
+    soldCount: 340,
+    isNew: true,
+    isBestseller: true,
+    isFestive: true,
+    inStock: true,
+    primaryImage: '/assets/categories/cat_kids_wear_arch.jpg',
+    images: ['/assets/categories/cat_kids_wear_arch.jpg'],
+    colors: [
+      { name: 'Temple Blue', hex: '#1C3F94' },
+      { name: 'Peacock Green', hex: '#1E432D' },
+      { name: 'Kumkum Red', hex: '#9E1B32' }
     ]
   }
 ];
