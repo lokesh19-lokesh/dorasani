@@ -57,6 +57,20 @@ export const AboutPage: React.FC = () => {
           <p className="font-roboto-slab text-base sm:text-lg text-[#3A443D] max-w-2xl mx-auto leading-relaxed">
             The name <span className="font-semibold text-[#1A3B2B]">Dorasani</span> carries the grace, dignity, and regal charm of timeless heritage. At Dorasani Sarees, we believe that true elegance lies in honoring traditions while celebrating the woman of today. Guided by our promise—<span className="italic text-[#285A3C] font-semibold">A Symbol of Tradition</span>—our mission is to bring you attire that reflects authenticity, craftsmanship, and pure celebration.
           </p>
+
+          {/* The Meaning of "Dorasani" Callout */}
+          <div className="pt-2 max-w-2xl mx-auto">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/85 backdrop-blur-xs border border-[#BCD8AA] shadow-xs text-center space-y-1.5 transition-all hover:bg-white">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#C29336] font-poppins inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#C29336]" />
+                The Meaning of “Dorasani”
+                <Sparkles className="w-3.5 h-3.5 text-[#C29336]" />
+              </span>
+              <p className="font-roboto-slab text-sm sm:text-base text-[#1A3B2B] italic leading-relaxed">
+                “Evokes natural dignity, grace, and regal heritage without sounding distant or unapproachable.”
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -71,12 +85,15 @@ export const AboutPage: React.FC = () => {
                 alt="Dorasani Sarees Heritage & Craftsmanship"
                 className="w-full h-[380px] sm:h-[460px] object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1A3B2B]/85 via-[#1A3B2B]/20 to-transparent flex flex-col justify-end p-6 text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1A3B2B]/90 via-[#1A3B2B]/25 to-transparent flex flex-col justify-end p-6 text-white space-y-1">
                 <span className="text-xs uppercase tracking-widest text-[#D0E9C0] font-semibold font-poppins">
-                  Heritage Craftsmanship
+                  The Essence of Dorasani
                 </span>
-                <p className="font-golden text-xl sm:text-2xl font-bold mt-1 text-[#FFF9F3]">
-                  Woven with Dignity & Grace
+                <p className="font-golden text-xl sm:text-2xl font-bold text-[#FFF9F3]">
+                  Dignity, Grace & Regal Heritage
+                </p>
+                <p className="font-roboto-slab text-xs text-[#E3EFE0] leading-snug">
+                  Timeless elegance crafted for celebration, with warmth and approachable care.
                 </p>
               </div>
             </div>
