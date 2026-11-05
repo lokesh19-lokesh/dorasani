@@ -33,6 +33,7 @@ import { ReturnsPolicyPage } from './pages/ReturnsPolicyPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { TermsPage } from './pages/TermsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 
 export const App: React.FC = () => {
   return (
@@ -107,6 +108,9 @@ export const App: React.FC = () => {
             <Route path="returns-policy" element={<ReturnsPolicyPage />} />
             <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="terms" element={<TermsPage />} />
+
+            {/* Administrator Management Dashboard */}
+            <Route path="admin" element={<AdminDashboardPage />} />
 
             {/* Catch-all 404 */}
             <Route path="*" element={<NotFoundPage />} />

@@ -22,7 +22,12 @@ export interface Product {
   isNew?: boolean;
   isBestseller?: boolean;
   isFestive?: boolean;
+  isFeatured?: boolean;
   inStock: boolean;
+  stock?: number;
+  sku?: string;
+  tags?: string[];
+  sizes?: string[];
   primaryImage: string;
   images: string[];
   colors: {

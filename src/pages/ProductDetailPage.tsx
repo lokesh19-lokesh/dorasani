@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Share2,
@@ -17,13 +17,30 @@ import { WishlistIcon } from '../components/common/WishlistIcon';
 import { PRODUCTS } from '../data/products';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
+import { productService } from '../services/productService';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart, toggleWishlist, isInWishlist, showToast } = useStore();
 
-  const product = PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
+  const [product, setProduct] = useState(() => {
+    return PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
+  });
+
+  useEffect(() => {
+    if (slug) {
+      productService.getProductBySlug(slug).then((live) => {
+        if (live) {
+          setProduct(live);
+          setSelectedImage(live.primaryImage);
+          if (live.colors && live.colors[0]) {
+            setSelectedColor(live.colors[0].name);
+          }
+        }
+      });
+    }
+  }, [slug]);
   const [selectedImage, setSelectedImage] = useState(product.primaryImage);
   const [selectedColor, setSelectedColor] = useState(product.colors[0]?.name || 'Standard');
   const [quantity, setQuantity] = useState(1);

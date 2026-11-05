@@ -18,6 +18,7 @@ export const SareesPage: React.FC = () => {
       ]}
       highlights={['Authentic Handloom Weaves', 'Uncompromising Quality', 'Family Trust & Care']}
       products={sareeProducts}
+      categorySlug="sarees"
       subCategories={CATEGORIES[0].subcategories}
     />
   );

@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown, X, ChevronRight } from 'lucide-react';
 import type { Product, SortOption } from '../../types';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
+import { productService } from '../../services/productService';
 
 interface SubCategory {
   name: string;
@@ -16,6 +17,7 @@ interface CollectionTemplateProps {
   subtitle: string;
   breadcrumbs: { name: string; path?: string }[];
   products: Product[];
+  categorySlug?: string;
   subCategories?: SubCategory[];
   desktopBanner?: string;
   mobileBanner?: string;
@@ -30,6 +32,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   subtitle,
   breadcrumbs,
   products,
+  categorySlug,
   subCategories,
   desktopBanner,
   mobileBanner,
@@ -38,6 +41,22 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   highlights,
   bannerImage,
 }) => {
+  const [liveProducts, setLiveProducts] = useState<Product[]>(products);
+
+  useEffect(() => {
+    let isMounted = true;
+    productService.getProducts({ categorySlug, limit: 100 })
+      .then((res) => {
+        if (isMounted && res.products.length > 0) {
+          setLiveProducts(res.products);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [categorySlug]);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
   const [selectedOccasion, setSelectedOccasion] = useState<string[]>([]);
@@ -52,7 +71,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
 
   // Filtering logic
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    return liveProducts.filter((p) => {
       if (selectedFabric.length > 0 && !selectedFabric.includes(p.fabric)) {
         return false;
       }
@@ -64,7 +83,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       }
       return true;
     });
-  }, [products, selectedFabric, selectedOccasion, maxPrice]);
+  }, [liveProducts, selectedFabric, selectedOccasion, maxPrice]);
 
   // Sorting logic
   const sortedProducts = useMemo(() => {
@@ -308,7 +327,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
             {/* Top Bar (Showing count & Sort dropdown) */}
             <div className="hidden lg:flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
               <span className="text-xs text-[#4F6355] font-medium">
-                Showing 1-{sortedProducts.length} of {products.length} products
+                Showing 1-{sortedProducts.length} of {liveProducts.length} products
               </span>
 
               <div className="flex items-center gap-2 text-xs">

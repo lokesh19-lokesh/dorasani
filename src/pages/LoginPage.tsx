@@ -14,7 +14,7 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(identifier);
+    login(identifier, password);
     navigate('/account');
   };
 

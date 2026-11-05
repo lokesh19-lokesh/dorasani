@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon } from '../types';
 import { PRODUCTS, COUPONS } from '../data/products';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { checkoutService } from '../services/checkoutService';
+import { authService } from '../services/authService';
 
 interface Toast {
   id: string;
@@ -35,9 +38,9 @@ interface StoreContextType {
 
   // User & Auth
   user: UserProfile | null;
-  login: (email: string, name?: string) => void;
-  logout: () => void;
-  register: (name: string, email: string, phone: string) => void;
+  login: (email: string, passwordOrName?: string) => Promise<boolean | void> | void;
+  logout: () => Promise<void> | void;
+  register: (name: string, email: string, phone: string, password?: string) => Promise<boolean | void> | void;
   updateProfile: (profile: Partial<UserProfile>) => void;
 
   // Addresses
@@ -335,6 +338,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [user]);
 
+  // Sync session & live orders from Supabase when connected
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        const u = data.session.user;
+        setUser({
+          id: u.id,
+          fullName: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Dorasani Customer',
+          email: u.email || '',
+          phone: u.user_metadata?.phone || '',
+          whatsappOptIn: true,
+        });
+
+        checkoutService.getCustomerOrders(u.id).then((liveOrders) => {
+          if (liveOrders && liveOrders.length > 0) {
+            setOrders(liveOrders);
+          }
+        });
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const u = session.user;
+        setUser({
+          id: u.id,
+          fullName: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Dorasani Customer',
+          email: u.email || '',
+          phone: u.user_metadata?.phone || '',
+          whatsappOptIn: true,
+        });
+        checkoutService.getCustomerOrders(u.id).then((liveOrders) => {
+          if (liveOrders && liveOrders.length > 0) {
+            setOrders(liveOrders);
+          }
+        });
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -482,7 +531,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const wishlistCount = wishlist.length;
 
   // Auth
-  const login = (email: string, name: string = 'Maddiboina Lokesh') => {
+  const login = async (email: string, passwordOrName: string = 'Maddiboina Lokesh') => {
+    if (isSupabaseConfigured && passwordOrName && !passwordOrName.includes('•') && passwordOrName.length >= 6) {
+      try {
+        const { user: authUser, error } = await authService.signIn(email, passwordOrName);
+        if (!error && authUser) {
+          const profile = await authService.getProfile(authUser.id);
+          const fullUser: UserProfile = {
+            id: authUser.id,
+            fullName: profile?.fullName || authUser.user_metadata?.full_name || 'Valued Patron',
+            email: authUser.email || email,
+            phone: profile?.phone || '',
+            whatsappOptIn: profile?.whatsappOptIn ?? true
+          };
+          setUser(fullUser);
+          showToast(`Welcome back, ${fullUser.fullName}!`);
+          return true;
+        }
+      } catch (e) {
+        console.warn('Supabase sign in failed, fallback to local user:', e);
+      }
+    }
+
+    const name = passwordOrName && !passwordOrName.includes('•') ? passwordOrName : 'Maddiboina Lokesh';
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
       fullName: name,
@@ -492,9 +563,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setUser(newUser);
     showToast(`Welcome back, ${name}!`);
+    return true;
   };
 
-  const register = (name: string, email: string, phone: string) => {
+  const register = async (name: string, email: string, phone: string, password?: string) => {
+    if (isSupabaseConfigured && password && password.length >= 6) {
+      try {
+        const { user: authUser, error } = await authService.signUp(email, password, name, phone);
+        if (!error && authUser) {
+          const newUser: UserProfile = {
+            id: authUser.id,
+            fullName: name,
+            email,
+            phone,
+            whatsappOptIn: true
+          };
+          setUser(newUser);
+          showToast(`Account created successfully! Welcome to DORASANI.`);
+          return true;
+        }
+      } catch (e) {
+        console.warn('Supabase registration fallback:', e);
+      }
+    }
+
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
       fullName: name,
@@ -504,9 +596,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setUser(newUser);
     showToast(`Account created successfully! Welcome to DORASANI.`);
+    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (isSupabaseConfigured) {
+      await authService.signOut().catch(() => {});
+    }
     setUser(null);
     showToast('Signed out successfully', 'info');
   };
@@ -598,6 +694,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders((prev) => [newOrder, ...prev]);
     // Remove ordered items from cart
     setCart((prev) => prev.filter((item) => !item.selected));
+
+    // Asynchronously persist order into Supabase PostgreSQL
+    if (isSupabaseConfigured) {
+      checkoutService.processOrder({
+        userId: user?.id,
+        customerName: newOrder.shippingAddress?.fullName || user?.fullName || 'Dorasani Customer',
+        customerEmail: user?.email || 'customer@dorasanisarees.com',
+        customerPhone: newOrder.shippingAddress?.phone || user?.phone || '+91 9999999999',
+        billingAddress: newOrder.shippingAddress || selectedAddress,
+        shippingAddress: newOrder.shippingAddress || selectedAddress,
+        deliveryOption: newOrder.deliveryOption || 'standard',
+        paymentMethod: newOrder.paymentMethod || 'upi',
+        cartItems: selectedCartItems,
+        couponCode: appliedCoupon?.code,
+        idempotencyKey: `idem-${newOrder.id}`
+      }).then((res) => {
+        if (res.success && res.orderNumber) {
+          console.log('[DORASANI Supabase] Order persisted to PostgreSQL:', res.orderNumber);
+        }
+      }).catch((err) => {
+        console.warn('[DORASANI Supabase] Failed to persist order:', err);
+      });
+    }
+
     return newOrder;
   };
 

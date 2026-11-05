@@ -18,7 +18,7 @@ export const RegisterPage: React.FC = () => {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreeTerms) return;
-    register(fullName, email, phone);
+    register(fullName, email, phone, password);
     navigate('/account');
   };
 

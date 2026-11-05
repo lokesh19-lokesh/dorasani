@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment & Secrets (Never commit secrets)
+.env
+.env.local
+.env.*.local
+supabase/functions/.env
+!.env.example

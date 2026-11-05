@@ -1,24 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../types/supabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl && 
-  supabaseAnonKey && 
+  supabaseKey && 
   supabaseUrl !== 'https://your-project-ref.supabase.co' &&
-  supabaseAnonKey !== 'your-supabase-anon-key-here'
+  supabaseKey !== 'your-supabase-anon-key-here'
 );
 
-// If Supabase is configured with real URL and key, create the real client;
-// otherwise create a safe fallback client to avoid runtime crashes.
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://mock-dorasani.supabase.co', 'mock-anon-key');
+  ? createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : createClient<Database>('https://mock-dorasani.supabase.co', 'mock-anon-key');
 
-if (!isSupabaseConfigured) {
+if (isSupabaseConfigured) {
   console.info(
-    '%c[DORASANI]%c Running with local persistent storage fallback. To connect to live Supabase, configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.',
+    '%c[DORASANI]%c Connected to live Supabase backend (%s)',
+    'color: #285A3C; font-weight: bold;',
+    'color: inherit;',
+    supabaseUrl
+  );
+} else {
+  console.info(
+    '%c[DORASANI]%c Running with local fallback. Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.',
     'color: #285A3C; font-weight: bold;',
     'color: inherit;'
   );
