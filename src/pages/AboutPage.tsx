@@ -125,11 +125,14 @@ export const AboutPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-golden font-bold text-sm text-[#1A3B2B] group-hover:text-[#285A3C] flex items-center gap-1.5">
-                    Rich Handlooms & Festive Sarees
+                    Dorasani Sarees
                     <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#285A3C]" />
                   </h3>
+                  <span className="text-[11px] font-semibold text-[#C29336] uppercase tracking-wider block mt-0.5 font-poppins">
+                    A Symbol of Tradition
+                  </span>
                   <p className="font-poppins text-xs text-[#647268] mt-1 leading-normal">
-                    Timeless weaves crafted for auspicious occasions, weddings, and sacred festivities.
+                    “Inspired by timeless elegance and rooted in deep-seated values, Dorasani Sarees brings you authentic weaves, festive lehengas, and custom tailoring essentials. We treat every customer with the care of family and the assurance of uncompromising quality.”
                   </p>
                 </div>
               </Link>

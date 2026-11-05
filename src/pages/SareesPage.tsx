@@ -9,14 +9,14 @@ export const SareesPage: React.FC = () => {
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/sareesdesktop.png"
       mobileBanner="/assets/hero/subpageshero/sareesmobile.png"
-      bannerTag="Sacred Drapes & Pure Silks"
-      title="The Saree Collection"
-      subtitle="Timeless drapes woven with divine Dravidian heritage, lustrous mulberry silks and authentic gold zari."
+      bannerTag="A Symbol of Tradition"
+      title="Dorasani Sarees"
+      subtitle="Inspired by timeless elegance and rooted in deep-seated values, Dorasani Sarees brings you authentic weaves, festive lehengas, and custom tailoring essentials. We treat every customer with the care of family and the assurance of uncompromising quality."
       breadcrumbs={[
         { name: 'Home', path: '/' },
         { name: 'Sarees' },
       ]}
-      highlights={['Kanjivaram & Banarasi Silks', 'Pure Gold Zari', 'Temple Artisans']}
+      highlights={['Authentic Handloom Weaves', 'Uncompromising Quality', 'Family Trust & Care']}
       products={sareeProducts}
       subCategories={CATEGORIES[0].subcategories}
     />
