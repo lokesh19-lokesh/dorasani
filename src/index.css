@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@theme {
+  --font-golden: 'Golden', 'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-poppins: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-roboto-slab: 'Roboto Slab', Georgia, serif;
+  --font-heading: 'Golden', 'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Poppins', 'Roboto Slab', sans-serif;
+}
+
 :root {
   /* Royal Temple Forest Green (Replacing old crimson #AC1443) */
   --color-primary: #285A3C;
@@ -32,11 +40,19 @@
   --color-gold: #C29336;
   --color-gold-light: #F9F3E5;
 
-  /* Single Unified Premium Typography: Cormorant Garamond */
+  /* Typography System */
+  /* Headings: Golden font style with luxury serif fallbacks */
+  --font-golden: 'Golden', 'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-heading: var(--font-golden);
+
+  /* Body & General Content: Poppins or Roboto Slab */
+  --font-poppins: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-roboto-slab: 'Roboto Slab', Georgia, serif;
+  --font-body: 'Poppins', 'Roboto Slab', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
+  --font-cinzel: var(--font-golden);
   --font-cormorant: 'Cormorant Garamond', Garamond, 'Times New Roman', serif;
-  --font-serif: var(--font-cormorant);
-  --font-cinzel: var(--font-cormorant);
-  --font-sans: var(--font-cormorant);
 }
 
 html,
@@ -46,7 +62,7 @@ input,
 select,
 textarea,
 optgroup {
-  font-family: var(--font-cormorant);
+  font-family: var(--font-body);
 }
 
 body {
@@ -54,7 +70,7 @@ body {
   padding: 0;
   background-color: var(--color-cream);
   color: var(--color-text-main);
-  font-family: var(--font-cormorant);
+  font-family: var(--font-body);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -66,15 +82,54 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: var(--font-cormorant);
+  font-family: var(--font-body);
 }
 
-/* Custom Typography Helpers - all unified to Cormorant Garamond */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom Typography Helpers */
+.font-golden,
 .font-serif-royal,
-.font-cinzel-royal,
-.font-sans,
-.font-serif {
-  font-family: var(--font-cormorant);
+.font-cinzel-royal {
+  font-family: var(--font-golden);
+}
+
+.font-poppins {
+  font-family: var(--font-poppins);
+}
+
+.font-roboto-slab {
+  font-family: var(--font-roboto-slab);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Golden Heading Styles */
+.text-golden-gradient {
+  background: linear-gradient(135deg, #8A641A 0%, #C29336 35%, #E2BE6C 60%, #9E7422 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heading-golden {
+  font-family: var(--font-golden);
+}
+
+.heading-gold-accent {
+  color: #C29336;
 }
 
 /* Temple Arch Shapes for Category Cards */
