@@ -18,6 +18,7 @@ export const BestsellersPage: React.FC = () => {
       ]}
       highlights={['5-Star Patron Rating', 'Signature DORASANI Weaves', 'Restocked on Popular Demand']}
       products={bestsellers}
+      isBestseller={true}
     />
   );
 };

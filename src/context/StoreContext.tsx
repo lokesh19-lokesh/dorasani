@@ -238,54 +238,43 @@ const INITIAL_ORDERS: Order[] = [
   },
 ];
 
-// Initial cart matching the design screens exactly (4 items)
-const INITIAL_CART: CartItem[] = [
-  {
-    id: 'cart-item-1',
-    product: PRODUCTS[0], // Kanjivaram Silk Saree
-    selectedColor: 'Rani Pink',
-    quantity: 1,
-    selected: true,
-  },
-  {
-    id: 'cart-item-2',
-    product: PRODUCTS[1], // Organza Floral Saree
-    selectedColor: 'Mehendi Green',
-    quantity: 1,
-    selected: true,
-  },
-  {
-    id: 'cart-item-3',
-    product: PRODUCTS[2], // Banarasi Silk Saree
-    selectedColor: 'Lavender',
-    quantity: 1,
-    selected: true,
-  },
-  {
-    id: 'cart-item-4',
-    product: PRODUCTS[3], // Chanderi Cotton Saree
-    selectedColor: 'Peach',
-    quantity: 1,
-    selected: true,
-  },
-];
-
-// Initial wishlist matching design (8 items)
-const INITIAL_WISHLIST: WishlistItem[] = PRODUCTS.slice(0, 8).map((p, i) => ({
-  id: `wish-${i}`,
-  product: p,
-  addedAt: new Date().toISOString(),
-}));
+// Initial cart & wishlist: start clean and empty for genuine customer sessions
+const INITIAL_CART: CartItem[] = [];
+const INITIAL_WISHLIST: WishlistItem[] = [];
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('dorasani_cart');
-    return saved ? JSON.parse(saved) : INITIAL_CART;
+    try {
+      const saved = localStorage.getItem('dorasani_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some(i => i.id === 'cart-item-1')) {
+          localStorage.removeItem('dorasani_cart');
+          return [];
+        }
+        return parsed;
+      }
+      return [];
+    } catch {
+      return [];
+    }
   });
 
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
-    const saved = localStorage.getItem('dorasani_wishlist');
-    return saved ? JSON.parse(saved) : INITIAL_WISHLIST;
+    try {
+      const saved = localStorage.getItem('dorasani_wishlist');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.some(i => i.id === 'wish-0')) {
+          localStorage.removeItem('dorasani_wishlist');
+          return [];
+        }
+        return parsed;
+      }
+      return [];
+    } catch {
+      return [];
+    }
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {

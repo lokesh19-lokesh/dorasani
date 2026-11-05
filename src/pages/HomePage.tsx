@@ -4,6 +4,8 @@ import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronLeft
 import { CATEGORIES, PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
+import { productService } from '../services/productService';
+import type { Product, Category } from '../types';
 
 const HERO_SLIDES = [
   {
@@ -44,19 +46,58 @@ const HERO_SLIDES = [
 export const HomePage: React.FC = () => {
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [heroSlides, setHeroSlides] = useState(HERO_SLIDES);
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [newArrivals, setNewArrivals] = useState<Product[]>(PRODUCTS.slice(0, 4));
+
+  // Dynamically load live homepage data from Supabase backend
+  useEffect(() => {
+    let isMounted = true;
+
+    // Load active banners
+    productService.getBanners('hero').then((banners) => {
+      if (!isMounted || !banners || banners.length === 0) return;
+      const formatted = banners.map((b: any, idx: number) => ({
+        id: idx,
+        tag: b.tagline || 'ROYAL COLLECTION',
+        titleLine1: b.title_line_1,
+        titleLine2: b.title_line_2 || '',
+        description: b.description || '',
+        primaryCta: { label: b.primary_cta_label || 'Explore Now', href: b.primary_cta_link || '/shop' },
+        secondaryCta: { label: b.secondary_cta_label || 'About Us', href: b.secondary_cta_link || '/about' },
+        desktopImage: b.desktop_image_url || '/assets/hero/desktop/h11.png',
+        mobileImage: b.mobile_image_url || '/assets/hero/mobile/h1.png',
+      }));
+      setHeroSlides(formatted);
+    }).catch(() => {});
+
+    // Load top categories
+    productService.getCategories().then((cats) => {
+      if (!isMounted || !cats || cats.length === 0) return;
+      setCategories(cats);
+    }).catch(() => {});
+
+    // Load new arrival products
+    productService.getProducts({ isNew: true, limit: 4 }).then((res) => {
+      if (!isMounted || !res.products || res.products.length === 0) return;
+      setNewArrivals(res.products.slice(0, 4));
+    }).catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Auto-advance slider every 6 seconds unless hovered
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || heroSlides.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentHeroSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentHeroSlide((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, heroSlides.length]);
 
-  // 4 New arrivals matching design
-  const newArrivals = PRODUCTS.slice(0, 4);
-  const activeSlide = HERO_SLIDES[currentHeroSlide];
+  const activeSlide = heroSlides[currentHeroSlide] || heroSlides[0];
 
   return (
     <div className="space-y-10 sm:space-y-14 lg:space-y-0 bg-[#FAF5EE]">
@@ -68,7 +109,7 @@ export const HomePage: React.FC = () => {
           onMouseLeave={() => setIsPaused(false)}
         >
           {/* Background Slides: Responsive desktop and mobile artwork */}
-          {HERO_SLIDES.map((slide, idx) => (
+          {heroSlides.map((slide, idx) => (
             <div
               key={slide.id}
               className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${currentHeroSlide === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
@@ -182,7 +223,7 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {/* Category Cards (Including Kurthis & Kids Wear) */}
             <div className="lg:col-span-8 flex gap-3 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none items-end">
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <div key={cat.id} className="min-w-[96px] sm:min-w-[106px] xl:min-w-[112px] flex-1 shrink-0">
                   <CategoryCard category={cat} />
                 </div>

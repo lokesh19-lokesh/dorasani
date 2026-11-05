@@ -19,6 +19,7 @@ export const LehengasPage: React.FC = () => {
       ]}
       highlights={['Voluminous Flares', 'Intricate Zardozi Work', 'Heirloom Keepsakes']}
       products={lehengaProducts}
+      categorySlug="lehengas"
       subCategories={lehengaSub}
     />
   );

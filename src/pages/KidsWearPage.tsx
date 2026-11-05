@@ -19,6 +19,7 @@ export const KidsWearPage: React.FC = () => {
       ]}
       highlights={['Gentle Pure Silk Fabrics', 'Handloom Pattu Pavadai', 'Auspicious Festive Colors']}
       products={kidsProducts.length > 0 ? kidsProducts : PRODUCTS.slice(0, 4)}
+      categorySlug="kids-wear"
       subCategories={kidsSub}
     />
   );

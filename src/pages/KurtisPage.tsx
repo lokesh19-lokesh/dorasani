@@ -21,6 +21,7 @@ export const KurtisPage: React.FC = () => {
       ]}
       highlights={['Fine Zari Detailing', 'Pure Chanderi & Raw Silk', 'Modern Festive Drapes']}
       products={kurtiProducts}
+      categorySlug="kurtis"
       subCategories={kurtiSub}
     />
   );

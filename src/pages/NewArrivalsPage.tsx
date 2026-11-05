@@ -18,6 +18,7 @@ export const NewArrivalsPage: React.FC = () => {
       ]}
       highlights={['Latest Weave Drops', 'Contemporary South Indian Styles', 'Limited Yardage']}
       products={newProducts}
+      isNew={true}
     />
   );
 };

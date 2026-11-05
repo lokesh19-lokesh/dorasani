@@ -19,6 +19,7 @@ export const EthnicWearPage: React.FC = () => {
       ]}
       highlights={['Artisan Hand-Embroidery', 'Pure Breathable Fabrics', 'Regal Drapes & Cuts']}
       products={ethnicProducts}
+      categorySlug="ethnic-wear"
       subCategories={ethnicSub}
     />
   );

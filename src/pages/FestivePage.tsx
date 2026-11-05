@@ -19,6 +19,7 @@ export const FestivePage: React.FC = () => {
       ]}
       highlights={['Auspicious Temple Colors', 'Handloom Pure Zari', 'Limited Festive Drops']}
       products={festiveProducts}
+      isFestive={true}
       subCategories={festiveSub}
     />
   );

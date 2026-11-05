@@ -18,6 +18,9 @@ interface CollectionTemplateProps {
   breadcrumbs: { name: string; path?: string }[];
   products: Product[];
   categorySlug?: string;
+  isFestive?: boolean;
+  isNew?: boolean;
+  isBestseller?: boolean;
   subCategories?: SubCategory[];
   desktopBanner?: string;
   mobileBanner?: string;
@@ -33,6 +36,9 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   breadcrumbs,
   products,
   categorySlug,
+  isFestive,
+  isNew,
+  isBestseller,
   subCategories,
   desktopBanner,
   mobileBanner,
@@ -42,20 +48,38 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   bannerImage,
 }) => {
   const [liveProducts, setLiveProducts] = useState<Product[]>(products);
+  const [liveSubCategories, setLiveSubCategories] = useState<SubCategory[] | undefined>(subCategories);
 
   useEffect(() => {
     let isMounted = true;
-    productService.getProducts({ categorySlug, limit: 100 })
+    productService.getProducts({ 
+      categorySlug: categorySlug && categorySlug !== 'all' ? categorySlug : undefined,
+      isFestive,
+      isNew,
+      isBestseller,
+      limit: 100 
+    })
       .then((res) => {
         if (isMounted && res.products.length > 0) {
           setLiveProducts(res.products);
         }
       })
       .catch(() => {});
+
+    productService.getCategories().then((cats) => {
+      if (!isMounted) return;
+      if (categorySlug) {
+        const found = cats.find(c => c.slug === categorySlug);
+        if (found && found.subcategories && found.subcategories.length > 0) {
+          setLiveSubCategories(found.subcategories);
+        }
+      }
+    }).catch(() => {});
+
     return () => {
       isMounted = false;
     };
-  }, [categorySlug]);
+  }, [categorySlug, isFestive, isNew, isBestseller]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
@@ -162,8 +186,8 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         </div>
       )}
 
-      {/* Sub-categories horizontal bar (if provided, like on Sarees / Ethnic Wear page) */}
-      {subCategories && subCategories.length > 0 && (
+      {/* Sub-categories horizontal bar (dynamically fetched from Supabase) */}
+      {liveSubCategories && liveSubCategories.length > 0 && (
         <div className="bg-[#FAF5EE]/70 border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="text-[11px] font-bold tracking-[0.2em] text-[#1A3B2B] uppercase flex items-center gap-1.5 shrink-0">
@@ -172,7 +196,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               <span className="text-[#C99632]">✦</span>
             </div>
             <div className="overflow-x-auto no-scrollbar flex items-center gap-4 sm:gap-6 py-1">
-              {subCategories.map((sub) => (
+              {liveSubCategories.map((sub) => (
                 <div
                   key={sub.slug}
                   className="flex flex-col items-center shrink-0 cursor-pointer group"

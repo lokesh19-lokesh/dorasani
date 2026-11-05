@@ -92,21 +92,27 @@ export const productService = {
         .eq('status', 'active');
 
       if (filters.categorySlug && filters.categorySlug !== 'all') {
-        // Find category id
+        // Find category and its subcategories
         const { data: catData } = await supabase
           .from('categories')
           .select('id')
           .eq('slug', filters.categorySlug)
-          .single();
+          .maybeSingle();
 
         if (catData) {
-          query = query.eq('category_id', catData.id);
+          const { data: childCats } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('parent_id', catData.id);
+
+          const catIds = [catData.id, ...(childCats || []).map(c => c.id)];
+          query = query.in('category_id', catIds);
         }
       }
 
       if (filters.isNew) query = query.eq('is_new', true);
       if (filters.isBestseller) query = query.eq('is_bestseller', true);
-      if (filters.isFestive) query = query.eq('is_festive', true);
+      if (filters.isFestive) query = query.or('is_festive.eq.true,occasion.ilike.%Festive%,occasion.ilike.%Wedding%');
       if (filters.isFeatured) query = query.eq('is_featured', true);
 
       if (filters.minPrice) query = query.gte('price_inr', filters.minPrice);

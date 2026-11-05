@@ -16,6 +16,7 @@ export const ShopPage: React.FC = () => {
       ]}
       highlights={['Hereditary Looms', 'Certified Pure Silks', 'Heirloom Craftsmanship']}
       products={PRODUCTS}
+      categorySlug="all"
       subCategories={CATEGORIES[0].subcategories}
     />
   );
