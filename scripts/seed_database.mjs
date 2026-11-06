@@ -281,31 +281,45 @@ async function seedDatabase() {
     const banners = [
       {
         type: 'hero',
-        tagline: 'SACRED DRAPES & PURE SILKS',
+        tagline: 'THE ROYAL HERITAGE EDIT',
+        title1: 'Woven in Tradition.',
+        title2: 'Adorned in Royalty.',
+        desc: 'Discover the timeless beauty of South Indian fashion, where heritage, artistry and elegance come together.',
+        p_cta: 'Explore the Collection',
+        p_link: '/shop',
+        s_cta: 'Discover Our Heritage',
+        s_link: '/heritage',
+        d_img: '/assets/hero/desktop/h11.png',
+        m_img: '/assets/hero/mobile/h1.png',
+        order: 1
+      },
+      {
+        type: 'hero',
+        tagline: 'BRIDAL KANJIVARAM SILKS',
         title1: 'Sacred Threads.',
         title2: 'Blessed for Eternity.',
-        desc: 'Authentic 24k gold zari handlooms woven with centuries of Dravidian craftsmanship for your auspicious rituals.',
+        desc: 'Authentic 24k gold zari handlooms woven with centuries of Dravidian craftsmanship for your auspicious wedding rituals.',
         p_cta: 'Explore Bridal Silks',
         p_link: '/collections/sarees',
         s_cta: 'View Bridal Lookbook',
         s_link: '/shop',
         d_img: '/assets/hero/desktop/h21.png',
         m_img: '/assets/hero/mobile/h2.png',
-        order: 1
+        order: 2
       },
       {
         type: 'hero',
-        tagline: 'FESTIVE SILHOUETTES',
-        title1: 'Regal Weaves of Heritage Artisans.',
-        title2: 'Woven for Celebrations.',
-        desc: 'Direct ethical sourcing from hereditary master weavers across Tamil Nadu, Andhra Pradesh and Varanasi.',
-        p_cta: 'Discover Sarees',
-        p_link: '/collections/sarees',
-        s_cta: 'Explore Lehengas',
-        s_link: '/collections/lehengas',
-        d_img: '/assets/hero/desktop/h22.png',
-        m_img: '/assets/hero/mobile/h2.png',
-        order: 2
+        tagline: 'TIMELESS HEIRLOOM WEAVES',
+        title1: 'Adorned in Grace.',
+        title2: 'Cherished Forever.',
+        desc: 'Directly from hereditary master looms to your sacred occasions — carrying the prayers and living art of South India.',
+        p_cta: 'Shop Festive Silks',
+        p_link: '/collections/festive',
+        s_cta: 'Our Weaver Story',
+        s_link: '/about',
+        d_img: '/assets/hero/desktop/h31.png',
+        m_img: '/assets/hero/mobile/h3.png',
+        order: 3
       }
     ];
 

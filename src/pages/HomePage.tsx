@@ -178,7 +178,7 @@ export const HomePage: React.FC = () => {
 
               {/* Slider Dots */}
               <div className="flex items-center justify-center sm:justify-start space-x-1.5 sm:space-x-2 pt-2 sm:pt-2.5 xl:pt-4 pointer-events-auto">
-                {HERO_SLIDES.map((slide, idx) => (
+                {heroSlides.map((slide, idx) => (
                   <button
                     key={slide.id}
                     onClick={() => setCurrentHeroSlide(idx)}
