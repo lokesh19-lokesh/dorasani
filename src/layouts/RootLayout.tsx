@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnnouncementBar } from '../components/common/AnnouncementBar';
 import { Header } from '../components/common/Header';
@@ -14,10 +14,24 @@ export const RootLayout: React.FC = () => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
-  // Only show preloader on the home page ('/')
+  // Show preloader once per session on the home page, or if forced via query param / replay event
   const [showPreloader, setShowPreloader] = useState(() => {
-    return typeof window !== 'undefined' && window.location.pathname === '/';
+    if (typeof window === 'undefined') return false;
+    if (window.location.pathname !== '/') return false;
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('preloader') === '1' || searchParams.get('replay') === '1') {
+      return true;
+    }
+    const hasSeen = sessionStorage.getItem('dorasani_preloader_seen');
+    return !hasSeen;
   });
+
+  const handlePreloaderComplete = useCallback(() => {
+    setShowPreloader(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('dorasani_preloader_seen', 'true');
+    }
+  }, []);
 
   // Scroll to top on route navigation
   useEffect(() => {
@@ -45,7 +59,7 @@ export const RootLayout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
       {showPreloader && isHomePage && (
-        <Preloader onComplete={() => setShowPreloader(false)} />
+        <Preloader onComplete={handlePreloaderComplete} />
       )}
 
       <AnnouncementBar />

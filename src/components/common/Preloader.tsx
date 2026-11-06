@@ -36,6 +36,9 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
 
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const ambientTweenRef = useRef<gsap.core.Tween | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const isExitingRef = useRef(false);
 
   // Screen size detection
   useEffect(() => {
@@ -55,9 +58,10 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
     };
   }, []);
 
-  // Exit transition: Fade out preloader content first, then fade out solid background
+  // Exit transition: Smoothly fade out container to reveal homepage
   const handleExit = useCallback(() => {
-    if (isExiting) return;
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
     setIsExiting(true);
 
     if (timelineRef.current) {
@@ -68,104 +72,70 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
     }
 
     if (containerRef.current) {
-      const exitTl = gsap.timeline({
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        duration: 0.6,
+        ease: 'power2.inOut',
         onComplete: () => {
           document.body.style.overflow = '';
-          if (onComplete) onComplete();
+          if (onCompleteRef.current) onCompleteRef.current();
         },
-      });
-
-      // 1. Fade out card, character and loading bar cleanly
-      exitTl.to([brandCardRef.current, characterWrapRef.current, loadingBlockRef.current, petalsContainerRef.current], {
-        opacity: 0,
-        y: -15,
-        duration: 0.4,
-        ease: 'power2.in',
-      });
-
-      // 2. Fade out the background to reveal homepage cleanly with zero text overlap
-      exitTl.to(containerRef.current, {
-        opacity: 0,
-        duration: 0.5,
-        ease: 'power2.inOut',
       });
     } else {
       document.body.style.overflow = '';
-      if (onComplete) onComplete();
+      if (onCompleteRef.current) onCompleteRef.current();
     }
-  }, [isExiting, onComplete]);
+  }, []);
 
-  // Asset preloading and progress coordination
+  // Asset preloading and smooth progress coordination (Guaranteed 2.2s cinematic intro)
   useEffect(() => {
-    let loadedCount = 0;
-    const totalAssets = ESSENTIAL_ASSETS.length;
     let isCancelled = false;
-
-    // Minimum display time for luxury cinematic immersion (2.5s)
     const startTime = Date.now();
-    const minDuration = 2500;
+    const minDuration = 2200;
 
-    const updateStatus = (percent: number) => {
-      if (percent < 35) {
+    const interval = setInterval(() => {
+      if (isCancelled) return;
+      const elapsed = Date.now() - startTime;
+      const computedProgress = Math.min(100, Math.round((elapsed / minDuration) * 100));
+
+      setProgress(computedProgress);
+      if (computedProgress < 35) {
         setStatusText('Weaving Sacred Threads...');
-      } else if (percent < 70) {
+      } else if (computedProgress < 70) {
         setStatusText('Adorning with Antique Gold Zari...');
-      } else if (percent < 95) {
+      } else if (computedProgress < 95) {
         setStatusText('Gathering Fragrant Temple Lotuses...');
       } else {
         setStatusText('Welcome to Divine Elegance');
       }
-    };
 
-    const handleAssetDone = () => {
-      loadedCount++;
-      const currentRaw = (loadedCount / totalAssets) * 100;
-      
-      const elapsed = Date.now() - startTime;
-      const timeRatio = Math.min(1, elapsed / minDuration);
-      const computedProgress = Math.min(100, Math.round(Math.min(currentRaw, timeRatio * 100)));
-
-      if (!isCancelled) {
-        setProgress(computedProgress);
-        updateStatus(computedProgress);
-      }
-
-      if (loadedCount >= totalAssets) {
-        const remainingTime = Math.max(0, minDuration - (Date.now() - startTime));
+      if (elapsed >= minDuration) {
+        clearInterval(interval);
         const isHoldMode = typeof window !== 'undefined' && window.location.search.includes('hold_preloader=1');
-
-        setTimeout(() => {
-          if (!isCancelled) {
-            setProgress(100);
-            updateStatus(100);
-            if (!isHoldMode) {
-              setTimeout(handleExit, 500);
-            }
-          }
-        }, remainingTime);
+        if (!isHoldMode) {
+          setTimeout(() => {
+            if (!isCancelled) handleExit();
+          }, 250);
+        }
       }
-    };
+    }, 40);
 
+    // Warm up image cache in background
     ESSENTIAL_ASSETS.forEach((src) => {
       const img = new Image();
-      img.onload = handleAssetDone;
-      img.onerror = handleAssetDone;
       img.src = src;
     });
 
+    // Hard failsafe timeout: Exit at 3.5s maximum no matter what
     const failsafeTimeout = setTimeout(() => {
       if (!isCancelled) {
-        setProgress(100);
-        updateStatus(100);
-        const isHoldMode = typeof window !== 'undefined' && window.location.search.includes('hold_preloader=1');
-        if (!isHoldMode) {
-          setTimeout(handleExit, 300);
-        }
+        handleExit();
       }
-    }, 5000);
+    }, 3500);
 
     return () => {
       isCancelled = true;
+      clearInterval(interval);
       clearTimeout(failsafeTimeout);
     };
   }, [handleExit]);
@@ -185,63 +155,61 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
       const tl = gsap.timeline();
       timelineRef.current = tl;
 
-      // 1. Temple-background reveal
+      // 1. Temple background reveal
       tl.fromTo(
         [bgDesktopRef.current, bgMobileRef.current],
-        { opacity: 0, scale: 1.05 },
-        { opacity: 1, scale: 1.0, duration: 1.4, ease: 'power2.out' }
+        { opacity: 0, scale: 1.03 },
+        { opacity: 1, scale: 1.0, duration: 0.7, ease: 'power2.out' }
       );
 
-      // 2. Woman walking entrance from right side
+      // 2. Royal Brand Card Reveal (starts at 0.15s for immediate brand presence)
+      if (brandCardRef.current) {
+        tl.fromTo(
+          brandCardRef.current,
+          { opacity: 0, y: 18, scale: 0.97 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power2.out' },
+          0.15
+        );
+      }
+
+      // 3. Loading Bar Reveal (starts at 0.25s)
+      if (loadingBlockRef.current) {
+        tl.fromTo(
+          loadingBlockRef.current,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+          0.25
+        );
+      }
+
+      // 4. Character entrance
       if (womanWalkingRef.current && womanStandingRef.current) {
         tl.fromTo(
           womanWalkingRef.current,
-          { opacity: 0, x: isMobile ? 25 : 50, scale: 0.96 },
-          { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power2.out' },
-          '-=1.0'
+          { opacity: 0, x: isMobile ? 25 : 45 },
+          { opacity: 1, x: 0, duration: 0.8, ease: 'power2.out' },
+          0.3
         );
 
-        // Crossfade to standing holding lotus bowl
         tl.to(
           womanWalkingRef.current,
-          { opacity: 0, duration: 0.6, ease: 'power1.inOut' },
-          '+=0.2'
+          { opacity: 0, duration: 0.5, ease: 'power1.inOut' },
+          1.1
         );
         tl.fromTo(
           womanStandingRef.current,
-          { opacity: 0, scale: 0.99 },
-          { opacity: 1, scale: 1, duration: 0.6, ease: 'power1.inOut' },
-          '<'
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5, ease: 'power1.inOut' },
+          1.1
         );
 
-        // Gentle breathing animation on character
         ambientTweenRef.current = gsap.to(characterWrapRef.current, {
-          y: -7,
-          duration: 3,
+          y: -6,
+          duration: 2.5,
           ease: 'sine.inOut',
           yoyo: true,
           repeat: -1,
         });
-      }
-
-      // 3. Royal Brand Card Reveal with high contrast
-      if (brandCardRef.current) {
-        tl.fromTo(
-          brandCardRef.current,
-          { opacity: 0, y: 20, scale: 0.97 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.9, ease: 'power2.out' },
-          '-=1.2'
-        );
-      }
-
-      // 4. Loading Bar Reveal
-      if (loadingBlockRef.current) {
-        tl.fromTo(
-          loadingBlockRef.current,
-          { opacity: 0, y: 15 },
-          { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' },
-          '-=0.8'
-        );
       }
 
       // 5. Floating Petals Animation
@@ -294,8 +262,10 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
       role="dialog"
       aria-label="Welcome to DORASANI"
       aria-modal="true"
-      className="fixed inset-0 z-[9999] overflow-hidden bg-[#FAF5EE] select-none pointer-events-auto"
+      onClick={handleExit}
+      className="fixed inset-0 z-[9999] overflow-hidden bg-[#FAF5EE] select-none pointer-events-auto cursor-pointer"
       style={{ touchAction: 'none' }}
+      title="Click anywhere to enter"
     >
       {/* ─── DESKTOP PANORAMIC TEMPLE BACKGROUND (Visible on >= 768px) ─── */}
       <div
