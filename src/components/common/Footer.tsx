@@ -134,9 +134,9 @@ export const Footer: React.FC = () => {
         <div className="flex flex-col items-center text-center mb-10">
           <Link to="/" className="inline-block transition-transform duration-300 hover:scale-102 mb-1">
             <img
-              src="/assets/brand/dorasani_full_logo.png"
+              src="/assets/logo.png"
               alt="DORASANI - Where Heritage Meets Divine Elegance"
-              className="h-12 sm:h-14 w-auto object-contain mx-auto"
+              className="h-16 sm:h-18 md:h-20 lg:h-22 w-auto object-contain mx-auto"
             />
           </Link>
 

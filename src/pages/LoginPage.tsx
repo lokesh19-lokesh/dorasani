@@ -49,19 +49,13 @@ export const LoginPage: React.FC = () => {
         <div className="md:col-span-6 p-6 sm:p-8 flex flex-col justify-center">
           {/* Logo Header */}
           <div className="text-center mb-6">
-            <div className="w-8 h-7 mx-auto mb-1">
+            <Link to="/" className="inline-block transition-transform duration-200 hover:scale-102">
               <img
-                src="/assets/brand/lotus_mark_green.png"
-                alt="Lotus"
-                className="w-full h-full object-contain"
+                src="/assets/logo.png"
+                alt="DORASANI - Where Heritage Meets Divine Elegance"
+                className="h-14 sm:h-16 md:h-18 w-auto mx-auto object-contain"
               />
-            </div>
-            <h3 className="font-cinzel-royal text-xl font-bold text-[#1A3B2B] tracking-widest uppercase">
-              DORASANI
-            </h3>
-            <p className="text-[9px] uppercase tracking-wider text-[#4F6355]">
-              Where Heritage Meets Divine Elegance
-            </p>
+            </Link>
           </div>
 
           {/* Form Tabs */}

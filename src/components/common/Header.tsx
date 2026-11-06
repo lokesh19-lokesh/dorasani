@@ -54,9 +54,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 className="flex items-center justify-center py-0.5 relative z-10 group transition-transform duration-300 hover:scale-102"
               >
                 <img
-                  src="/assets/brand/dorasani_full_logo.png"
+                  src="/assets/logo.png"
                   alt="DORASANI - Where Heritage Meets Divine Elegance"
-                  className="h-9 sm:h-12 md:h-13 lg:h-14 w-auto object-contain"
+                  className="h-12 sm:h-14 md:h-16 lg:h-18 xl:h-20 w-auto object-contain"
                 />
               </Link>
             </div>

@@ -42,16 +42,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       <div className="relative w-4/5 max-w-xs bg-[#FAF5EE] h-full shadow-2xl flex flex-col z-10 overflow-y-auto">
         {/* Header */}
         <div className="p-4 border-b border-[#D8C7B5] flex items-center justify-between bg-[#F5EFE6]">
-          <div className="flex items-center space-x-2">
+          <Link to="/" onClick={onClose} className="flex items-center">
             <img
-              src="/assets/brand/lotus_mark_green.png"
-              alt="Lotus"
-              className="w-5 h-5 object-contain"
+              src="/assets/logo.png"
+              alt="DORASANI"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
-            <span className="font-cinzel-royal text-lg font-bold text-[#1A3B2B] tracking-widest">
-              DORASANI
-            </span>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className="p-1.5 text-[#4F6355] hover:text-[#285A3C]"

@@ -12,7 +12,8 @@ const ESSENTIAL_ASSETS = [
   '/assets/preloader/bg_temple_mobile.jpg',
   '/assets/preloader/woman_standing_transparent.png',
   '/assets/preloader/woman_walking_transparent.png',
-  '/assets/brand/dorasani_full_logo.png',
+  '/assets/logo.png',
+  '/assets/fevicon.png',
   '/assets/hero/desktop/h1.png',
   '/assets/hero/mobile/h1.png',
   '/assets/hero/ShopbyCategoryhomepage.png',
@@ -369,23 +370,12 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
 
           {/* Authentic Dorasani Lotus Icon & Heritage Badge */}
           <div className="flex items-center gap-2.5 mb-2.5 justify-center md:justify-start">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-[#D8C7B5] shadow-xs flex items-center justify-center p-1.5 shrink-0">
-              <svg
-                viewBox="0 0 100 80"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full h-full text-[#143D24]"
-              >
-                <path
-                  d="M50 5C45 25 30 45 10 50C30 55 45 75 50 75C55 75 70 55 90 50C70 45 55 25 50 5Z"
-                  fill="#143D24"
-                />
-                <path
-                  d="M50 20C46 33 36 47 25 50C36 53 46 67 50 67C54 67 64 53 75 50C64 47 54 33 50 20Z"
-                  fill="#C29336"
-                  fillOpacity="0.9"
-                />
-              </svg>
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-[#D8C7B5] shadow-xs flex items-center justify-center p-1 shrink-0 overflow-hidden">
+              <img
+                src="/assets/fevicon.png"
+                alt="DORASANI Royal Emblem"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="text-left">
               <span className="block text-[10px] sm:text-[11px] font-semibold tracking-[0.22em] text-[#C29336] uppercase font-serif">
