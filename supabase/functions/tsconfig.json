@@ -7,8 +7,8 @@
     "noImplicitAny": false,
     "skipLibCheck": true,
     "allowJs": true,
+    "noEmit": true,
     "allowImportingTsExtensions": true
   },
   "include": ["./**/*", "./deno.d.ts"]
 }
-
