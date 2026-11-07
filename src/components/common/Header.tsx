@@ -29,12 +29,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
   return (
     <>
       <header className="bg-transparent transition-all duration-200 relative z-10 w-full overflow-hidden">
-        {/* 3-Column Balanced Layout - Content constrained within clear center area */}
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-14 py-2 sm:py-3 relative z-10">
-          <div className="grid grid-cols-[auto_1fr_auto] lg:grid-cols-3 items-center">
-            {/* Left Column: Mobile Hamburger or Desktop Decorative Space */}
-            <div className="flex items-center">
-              {/* Mobile Hamburger Menu Button */}
+        {/* Main Balanced Navbar Header */}
+        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-2 sm:py-2.5 relative z-10">
+          <div className="flex items-center justify-between gap-4 lg:gap-8">
+            {/* Left: Mobile Hamburger & DORASANI Brand Logo */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden p-1.5 -ml-1 text-[#113520] hover:text-[#06180c] transition-colors"
@@ -43,41 +42,37 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <Menu className="w-6 h-6" />
               </button>
 
-              {/* Desktop Decorative Area */}
-              <div className="hidden lg:block h-6" />
-            </div>
-
-            {/* Center Column: Perfectly Centered DORASANI Brand Logo */}
-            <div className="relative flex items-center justify-center">
               <Link
                 to="/"
-                className="flex items-center justify-center py-0.5 relative z-10 group transition-transform duration-300 hover:scale-102"
+                className="flex items-center py-0.5 group transition-transform duration-300 hover:scale-102"
               >
                 <img
                   src="/assets/logo.png"
-                  alt="DORASANI - Where Heritage Meets Divine Elegance"
-                  className="h-12 sm:h-14 md:h-16 lg:h-18 xl:h-20 w-auto object-contain"
+                  alt="DORASANI - A Symbol of Tradition"
+                  className="h-11 sm:h-13 md:h-14 lg:h-15 xl:h-16 w-auto object-contain"
                 />
               </Link>
             </div>
 
-            {/* Right Column: Search field, Account, Wishlist, and Shopping Bag */}
-            <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4 justify-end">
-              {/* Desktop Search Bar */}
+            {/* Center: Desktop Search Bar (Generous width, perfectly centered) */}
+            <div className="hidden lg:flex flex-1 max-w-md xl:max-w-lg mx-auto">
               <form
                 onSubmit={handleSearchSubmit}
-                className="hidden lg:flex items-center relative w-40 xl:w-52"
+                className="relative w-full flex items-center"
               >
                 <input
                   type="text"
-                  placeholder="Search sarees, silks..."
+                  placeholder="Search sarees, lehengas, kurtis, silks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/95 hover:bg-white focus:bg-white border border-[#8ec893] rounded-full py-1.5 pl-8 pr-3 text-xs text-[#113520] placeholder:text-[#3f654b] focus:outline-none focus:border-[#113520] focus:ring-1 focus:ring-[#113520] transition-all shadow-xs backdrop-blur-xs font-medium"
+                  className="w-full bg-white/95 hover:bg-white focus:bg-white border border-[#8ec893] rounded-full py-2 pl-9 pr-4 text-xs text-[#113520] placeholder:text-[#3f654b] focus:outline-none focus:border-[#113520] focus:ring-1 focus:ring-[#113520] transition-all shadow-xs backdrop-blur-xs font-medium"
                 />
-                <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3.5 pointer-events-none" />
               </form>
+            </div>
 
+            {/* Right: Search Toggle (Mobile) and Account, Wishlist, Bag Action Group */}
+            <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 justify-end">
               {/* Mobile Search Icon Toggle */}
               <button
                 onClick={() => setIsSearchExpandedMobile(!isSearchExpandedMobile)}
@@ -87,16 +82,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 <Search className="w-5 h-5" />
               </button>
 
-              {/* Desktop Account, Wishlist, Bag Action Group */}
-              <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-[#8ec893] shadow-xs">
+              {/* Desktop & Tablet Account, Wishlist, Bag Action Group */}
+              <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#8ec893] shadow-xs">
                 {/* Account Link */}
                 <Link
                   to={user ? '/account' : '/login'}
-                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70"
+                  className="flex items-center gap-1.5 px-2 py-0.5 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70"
                   title={user ? `Signed in as ${user.fullName}` : 'Login / Register'}
                 >
                   <User className="w-4 h-4 stroke-[2]" />
-                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                  <span className="text-[11.5px] font-semibold tracking-wider">
                     {user ? 'Account' : 'Login'}
                   </span>
                 </Link>
@@ -106,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 {/* Wishlist Link */}
                 <Link
                   to="/wishlist"
-                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
+                  className="flex items-center gap-1.5 px-2 py-0.5 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
                   title="View Wishlist"
                 >
                   <div className="relative">
@@ -117,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                       </span>
                     )}
                   </div>
-                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                  <span className="text-[11.5px] font-semibold tracking-wider">
                     Wishlist
                   </span>
                 </Link>
@@ -127,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 {/* Bag (Cart) Button */}
                 <button
                   onClick={onOpenCart}
-                  className="flex items-center gap-1.5 px-2 py-1 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
+                  className="flex items-center gap-1.5 px-2 py-0.5 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
                   title="View Shopping Bag"
                 >
                   <div className="relative">
@@ -138,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                       </span>
                     )}
                   </div>
-                  <span className="hidden xl:inline text-[11px] font-semibold tracking-wider">
+                  <span className="text-[11.5px] font-semibold tracking-wider">
                     Bag
                   </span>
                 </button>
