@@ -2443,12 +2443,30 @@ export const AdminDashboardPage: React.FC = () => {
                                   </select>
                                     <button
                                       type="button"
+                                      onClick={() => setOrderDetailsTarget(o)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                      title="View full order items, address, and Razorpay IDs"
+                                    >
+                                      <Eye className="w-3 h-3 text-[#285A3C]" />
+                                      <span>Details</span>
+                                    </button>
+                                    <button
+                                      type="button"
                                       onClick={() => openEditOrderModal(o)}
                                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
                                       title="Edit courier & tracking details"
                                     >
                                       <Truck className="w-3 h-3 text-[#285A3C]" />
                                       <span>Dispatch</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeleteOrderTarget(o)}
+                                      className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                      title="Delete order"
+                                      aria-label={`Delete order ${o.order_number}`}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 </td>
