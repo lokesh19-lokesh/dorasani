@@ -1,25 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, Gift, Heart, Zap, Sparkles } from 'lucide-react';
+import {
+  User,
+  Phone,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Gift,
+  Heart,
+  Zap,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
+} from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { authService } from '../services/authService';
 
 export const RegisterPage: React.FC = () => {
-  const [fullName, setFullName] = useState('Maddiboina Lokesh');
-  const [phone, setPhone] = useState('+91 99xxxxxxxx');
-  const [email, setEmail] = useState('lokesh@example.com');
-  const [password, setPassword] = useState('password123');
-  const [confirmPassword, setConfirmPassword] = useState('password123');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [awaitingEmailConfirm, setAwaitingEmailConfirm] = useState(false);
+  const [resending, setResending] = useState(false);
 
-  const { register } = useStore();
+  const { register, user, authLoading, showToast } = useStore();
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(user.isAdmin ? '/admin' : '/account', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreeTerms) return;
-    register(fullName, email, phone, password);
-    navigate('/account');
+    setErrorMessage(null);
+
+    if (!agreeTerms) {
+      setErrorMessage('Please agree to the Terms & Conditions and Privacy Policy to continue.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await register(fullName, email, phone, password);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Unable to create account. Please try again.');
+        return;
+      }
+
+      if (result.requiresConfirmation) {
+        setAwaitingEmailConfirm(true);
+        return;
+      }
+
+      if (result.isAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/account', { replace: true });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) return;
+    setResending(true);
+    setErrorMessage(null);
+    try {
+      const res = await authService.resendConfirmation(email);
+      if (res.success) {
+        showToast(`Verification email resent to ${email.trim().toLowerCase()}`);
+      } else {
+        setErrorMessage(res.error || 'Failed to resend verification email.');
+      }
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -102,126 +168,204 @@ export const RegisterPage: React.FC = () => {
 
           {/* Form Tabs */}
           <div className="flex border-b border-[#E8DCCF] mb-5 text-xs font-semibold">
-            <button className="flex-1 pb-2.5 border-b-2 border-[#285A3C] text-[#285A3C]">
+            <button type="button" className="flex-1 pb-2.5 border-b-2 border-[#285A3C] text-[#285A3C]">
               Create Account
             </button>
             <Link
               to="/login"
               className="flex-1 pb-2.5 text-[#4F6355] hover:text-[#1A3B2B] text-center"
             >
-              Login
+              Sign In
             </Link>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-3.5 text-xs">
-            {/* Full Name */}
-            <div>
-              <label className="block text-[#1A3B2B] font-semibold mb-1">Full Name *</label>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-9 pr-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-                />
-                <User className="w-4 h-4 text-[#4F6355] absolute left-3" />
+          {awaitingEmailConfirm ? (
+            <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3 text-xs text-emerald-950">
+              <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <span>Confirm Your Email Address</span>
+              </div>
+              <p className="leading-relaxed text-emerald-900">
+                We have sent a verification link to <strong>{email.trim().toLowerCase()}</strong>. Please open your inbox and click the confirmation link before signing in.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link
+                  to="/login"
+                  className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-4 py-2 rounded font-semibold transition-colors"
+                >
+                  Go to Sign In
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="inline-flex items-center gap-1.5 border border-emerald-300 bg-white hover:bg-emerald-100/60 text-emerald-900 px-3.5 py-2 rounded font-semibold transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  <span>{resending ? 'Resending...' : 'Resend Link'}</span>
+                </button>
               </div>
             </div>
-
-            {/* Mobile Number */}
-            <div>
-              <label className="block text-[#1A3B2B] font-semibold mb-1">Mobile Number *</label>
-              <div className="relative flex items-center">
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-9 pr-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-                />
-                <Phone className="w-4 h-4 text-[#4F6355] absolute left-3" />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-[#1A3B2B] font-semibold mb-1">Email Address (Optional)</label>
-              <div className="relative flex items-center">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-9 pr-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-                />
-                <Mail className="w-4 h-4 text-[#4F6355] absolute left-3" />
-              </div>
-            </div>
-
-            {/* Passwords */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[#1A3B2B] font-semibold mb-1">Password *</label>
-                <div className="relative flex items-center">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-8 pr-7 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-                  />
-                  <Lock className="w-3.5 h-3.5 text-[#4F6355] absolute left-2.5" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 text-[#4F6355]"
+          ) : (
+            <>
+              <div aria-live="polite">
+                {errorMessage && (
+                  <div
+                    role="alert"
+                    className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2"
                   >
-                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                    <p className="font-medium leading-snug">{errorMessage}</p>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label className="block text-[#1A3B2B] font-semibold mb-1">Confirm Password *</label>
-                <div className="relative flex items-center">
+              <form onSubmit={handleRegister} className="space-y-3.5 text-xs">
+                {/* Full Name */}
+                <div>
+                  <label htmlFor="reg-name" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Full Name *
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="reg-name"
+                      name="name"
+                      type="text"
+                      autoComplete="name"
+                      enterKeyHint="next"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    />
+                    <User className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label htmlFor="reg-phone" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Mobile Number *
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="reg-phone"
+                      name="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      enterKeyHint="next"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    />
+                    <Phone className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label htmlFor="reg-email" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Email Address *
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="reg-email"
+                      name="email"
+                      type="email"
+                      autoComplete="username"
+                      spellCheck={false}
+                      enterKeyHint="next"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    />
+                    <Mail className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label htmlFor="reg-password" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Password *
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="reg-password"
+                      name="new-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      enterKeyHint="done"
+                      minLength={6}
+                      aria-describedby="reg-password-constraints"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a strong password (min 6 characters)"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-10 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    />
+                    <Lock className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-pressed={showPassword}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-2.5 p-1 text-[#4F6355] hover:text-[#285A3C] rounded"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p id="reg-password-constraints" className="text-[11px] text-[#4F6355] mt-1">
+                    Minimum 6 characters. Browsers can generate and save a strong password automatically.
+                  </p>
+                </div>
+
+                {/* Terms checkbox */}
+                <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[#4F6355] pt-1">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    id="reg-terms"
+                    name="agreeTerms"
+                    type="checkbox"
                     required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-8 pr-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                    checked={agreeTerms}
+                    onChange={(e) => setAgreeTerms(e.target.checked)}
+                    className="accent-[#285A3C] rounded"
                   />
-                  <Lock className="w-3.5 h-3.5 text-[#4F6355] absolute left-2.5" />
-                </div>
-              </div>
-            </div>
+                  <span>
+                    I agree to the{' '}
+                    <Link to="/terms" className="underline text-[#285A3C]">
+                      Terms & Conditions
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/privacy-policy" className="underline text-[#285A3C]">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
 
-            {/* Terms checkbox */}
-            <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[#4F6355] pt-1">
-              <input
-                type="checkbox"
-                required
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="accent-[#285A3C] rounded"
-              />
-              <span>I agree to the <Link to="/terms" className="underline text-[#285A3C]">Terms & Conditions</Link> and <Link to="/privacy" className="underline text-[#285A3C]">Privacy Policy</Link></span>
-            </label>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full bg-[#285A3C] hover:bg-[#1E432D] text-white py-2.5 rounded font-bold tracking-wide transition-all shadow-md flex items-center justify-center gap-2 group mt-2"
-            >
-              <span>Create Account</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          </form>
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white py-2.5 rounded font-bold tracking-wide transition-all shadow-md flex items-center justify-center gap-2 group mt-2"
+                >
+                  <span>{isSubmitting ? 'Creating Account...' : 'Create Account'}</span>
+                  {!isSubmitting && (
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  )}
+                </button>
+              </form>
+            </>
+          )}
 
           <p className="text-center text-xs text-[#4F6355] mt-4">
             Already have an account?{' '}
             <Link to="/login" className="text-[#285A3C] font-bold hover:underline">
-              Login
+              Sign In
             </Link>
           </p>
         </div>
@@ -229,4 +373,3 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
-

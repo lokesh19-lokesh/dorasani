@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { StoreProvider } from './context/StoreContext';
 import { RootLayout } from './layouts/RootLayout';
+import { ToastContainer } from './components/common/ToastContainer';
 
 // Page Components
 import { HomePage } from './pages/HomePage';
@@ -109,12 +110,20 @@ export const App: React.FC = () => {
             <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="terms" element={<TermsPage />} />
 
-            {/* Administrator Management Dashboard */}
-            <Route path="admin" element={<AdminDashboardPage />} />
-
             {/* Catch-all 404 */}
             <Route path="*" element={<NotFoundPage />} />
           </Route>
+
+          {/* Dedicated Administrator Dashboard (Full Suite without Duplicate Storefront Sticky Header) */}
+          <Route
+            path="/admin"
+            element={
+              <>
+                <AdminDashboardPage />
+                <ToastContainer />
+              </>
+            }
+          />
         </Routes>
       </StoreProvider>
     </BrowserRouter>

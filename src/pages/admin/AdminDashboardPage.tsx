@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -10,19 +10,17 @@ import {
   FileDown,
   Plus,
   Search,
-  CheckCircle2,
-  AlertCircle,
   Truck,
-  RotateCcw,
-  Sparkles,
   TrendingUp,
   DollarSign,
   Users,
-  Eye,
-  Trash2,
-  Edit,
   X,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck,
+  Store,
+  LogOut,
+  Lock,
+  User as UserIcon,
 } from 'lucide-react';
 import { adminService, type AdminProductInput } from '../../services/adminService';
 import { authService } from '../../services/authService';
@@ -31,8 +29,11 @@ import { useStore } from '../../context/StoreContext';
 type AdminTab = 'overview' | 'products' | 'orders' | 'inventory' | 'categories' | 'coupons' | 'cms' | 'reports';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { showToast } = useStore();
+  const { user, authLoading, logout, showToast } = useStore();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [verifyingAdmin, setVerifyingAdmin] = useState<boolean>(true);
+  const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Metrics
@@ -79,7 +80,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [banners, setBanners] = useState<any[]>([]);
 
   // Load Admin Data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [m, pRes, oRes, cList, coupList, bList] = await Promise.all([
@@ -103,11 +104,51 @@ export const AdminDashboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
+  // Verify database-backed admin authorization before exposing admin console
   useEffect(() => {
-    loadData();
-  }, []);
+    let active = true;
+
+    const verifyAccess = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        if (active) {
+          setIsAuthorizedAdmin(false);
+          setVerifyingAdmin(false);
+          setLoading(false);
+        }
+        return;
+      }
+
+      setVerifyingAdmin(true);
+      const roleInfo = await authService.getUserRoleInfo(user.id);
+      const authorized = Boolean(roleInfo.authenticated && roleInfo.isAdmin);
+
+      if (!active) return;
+
+      setIsAuthorizedAdmin(authorized);
+      setVerifyingAdmin(false);
+
+      if (authorized) {
+        await loadData();
+      } else {
+        setLoading(false);
+      }
+    };
+
+    void verifyAccess();
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, user, loadData]);
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   // Handle Add Product
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -194,38 +235,119 @@ export const AdminDashboardPage: React.FC = () => {
     showToast(`Exported ${filename}.csv successfully!`);
   };
 
+  // Guard UI: Verification in progress
+  if (authLoading || verifyingAdmin) {
+    return (
+      <div className="min-h-screen bg-[#FAF5EE] flex flex-col items-center justify-center p-6 text-center space-y-3">
+        <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-medium text-[#1A3B2B]">Verifying administrator privileges...</p>
+      </div>
+    );
+  }
+
+  // Guard UI: Not signed in or not an authorized DB admin
+  if (!user || !isAuthorizedAdmin) {
+    return (
+      <div className="min-h-screen bg-[#FAF5EE] flex items-center justify-center p-4 sm:p-8">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-[#D8C7B5] shadow-lg p-8 text-center space-y-5">
+          <div className="w-14 h-14 rounded-full bg-[#D0E9C0]/50 border border-[#BCD8AA] text-[#285A3C] flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
+              {!user ? 'Administrator Sign-In Required' : 'Administrator Access Restricted'}
+            </h1>
+            <p className="text-xs text-[#4F6355] leading-relaxed">
+              {!user
+                ? 'Please sign in with an authorized DORASANI administrator account to open the Admin Dashboard.'
+                : `Signed in as ${user.email}, which does not have administrator permissions in the database.`}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {!user ? (
+              <Link
+                to="/login?redirect=/admin"
+                className="flex-1 bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs font-bold py-2.5 px-4 rounded-lg transition-colors shadow-xs"
+              >
+                Sign In to Admin
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex-1 bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs font-bold py-2.5 px-4 rounded-lg transition-colors shadow-xs"
+              >
+                Switch Account
+              </button>
+            )}
+            <Link
+              to="/"
+              className="flex-1 border border-[#D8C7B5] hover:bg-[#FAF5EE] text-[#1A3B2B] text-xs font-semibold py-2.5 px-4 rounded-lg transition-colors"
+            >
+              View User Interface
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF5EE] text-[#1A3B2B] font-poppins pb-20">
       {/* 1. Header Bar */}
       <header className="bg-white border-b border-[#D8C7B5] px-4 sm:px-8 py-4 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center font-bold text-lg border border-[#BCD8AA]">
-              D
-            </div>
+            <Link to="/" className="shrink-0" title="DORASANI User Interface">
+              <img
+                src="/assets/logo.png"
+                alt="DORASANI"
+                className="h-10 sm:h-11 w-auto object-contain"
+              />
+            </Link>
             <div>
-              <h1 className="font-golden text-xl sm:text-2xl font-bold leading-tight">
-                DORASANI Admin Suite
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-golden text-lg sm:text-xl font-bold leading-tight">
+                  Admin Dashboard
+                </h1>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#18482C] text-white text-[10px] font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>{(user.role || 'admin').replace(/_/g, ' ')}</span>
+                </span>
+              </div>
               <p className="text-xs text-[#647268]">
-                Production Supabase Management & Operations
+                {user.email} • Live Store Management
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#BCD8AA] bg-[#D0E9C0]/40 text-xs font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/60 text-xs font-bold text-[#113520] hover:bg-[#D0E9C0] transition-colors shadow-xs"
             >
-              <span>View Storefront</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <Store className="w-3.5 h-3.5" />
+              <span>View User Interface</span>
+            </Link>
+            <Link
+              to="/account"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D8C7B5] bg-white text-xs font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE] transition-colors"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>Account</span>
             </Link>
             <button
               onClick={loadData}
               className="px-3.5 py-1.5 rounded-lg bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
             >
               Refresh Data
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>

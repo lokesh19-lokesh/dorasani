@@ -1,48 +1,139 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { UserProfile } from '../types';
+import type { UserProfile, UserRole } from '../types';
+
+export interface UserRoleInfo {
+  authenticated: boolean;
+  userId?: string;
+  email?: string;
+  role: UserRole;
+  isAdmin: boolean;
+}
+
+const ADMIN_ROLES: UserRole[] = [
+  'super_admin',
+  'admin',
+  'catalog_manager',
+  'inventory_manager',
+  'order_manager',
+];
+
+const ROLE_PRIORITY: UserRole[] = [
+  'super_admin',
+  'admin',
+  'catalog_manager',
+  'inventory_manager',
+  'order_manager',
+  'support_agent',
+  'customer',
+];
 
 export const authService = {
-  // Sign up customer with email and password
-  async signUp(email: string, password: string, fullName: string, phone?: string): Promise<{ user: any; error?: string }> {
+  // Sign up customer or configured admin with email and password
+  async signUp(
+    email: string,
+    password: string,
+    fullName: string,
+    phone?: string
+  ): Promise<{
+    user: any;
+    session: any;
+    confirmationRequired?: boolean;
+    alreadyExists?: boolean;
+    error?: string;
+  }> {
+    const normalizedEmail = email.trim().toLowerCase();
+
     if (!isSupabaseConfigured) {
-      return { user: { id: `user-${Date.now()}`, email, user_metadata: { full_name: fullName } } };
+      return {
+        user: {
+          id: `user-${Date.now()}`,
+          email: normalizedEmail,
+          user_metadata: { full_name: fullName, phone: phone || '' },
+        },
+        session: { access_token: 'local' },
+      };
     }
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login`,
           data: {
-            full_name: fullName,
-            phone: phone || ''
-          }
-        }
+            full_name: fullName.trim(),
+            phone: phone?.trim() || '',
+          },
+        },
       });
 
       if (error) throw error;
-      return { user: data.user };
+
+      // Supabase returns empty identities when user is already registered (with confirmation enabled)
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return {
+          user: null,
+          session: null,
+          alreadyExists: true,
+          error: 'An account with this email is already registered. Please sign in or reset your password.',
+        };
+      }
+
+      const confirmationRequired = Boolean(data.user && !data.session);
+      return {
+        user: data.user,
+        session: data.session,
+        confirmationRequired,
+      };
     } catch (err: any) {
-      return { user: null, error: err.message };
+      return { user: null, session: null, error: err.message };
     }
   },
 
   // Sign in customer or admin
-  async signIn(email: string, password: string): Promise<{ user: any; error?: string }> {
+  async signIn(
+    email: string,
+    password: string
+  ): Promise<{ user: any; session: any; error?: string; emailUnconfirmed?: boolean }> {
+    const normalizedEmail = email.trim().toLowerCase();
+
     if (!isSupabaseConfigured) {
-      return { user: { id: `user-${Date.now()}`, email } };
+      return {
+        user: { id: `user-${Date.now()}`, email: normalizedEmail },
+        session: { access_token: 'local' },
+      };
     }
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: normalizedEmail,
+        password,
       });
 
       if (error) throw error;
-      return { user: data.user };
+      return { user: data.user, session: data.session };
     } catch (err: any) {
-      return { user: null, error: err.message };
+      const message = err?.message || 'Unable to sign in.';
+      const emailUnconfirmed = message.toLowerCase().includes('email not confirmed');
+      return { user: null, session: null, error: message, emailUnconfirmed };
+    }
+  },
+
+  // Resend confirmation email
+  async resendConfirmation(email: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { success: true };
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
     }
   },
 
@@ -62,9 +153,21 @@ export const authService = {
   async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured) return { success: true };
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/account?action=reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: `${window.location.origin}/account?action=reset-password`,
       });
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  // Update authenticated user password (e.g., after recovery link or from account page)
+  async updatePassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { success: true };
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
@@ -79,36 +182,60 @@ export const authService = {
     return data.session;
   },
 
-  // Check if current user is an administrator
-  async checkIsAdmin(userId?: string): Promise<boolean> {
+  // Fetch & synchronize verified role info from DB (checks public.admin_emails & public.user_roles)
+  async getUserRoleInfo(userId?: string): Promise<UserRoleInfo> {
     if (!isSupabaseConfigured) {
-      // Local fallback: allow admin access if query param or stored token
-      return localStorage.getItem('dorasani_admin_override') === 'true';
+      return { authenticated: false, role: 'customer', isAdmin: false };
     }
 
     try {
-      const session = await this.getCurrentSession();
-      const targetUserId = userId || session?.user?.id;
-      if (!targetUserId) return false;
-
-      // 1. Direct call to security definer function is_admin
-      const { data: isAdminRpc, error: rpcErr } = await supabase.rpc('is_admin');
-      if (!rpcErr && typeof isAdminRpc === 'boolean') {
-        return isAdminRpc;
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_role_info');
+      if (!rpcErr && rpcData && typeof rpcData === 'object' && !Array.isArray(rpcData)) {
+        const info = rpcData as Record<string, any>;
+        if (info.authenticated) {
+          return {
+            authenticated: true,
+            userId: info.user_id || userId,
+            email: info.email || undefined,
+            role: (info.role as UserRole) || 'customer',
+            isAdmin: Boolean(info.is_admin),
+          };
+        }
+        return { authenticated: false, role: 'customer', isAdmin: false };
       }
 
-      // 2. Fallback query to user_roles table
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', targetUserId)
-        .in('role', ['super_admin', 'admin', 'catalog_manager', 'inventory_manager', 'order_manager']);
+      const session = await this.getCurrentSession();
+      const targetUserId = userId || session?.user?.id;
+      if (!targetUserId) {
+        return { authenticated: false, role: 'customer', isAdmin: false };
+      }
 
-      if (error) return false;
-      return Boolean(data && data.length > 0);
+      const [{ data: isAdminRpc }, { data: rolesData }] = await Promise.all([
+        supabase.rpc('is_admin'),
+        supabase.from('user_roles').select('role').eq('user_id', targetUserId),
+      ]);
+
+      const assignedRoles = (rolesData || []).map((r) => r.role as UserRole);
+      const effectiveRole =
+        ROLE_PRIORITY.find((r) => assignedRoles.includes(r)) || 'customer';
+      const isAdmin = Boolean(isAdminRpc) || ADMIN_ROLES.includes(effectiveRole);
+
+      return {
+        authenticated: true,
+        userId: targetUserId,
+        email: session?.user?.email || undefined,
+        role: effectiveRole,
+        isAdmin,
+      };
     } catch {
-      return false;
+      return { authenticated: false, role: 'customer', isAdmin: false };
     }
+  },
+
+  // Check if current user is an administrator
+  async checkIsAdmin(userId?: string): Promise<boolean> {
+    const info = await this.getUserRoleInfo(userId);
+    return info.isAdmin;
   },
 
   // Get customer profile
@@ -119,7 +246,7 @@ export const authService = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) return null;
       return {
@@ -127,7 +254,8 @@ export const authService = {
         fullName: data.full_name,
         email: data.email,
         phone: data.phone || '',
-        whatsappOptIn: Boolean(data.whatsapp_opt_in)
+        avatarUrl: data.avatar_url || undefined,
+        whatsappOptIn: Boolean(data.whatsapp_opt_in),
       };
     } catch {
       return null;
@@ -138,18 +266,24 @@ export const authService = {
   async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<boolean> {
     if (!isSupabaseConfigured) return true;
     try {
+      const payload: {
+        full_name?: string;
+        phone?: string | null;
+        whatsapp_opt_in?: boolean;
+      } = {};
+      if (updates.fullName !== undefined) payload.full_name = updates.fullName;
+      if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.whatsappOptIn !== undefined) payload.whatsapp_opt_in = updates.whatsappOptIn;
+      if (Object.keys(payload).length === 0) return true;
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: updates.fullName,
-          phone: updates.phone,
-          whatsapp_opt_in: updates.whatsappOptIn
-        })
+        .update(payload)
         .eq('id', userId);
 
       return !error;
     } catch {
       return false;
     }
-  }
+  },
 };

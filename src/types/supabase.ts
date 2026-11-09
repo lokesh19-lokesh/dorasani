@@ -48,6 +48,20 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"admin_emails": {
+                  Row: {
+                    "created_at": string,"email": string,"is_active": boolean,"notes": string | null,"role": Database["public"]['Enums']["user_role_type"],"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"email": string,"is_active"?: boolean,"notes"?: string | null,"role"?: Database["public"]['Enums']["user_role_type"],"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"is_active"?: boolean,"notes"?: string | null,"role"?: Database["public"]['Enums']["user_role_type"],"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"banners": {
                   Row: {
                     "banner_type": string,"created_at": string | null,"description": string | null,"desktop_image_url": string,"display_order": number | null,"id": string,"is_active": boolean | null,"mobile_image_url": string,"primary_cta_label": string | null,"primary_cta_link": string | null,"secondary_cta_label": string | null,"secondary_cta_link": string | null,"tagline": string | null,"title_line_1": string,"title_line_2": string | null
@@ -760,6 +774,9 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
+            "get_my_role_info":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
             "has_role":
 { Args: { "required_role": Database["public"]['Enums']["user_role_type"] }; Returns: boolean
                            },

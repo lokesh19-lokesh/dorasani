@@ -106,7 +106,7 @@ export const checkoutService = {
 
       // Execute PostgreSQL atomic function
       const { data, error } = await supabase.rpc('process_checkout_atomic', {
-        p_user_id: payload.userId || '',
+        p_user_id: (payload.userId || null) as any,
         p_customer_name: payload.customerName,
         p_customer_email: payload.customerEmail,
         p_customer_phone: payload.customerPhone,

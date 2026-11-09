@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { X, ChevronRight, User, Package, Sparkles, MapPin } from 'lucide-react';
+import { X, ChevronRight, User, Package, Sparkles, MapPin, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 
@@ -59,23 +59,43 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* User Card */}
-        <div className="p-4 bg-[#D0E9C0]/35 border-b border-[#BCD8AA]">
+        <div className="p-4 bg-[#D0E9C0]/35 border-b border-[#BCD8AA] space-y-3">
           {user ? (
-            <Link
-              to="/account"
-              onClick={onClose}
-              className="flex items-center space-x-3"
-            >
-              <div className="w-10 h-10 rounded-full bg-[#285A3C] text-white flex items-center justify-center font-bold text-sm">
-                {user.fullName.charAt(0)}
-              </div>
-              <div className="truncate">
-                <p className="text-sm font-semibold text-[#1A3B2B]">
-                  {user.fullName}
-                </p>
-                <p className="text-xs text-[#285A3C] font-medium">View Account & Orders →</p>
-              </div>
-            </Link>
+            <>
+              <Link
+                to="/account"
+                onClick={onClose}
+                className="flex items-center space-x-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#285A3C] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div className="truncate flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-[#1A3B2B] truncate">
+                      {user.fullName}
+                    </p>
+                    {user.isAdmin && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#18482C] text-white text-[9px] font-bold uppercase shrink-0">
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#285A3C] font-medium">View Account & Orders →</p>
+                </div>
+              </Link>
+              {user.isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={onClose}
+                  className="w-full flex items-center justify-center gap-2 bg-[#18482C] hover:bg-[#113520] text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors shadow-xs"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Open Admin Dashboard</span>
+                </Link>
+              )}
+            </>
           ) : (
             <div className="flex items-center justify-between">
               <div>

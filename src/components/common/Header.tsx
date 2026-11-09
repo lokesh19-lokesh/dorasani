@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 import { MobileDrawer } from './MobileDrawer';
@@ -84,6 +84,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
               {/* Desktop & Tablet Account, Wishlist, Bag Action Group */}
               <div className="hidden sm:flex items-center space-x-1 sm:space-x-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#8ec893] shadow-xs">
+                {user?.isAdmin && (
+                  <>
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[#113520] bg-[#D0E9C0]/70 hover:bg-[#D0E9C0] transition-colors rounded-full font-bold"
+                      title="Open Admin Dashboard"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#18482C]" />
+                      <span className="text-[11px] tracking-wider">Admin</span>
+                    </Link>
+                    <span className="text-[#18482C]/25 text-xs">|</span>
+                  </>
+                )}
+
                 {/* Account Link */}
                 <Link
                   to={user ? '/account' : '/login'}

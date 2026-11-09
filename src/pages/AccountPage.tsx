@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Package,
   MapPin,
@@ -8,21 +8,75 @@ import {
   Bell,
   Gift,
   LogOut,
-  Truck
+  Truck,
+  LayoutDashboard,
+  ShieldCheck,
+  Store,
+  Lock,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
+import { authService } from '../services/authService';
 
 export const AccountPage: React.FC = () => {
-  const { user, logout, orders, wishlist, addresses } = useStore();
+  const {
+    user,
+    authLoading,
+    logout,
+    updateProfile,
+    orders,
+    wishlist,
+    addresses,
+    showToast,
+  } = useStore();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'addresses' | 'profile'>('dashboard');
+  const [searchParams] = useSearchParams();
+  const actionParam = searchParams.get('action');
+
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'addresses' | 'profile'>(
+    actionParam === 'reset-password' ? 'profile' : 'dashboard'
+  );
+
+  // Editable Profile State
+  const [profileName, setProfileName] = useState(user?.fullName || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [whatsappOptIn, setWhatsappOptIn] = useState(user?.whatsappOptIn ?? true);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Password Update State
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.fullName || '');
+      setProfilePhone(user.phone || '');
+      setWhatsappOptIn(user.whatsappOptIn ?? true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (actionParam === 'reset-password') {
+      setActiveTab('profile');
+    }
+  }, [actionParam]);
+
+  if (authLoading) {
+    return (
+      <div className="py-24 text-center space-y-3">
+        <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-[#4F6355]">Loading your DORASANI account...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <div className="py-20 text-center max-w-md mx-auto px-4">
         <h2 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">You are not signed in</h2>
-        <p className="text-xs text-[#4F6355] mt-2">Sign in to view your orders, addresses and profile.</p>
+        <p className="text-xs text-[#4F6355] mt-2">
+          Sign in to view your orders, addresses and profile.
+        </p>
         <Link
           to="/login"
           className="mt-5 inline-block bg-[#285A3C] hover:bg-[#1E432D] text-white px-6 py-2.5 rounded text-xs font-semibold shadow-xs transition-colors"
@@ -33,6 +87,45 @@ export const AccountPage: React.FC = () => {
     );
   }
 
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      await updateProfile({
+        fullName: profileName.trim(),
+        phone: profilePhone.trim(),
+        whatsappOptIn,
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      showToast('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      const res = await authService.updatePassword(newPassword);
+      if (res.success) {
+        setNewPassword('');
+        showToast('Password updated successfully!');
+      } else {
+        showToast(res.error || 'Could not update password.', 'error');
+      }
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <div className="space-y-8 pb-16 pt-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -41,11 +134,19 @@ export const AccountPage: React.FC = () => {
           <aside className="lg:col-span-3 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-5">
             {/* User Profile Card */}
             <div className="flex items-center gap-3 pb-4 border-b border-[#E8DCCF]">
-              <div className="w-12 h-12 rounded-full bg-[#285A3C] text-white font-bold text-lg flex items-center justify-center shadow-xs">
-                {user.fullName.charAt(0)}
+              <div className="w-12 h-12 rounded-full bg-[#285A3C] text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0">
+                {user.fullName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-sm text-[#1A3B2B] truncate">{user.fullName}</h3>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-bold text-sm text-[#1A3B2B] truncate">{user.fullName}</h3>
+                  {user.isAdmin && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#18482C] text-white text-[9px] font-bold uppercase tracking-wider">
+                      <ShieldCheck className="w-2.5 h-2.5" />
+                      {(user.role || 'admin').replace(/_/g, ' ')}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] text-[#4F6355] truncate">{user.email}</p>
                 <button
                   onClick={() => setActiveTab('profile')}
@@ -55,6 +156,17 @@ export const AccountPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Admin Suite Shortcut */}
+            {user.isAdmin && (
+              <Link
+                to="/admin"
+                className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#18482C] hover:bg-[#113520] text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Open Admin Dashboard</span>
+              </Link>
+            )}
 
             {/* Nav Menu */}
             <nav className="space-y-1 text-xs font-semibold">
@@ -79,7 +191,7 @@ export const AccountPage: React.FC = () => {
                 }`}
               >
                 <Package className="w-4 h-4" />
-                <span>My Orders</span>
+                <span>My Orders ({orders.length})</span>
               </button>
 
               <Link
@@ -99,7 +211,7 @@ export const AccountPage: React.FC = () => {
                 }`}
               >
                 <MapPin className="w-4 h-4" />
-                <span>Saved Addresses</span>
+                <span>Saved Addresses ({addresses.length})</span>
               </button>
 
               <Link
@@ -111,14 +223,11 @@ export const AccountPage: React.FC = () => {
               </Link>
 
               <button
-                onClick={() => {
-                  logout();
-                  navigate('/login');
-                }}
+                onClick={handleSignOut}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded text-rose-600 hover:bg-rose-50 transition-colors text-left pt-3 border-t border-[#E8DCCF]"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>Sign Out</span>
               </button>
             </nav>
 
@@ -137,174 +246,396 @@ export const AccountPage: React.FC = () => {
           {/* 2. Main Account Area */}
           <main className="lg:col-span-9 space-y-6">
             {/* Welcome Banner */}
-            <div className="bg-[#D0E9C0]/40 rounded-xl border border-[#BCD8AA] p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-[#D0E9C0]/40 rounded-xl border border-[#BCD8AA] p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B]">
-                  Welcome Back, {user.fullName}!
-                </h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B]">
+                    Welcome Back, {user.fullName}!
+                  </h1>
+                  {user.isAdmin && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#18482C] text-white text-[10px] font-bold uppercase tracking-wider">
+                      <ShieldCheck className="w-3 h-3" />
+                      Administrator
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#4F6355] mt-1">
-                  Explore timeless collections, track your orders and manage your account with ease.
+                  {user.isAdmin
+                    ? 'You have full administrator privileges. Switch between the Admin Dashboard and Storefront UI anytime.'
+                    : 'Explore timeless collections, track your orders and manage your account with ease.'}
                 </p>
               </div>
-              <Link
-                to="/shop"
-                className="shrink-0 bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-4 py-2 rounded font-semibold transition-colors shadow-xs"
-              >
-                Explore Sarees
-              </Link>
-            </div>
-
-            {/* 4 Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div
-                onClick={() => setActiveTab('orders')}
-                className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs cursor-pointer hover:border-[#285A3C] transition-colors"
-              >
-                <div className="flex items-center justify-between text-[#285A3C]">
-                  <Package className="w-5 h-5" />
-                  <span className="text-xl font-bold">{orders.length}</span>
-                </div>
-                <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Total Orders</h4>
-                <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
-                  View Orders →
-                </span>
-              </div>
-
-              <Link
-                to="/wishlist"
-                className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs hover:border-[#285A3C] transition-colors block"
-              >
-                <div className="flex items-center justify-between text-[#285A3C]">
-                  <WishlistIcon className="w-5 h-5" filled={true} />
-                  <span className="text-xl font-bold">{wishlist.length}</span>
-                </div>
-                <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Wishlist Items</h4>
-                <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
-                  View Wishlist →
-                </span>
-              </Link>
-
-              <div
-                onClick={() => setActiveTab('addresses')}
-                className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs cursor-pointer hover:border-[#285A3C] transition-colors"
-              >
-                <div className="flex items-center justify-between text-[#285A3C]">
-                  <MapPin className="w-5 h-5" />
-                  <span className="text-xl font-bold">{addresses.length}</span>
-                </div>
-                <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Saved Addresses</h4>
-                <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
-                  Manage Addresses →
-                </span>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs">
-                <div className="flex items-center justify-between text-[#285A3C]">
-                  <CreditCard className="w-5 h-5" />
-                  <span className="text-xl font-bold">1</span>
-                </div>
-                <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Payment Method</h4>
-                <span className="text-[10px] text-[#4F6355] mt-1 block">UPI Linked</span>
-              </div>
-            </div>
-
-            {/* Recent Orders Section */}
-            <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#E8DCCF]">
-                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
-                  Recent Orders
-                </h3>
-                <span
-                  onClick={() => setActiveTab('orders')}
-                  className="text-xs text-[#285A3C] font-semibold hover:underline cursor-pointer"
-                >
-                  View All Orders →
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {orders.map((ord) => (
-                  <div
-                    key={ord.id}
-                    className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                {user.isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="inline-flex items-center gap-1.5 bg-[#18482C] hover:bg-[#113520] text-white text-xs px-4 py-2 rounded font-bold transition-colors shadow-xs"
                   >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
-                        alt={ord.items[0]?.productTitle}
-                        className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-[#1A3B2B]">
-                            Order #{ord.orderNumber}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                              ord.status === 'out_for_delivery' || ord.status === 'confirmed'
-                                ? 'bg-[#D0E9C0] text-[#1A3B2B]'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {ord.status.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <p className="text-xs font-medium text-[#1A3B2B]">
-                          {ord.items[0]?.productTitle}
-                        </p>
-                        <p className="text-[11px] text-[#4F6355]">{ord.date}</p>
-                      </div>
-                    </div>
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>Admin Dashboard</span>
+                  </Link>
+                )}
+                <Link
+                  to={user.isAdmin ? '/' : '/shop'}
+                  className="inline-flex items-center gap-1.5 bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-4 py-2 rounded font-semibold transition-colors shadow-xs"
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>{user.isAdmin ? 'User Interface' : 'Explore Sarees'}</span>
+                </Link>
+              </div>
+            </div>
 
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
-                      <span className="font-bold text-sm text-[#285A3C]">
-                        ₹{ord.total.toLocaleString('en-IN')}
-                      </span>
+            {activeTab === 'dashboard' && (
+              <>
+                {/* 4 Stat Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div
+                    onClick={() => setActiveTab('orders')}
+                    className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs cursor-pointer hover:border-[#285A3C] transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-[#285A3C]">
+                      <Package className="w-5 h-5" />
+                      <span className="text-xl font-bold">{orders.length}</span>
+                    </div>
+                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Total Orders</h4>
+                    <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
+                      View Orders →
+                    </span>
+                  </div>
+
+                  <Link
+                    to="/wishlist"
+                    className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs hover:border-[#285A3C] transition-colors block"
+                  >
+                    <div className="flex items-center justify-between text-[#285A3C]">
+                      <WishlistIcon className="w-5 h-5" filled={true} />
+                      <span className="text-xl font-bold">{wishlist.length}</span>
+                    </div>
+                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Wishlist Items</h4>
+                    <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
+                      View Wishlist →
+                    </span>
+                  </Link>
+
+                  <div
+                    onClick={() => setActiveTab('addresses')}
+                    className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs cursor-pointer hover:border-[#285A3C] transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-[#285A3C]">
+                      <MapPin className="w-5 h-5" />
+                      <span className="text-xl font-bold">{addresses.length}</span>
+                    </div>
+                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Saved Addresses</h4>
+                    <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
+                      Manage Addresses →
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-[#D8C7B5] shadow-xs">
+                    <div className="flex items-center justify-between text-[#285A3C]">
+                      <CreditCard className="w-5 h-5" />
+                      <span className="text-xl font-bold">UPI</span>
+                    </div>
+                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Payment Methods</h4>
+                    <span className="text-[10px] text-[#4F6355] mt-1 block">Cards, UPI & COD</span>
+                  </div>
+                </div>
+
+                {/* Recent Orders Section */}
+                <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E8DCCF]">
+                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
+                      Recent Orders
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className="text-xs text-[#285A3C] font-semibold hover:underline"
+                    >
+                      View All Orders →
+                    </button>
+                  </div>
+
+                  {orders.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-[#4F6355] space-y-3">
+                      <p>You have not placed any orders yet.</p>
                       <Link
-                        to="/track-order"
-                        className="bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-3.5 py-1.5 rounded font-semibold transition-colors shadow-xs"
+                        to="/shop"
+                        className="inline-block bg-[#285A3C] hover:bg-[#1E432D] text-white px-4 py-2 rounded font-semibold"
                       >
-                        Track Order
+                        Browse Collections
                       </Link>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.slice(0, 5).map((ord) => (
+                        <div
+                          key={ord.id}
+                          className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
+                              alt={ord.items[0]?.productTitle || 'Order Item'}
+                              className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
+                            />
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-[#1A3B2B]">
+                                  Order #{ord.orderNumber}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                    ord.status === 'out_for_delivery' || ord.status === 'confirmed'
+                                      ? 'bg-[#D0E9C0] text-[#1A3B2B]'
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}
+                                >
+                                  {ord.status.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                              <p className="text-xs font-medium text-[#1A3B2B]">
+                                {ord.items[0]?.productTitle}
+                              </p>
+                              <p className="text-[11px] text-[#4F6355]">{ord.date}</p>
+                            </div>
+                          </div>
 
-            {/* Quick Links Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center text-xs">
-              <button
-                onClick={() => setActiveTab('profile')}
-                className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors"
-              >
-                <User className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
-                <span className="font-semibold block text-[#1A3B2B]">Manage Profile</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('addresses')}
-                className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors"
-              >
-                <MapPin className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
-                <span className="font-semibold block text-[#1A3B2B]">Saved Addresses</span>
-              </button>
-              <div className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors cursor-pointer">
-                <CreditCard className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
-                <span className="font-semibold block text-[#1A3B2B]">Payment Methods</span>
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+                            <span className="font-bold text-sm text-[#285A3C]">
+                              ₹{ord.total.toLocaleString('en-IN')}
+                            </span>
+                            <Link
+                              to="/track-order"
+                              className="bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-3.5 py-1.5 rounded font-semibold transition-colors shadow-xs"
+                            >
+                              Track Order
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Links Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center text-xs">
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors"
+                  >
+                    <User className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
+                    <span className="font-semibold block text-[#1A3B2B]">Manage Profile</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('addresses')}
+                    className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors"
+                  >
+                    <MapPin className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
+                    <span className="font-semibold block text-[#1A3B2B]">Saved Addresses</span>
+                  </button>
+                  <Link
+                    to="/track-order"
+                    className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors block"
+                  >
+                    <Truck className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
+                    <span className="font-semibold block text-[#1A3B2B]">Track Orders</span>
+                  </Link>
+                  <Link
+                    to="/wishlist"
+                    className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors block"
+                  >
+                    <Bell className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
+                    <span className="font-semibold block text-[#1A3B2B]">Saved Items</span>
+                  </Link>
+                  <Link
+                    to="/shop"
+                    className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors block"
+                  >
+                    <Gift className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
+                    <span className="font-semibold block text-[#1A3B2B]">New Collections</span>
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'orders' && (
+              <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
+                  All Orders ({orders.length})
+                </h3>
+                {orders.length === 0 ? (
+                  <p className="text-xs text-[#4F6355] py-6 text-center">No orders found for your account.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((ord) => (
+                      <div
+                        key={ord.id}
+                        className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
+                            alt={ord.items[0]?.productTitle || 'Order Item'}
+                            className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
+                          />
+                          <div className="space-y-1">
+                            <span className="font-bold text-xs text-[#1A3B2B] block">
+                              Order #{ord.orderNumber}
+                            </span>
+                            <p className="text-xs text-[#4F6355]">
+                              {ord.items.map((i) => i.productTitle).join(', ')}
+                            </p>
+                            <p className="text-[11px] text-[#4F6355]">{ord.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-sm text-[#285A3C]">
+                            ₹{ord.total.toLocaleString('en-IN')}
+                          </span>
+                          <Link
+                            to={`/track-order/${ord.orderNumber}`}
+                            className="bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-3 py-1.5 rounded font-semibold"
+                          >
+                            Track
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors cursor-pointer">
-                <Bell className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
-                <span className="font-semibold block text-[#1A3B2B]">Notifications</span>
+            )}
+
+            {activeTab === 'addresses' && (
+              <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
+                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
+                  Saved Addresses ({addresses.length})
+                </h3>
+                {addresses.length === 0 ? (
+                  <p className="text-xs text-[#4F6355] py-6 text-center">
+                    No saved addresses yet. Your shipping address will be saved automatically during checkout.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {addresses.map((addr) => (
+                      <div key={addr.id} className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] text-xs space-y-1">
+                        <span className="inline-block px-2 py-0.5 rounded bg-[#D0E9C0] text-[#1A3B2B] font-bold text-[10px] uppercase">
+                          {addr.addressType}
+                        </span>
+                        <p className="font-bold text-[#1A3B2B] pt-1">{addr.fullName}</p>
+                        <p className="text-[#4F6355]">{addr.streetAddress}</p>
+                        <p className="text-[#4F6355]">
+                          {addr.city}, {addr.state} - {addr.pincode}
+                        </p>
+                        <p className="text-[#4F6355]">Phone: {addr.phone}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="p-3 rounded-lg border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] transition-colors cursor-pointer">
-                <Gift className="w-4 h-4 text-[#285A3C] mx-auto mb-1" />
-                <span className="font-semibold block text-[#1A3B2B]">Refer & Earn</span>
+            )}
+
+            {activeTab === 'profile' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form
+                  onSubmit={handleSaveProfile}
+                  className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
+                >
+                  <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF]">
+                    Profile Details
+                  </h3>
+                  <div>
+                    <label htmlFor="profile-email" className="block font-semibold text-[#1A3B2B] mb-1">
+                      Account Email
+                    </label>
+                    <input
+                      id="profile-email"
+                      type="email"
+                      disabled
+                      value={user.email}
+                      className="w-full bg-gray-100 border border-[#D8C7B5] rounded py-2 px-3 text-[#4F6355]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="profile-name" className="block font-semibold text-[#1A3B2B] mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      id="profile-name"
+                      type="text"
+                      required
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 px-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="profile-phone" className="block font-semibold text-[#1A3B2B] mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      id="profile-phone"
+                      type="tel"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 px-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-[#4F6355]">
+                    <input
+                      type="checkbox"
+                      checked={whatsappOptIn}
+                      onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                      className="accent-[#285A3C] rounded"
+                    />
+                    <span>Receive WhatsApp order & new arrival updates</span>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-5 py-2.5 rounded font-bold transition-colors"
+                  >
+                    {savingProfile ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </form>
+
+                <form
+                  onSubmit={handleUpdatePassword}
+                  className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs self-start"
+                >
+                  <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#285A3C]" />
+                    <span>Change Password</span>
+                  </h3>
+                  <div>
+                    <label htmlFor="new-account-password" className="block font-semibold text-[#1A3B2B] mb-1">
+                      New Password
+                    </label>
+                    <input
+                      id="new-account-password"
+                      type="password"
+                      minLength={6}
+                      required
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 px-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={updatingPassword}
+                    className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-5 py-2.5 rounded font-bold transition-colors"
+                  >
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
               </div>
-            </div>
+            )}
           </main>
         </div>
       </div>
     </div>
   );
 };
-

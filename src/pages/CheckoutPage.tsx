@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Lock,
@@ -29,20 +29,26 @@ export const CheckoutPage: React.FC = () => {
 
   const selectedCartItems = cart.filter((i) => i.selected);
 
-  // Form states matching design defaults
-  const [fullName, setFullName] = useState(user?.fullName || 'Maddiboina Lokesh');
-  const [phone, setPhone] = useState(user?.phone || '+91 99xxxxxxxx');
-  const [email, setEmail] = useState(user?.email || 'lokesh@example.com');
+  // Form states prefilled from verified user / saved address when available
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [whatsappUpdates, setWhatsappUpdates] = useState(true);
 
   const [addressType, setAddressType] = useState<'Home' | 'Work' | 'Other'>('Home');
-  const [streetAddress, setStreetAddress] = useState(
-    selectedAddress.streetAddress || 'Flat No. 101, Sri Sai Residency, KPHB Colony'
-  );
-  const [city, setCity] = useState(selectedAddress.city || 'Hyderabad');
-  const [state, setState] = useState(selectedAddress.state || 'Telangana');
-  const [pincode, setPincode] = useState(selectedAddress.pincode || '500072');
-  const [landmark, setLandmark] = useState(selectedAddress.landmark || 'Near KPHB Metro Station');
+  const [streetAddress, setStreetAddress] = useState(selectedAddress.streetAddress || '');
+  const [city, setCity] = useState(selectedAddress.city || '');
+  const [state, setState] = useState(selectedAddress.state || '');
+  const [pincode, setPincode] = useState(selectedAddress.pincode || '');
+  const [landmark, setLandmark] = useState(selectedAddress.landmark || '');
+
+  useEffect(() => {
+    if (user) {
+      setFullName((prev) => prev || user.fullName || '');
+      setPhone((prev) => prev || user.phone || '');
+      setEmail((prev) => prev || user.email || '');
+    }
+  }, [user]);
 
   const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express'>('standard');
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'wallet' | 'cod'>('upi');

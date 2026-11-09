@@ -119,6 +119,15 @@ export interface Order {
   orderNotes?: string;
 }
 
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'catalog_manager'
+  | 'inventory_manager'
+  | 'order_manager'
+  | 'support_agent'
+  | 'customer';
+
 export interface UserProfile {
   id: string;
   fullName: string;
@@ -126,6 +135,8 @@ export interface UserProfile {
   phone: string;
   avatarUrl?: string;
   whatsappOptIn: boolean;
+  role?: UserRole;
+  isAdmin?: boolean;
 }
 
 export type SortOption = 'featured' | 'newest' | 'price-low-high' | 'price-high-low' | 'popular';

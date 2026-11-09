@@ -21,15 +21,35 @@ serve(async (req: Request) => {
       );
     }
 
-    // Verify admin role
-    const { data: roleData } = await admin
+    // Verify admin role (supports users with multiple role rows and admin_emails allowlist)
+    const allowedRoles = ['super_admin', 'admin', 'catalog_manager', 'inventory_manager', 'order_manager'];
+    const { data: roleRows, error: roleError } = await admin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single();
+      .in('role', allowedRoles)
+      .limit(1);
 
-    const allowedRoles = ['super_admin', 'admin', 'catalog_manager', 'inventory_manager', 'order_manager'];
-    if (!roleData || !allowedRoles.includes(roleData.role)) {
+    let hasAdminAccess = !roleError && Boolean(roleRows && roleRows.length > 0);
+
+    if (!hasAdminAccess && user.email) {
+      const { data: adminEmailEntry } = await admin
+        .from('admin_emails')
+        .select('role')
+        .eq('email', user.email.trim().toLowerCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (adminEmailEntry && allowedRoles.includes(adminEmailEntry.role)) {
+        await admin.from('user_roles').upsert(
+          { user_id: user.id, role: adminEmailEntry.role },
+          { onConflict: 'user_id,role' }
+        );
+        hasAdminAccess = true;
+      }
+    }
+
+    if (!hasAdminAccess) {
       return new Response(
         JSON.stringify({ error: 'Forbidden. Admin privileges required.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

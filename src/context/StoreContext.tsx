@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon } from '../types';
-import { PRODUCTS, COUPONS } from '../data/products';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon, UserRole } from '../types';
+import { COUPONS } from '../data/products';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { checkoutService } from '../services/checkoutService';
 import { authService } from '../services/authService';
@@ -9,6 +9,17 @@ interface Toast {
   id: string;
   message: string;
   type?: 'success' | 'info' | 'error';
+}
+
+export interface AuthActionResult {
+  success: boolean;
+  error?: string;
+  user?: UserProfile;
+  isAdmin?: boolean;
+  role?: UserRole;
+  emailUnconfirmed?: boolean;
+  requiresConfirmation?: boolean;
+  alreadyExists?: boolean;
 }
 
 interface StoreContextType {
@@ -38,10 +49,12 @@ interface StoreContextType {
 
   // User & Auth
   user: UserProfile | null;
-  login: (email: string, passwordOrName?: string) => Promise<boolean | void> | void;
-  logout: () => Promise<void> | void;
-  register: (name: string, email: string, phone: string, password?: string) => Promise<boolean | void> | void;
-  updateProfile: (profile: Partial<UserProfile>) => void;
+  authLoading: boolean;
+  isAdmin: boolean;
+  login: (email: string, password?: string) => Promise<AuthActionResult>;
+  logout: () => Promise<void>;
+  register: (name: string, email: string, phone: string, password?: string) => Promise<AuthActionResult>;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<boolean>;
 
   // Addresses
   addresses: Address[];
@@ -61,186 +74,18 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const INITIAL_ADDRESS: Address = {
+const EMPTY_ADDRESS: Address = {
   id: 'addr-default',
   addressType: 'Home',
-  fullName: 'Maddiboina Lokesh',
-  phone: '+91 99xxxxxxxx',
-  streetAddress: 'Flat No. 101, Sri Sai Residency, KPHB Colony',
-  landmark: 'Near KPHB Metro Station',
-  city: 'Hyderabad',
-  state: 'Telangana',
-  pincode: '500072',
+  fullName: '',
+  phone: '',
+  streetAddress: '',
+  landmark: '',
+  city: '',
+  state: '',
+  pincode: '',
   isDefault: true,
 };
-
-const INITIAL_USER: UserProfile = {
-  id: 'user-default',
-  fullName: 'Maddiboina Lokesh',
-  email: 'lokesh@example.com',
-  phone: '+91 99xxxxxxxx',
-  whatsappOptIn: true,
-};
-
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'order-1',
-    orderNumber: 'DOR20261021',
-    date: '21 Oct 2026, 09:41 AM',
-    items: [
-      {
-        productId: 'prod-kanjivaram-silk',
-        productTitle: 'Kanjivaram Silk Saree',
-        variantColor: 'Rani Pink',
-        price: 3499,
-        quantity: 1,
-        imageUrl: '/assets/products/kanjivaram_silk_saree.jpg',
-      },
-      {
-        productId: 'prod-organza-floral',
-        productTitle: 'Organza Floral Saree',
-        variantColor: 'Mehendi Green',
-        price: 1799,
-        quantity: 1,
-        imageUrl: '/assets/products/organza_floral_saree.jpg',
-      },
-      {
-        productId: 'prod-banarasi-silk',
-        productTitle: 'Banarasi Silk Saree',
-        variantColor: 'Lavender',
-        price: 2999,
-        quantity: 1,
-        imageUrl: '/assets/products/banarasi_silk_saree.jpg',
-      },
-      {
-        productId: 'prod-chanderi-cotton',
-        productTitle: 'Chanderi Cotton Saree',
-        variantColor: 'Peach',
-        price: 1499,
-        quantity: 1,
-        imageUrl: '/assets/products/chanderi_cotton_saree.jpg',
-      },
-    ],
-    shippingAddress: INITIAL_ADDRESS,
-    deliveryOption: 'standard',
-    subtotal: 9796,
-    discount: 2100,
-    shippingFee: 0,
-    total: 7696,
-    paymentMethod: 'upi',
-    paymentStatus: 'paid',
-    status: 'out_for_delivery',
-    courierPartner: 'Delhivery',
-    trackingId: '149087654321',
-    timeline: [
-      {
-        title: 'Order Placed',
-        description: 'Your order has been confirmed.',
-        timestamp: '21 Oct 2026, 09:41 AM',
-        completed: true,
-      },
-      {
-        title: 'Processing',
-        description: 'Your order is being prepared.',
-        timestamp: '21 Oct 2026, 11:30 AM',
-        completed: true,
-      },
-      {
-        title: 'Shipped',
-        description: 'Your package has been shipped from our warehouse.',
-        timestamp: '22 Oct 2026, 10:15 AM',
-        completed: true,
-      },
-      {
-        title: 'In Transit',
-        description: 'Your package has reached Hyderabad Sortation Center.',
-        timestamp: '22 Oct 2026, 09:45 PM',
-        completed: true,
-      },
-      {
-        title: 'Out for Delivery',
-        description: 'Your package is out for delivery and will arrive today.',
-        timestamp: '23 Oct 2026, 08:20 AM',
-        completed: true,
-        current: true,
-      },
-      {
-        title: 'Delivered',
-        description: 'Expected by 23 Oct, 06:00 PM',
-        timestamp: 'Estimated: 23 Oct 2026, 06:00 PM',
-        completed: false,
-      },
-    ],
-  },
-  {
-    id: 'order-2',
-    orderNumber: 'DOR20260915',
-    date: '15 Sep 2026, 11:20 AM',
-    items: [
-      {
-        productId: 'prod-organza-floral',
-        productTitle: 'Organza Floral Saree',
-        variantColor: 'Mehendi Green',
-        price: 1799,
-        quantity: 1,
-        imageUrl: '/assets/products/organza_floral_saree.jpg',
-      },
-    ],
-    shippingAddress: INITIAL_ADDRESS,
-    deliveryOption: 'standard',
-    subtotal: 1799,
-    discount: 0,
-    shippingFee: 0,
-    total: 1799,
-    paymentMethod: 'upi',
-    paymentStatus: 'paid',
-    status: 'delivered',
-    timeline: [
-      {
-        title: 'Delivered',
-        description: 'Delivered to your doorstep.',
-        timestamp: '18 Sep 2026',
-        completed: true,
-      },
-    ],
-  },
-  {
-    id: 'order-3',
-    orderNumber: 'DOR20260802',
-    date: '02 Aug 2026, 04:30 PM',
-    items: [
-      {
-        productId: 'prod-banarasi-silk',
-        productTitle: 'Banarasi Silk Saree',
-        variantColor: 'Lavender',
-        price: 2999,
-        quantity: 1,
-        imageUrl: '/assets/products/banarasi_silk_saree.jpg',
-      },
-    ],
-    shippingAddress: INITIAL_ADDRESS,
-    deliveryOption: 'standard',
-    subtotal: 2999,
-    discount: 0,
-    shippingFee: 0,
-    total: 2999,
-    paymentMethod: 'card',
-    paymentStatus: 'paid',
-    status: 'delivered',
-    timeline: [
-      {
-        title: 'Delivered',
-        description: 'Delivered to your doorstep.',
-        timestamp: '05 Aug 2026',
-        completed: true,
-      },
-    ],
-  },
-];
-
-// Initial cart & wishlist: start clean and empty for genuine customer sessions
-const INITIAL_CART: CartItem[] = [];
-const INITIAL_WISHLIST: WishlistItem[] = [];
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -278,34 +123,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('dorasani_user');
-    return saved ? JSON.parse(saved) : INITIAL_USER;
+    if (isSupabaseConfigured) {
+      // Remove legacy unauthenticated fallback entries so Supabase Auth session is the sole source of truth
+      localStorage.removeItem('dorasani_user');
+      localStorage.removeItem('dorasani_admin_override');
+      return null;
+    }
+    try {
+      const saved = localStorage.getItem('dorasani_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const [addresses, setAddresses] = useState<Address[]>([
-    INITIAL_ADDRESS,
-    {
-      id: 'addr-work',
-      addressType: 'Work',
-      fullName: 'Maddiboina Lokesh',
-      phone: '+91 99xxxxxxxx',
-      streetAddress: 'Plot 42, Hitech City Main Road, Madhapur',
-      landmark: 'Cyber Towers',
-      city: 'Hyderabad',
-      state: 'Telangana',
-      pincode: '500081',
-      isDefault: false,
-    },
-  ]);
+  const [authLoading, setAuthLoading] = useState<boolean>(isSupabaseConfigured);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<Address>(EMPTY_ADDRESS);
 
-  const [selectedAddress, setSelectedAddress] = useState<Address>(INITIAL_ADDRESS);
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('dorasani_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (isSupabaseConfigured) {
+      return [];
+    }
+    try {
+      const saved = localStorage.getItem('dorasani_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(COUPONS[0]);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const hydrationSeqRef = useRef(0);
 
   useEffect(() => {
     localStorage.setItem('dorasani_cart', JSON.stringify(cart));
@@ -316,70 +166,164 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem('dorasani_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('dorasani_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('dorasani_user');
+    if (!isSupabaseConfigured) {
+      localStorage.setItem('dorasani_orders', JSON.stringify(orders));
+      if (user) {
+        localStorage.setItem('dorasani_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('dorasani_user');
+      }
     }
-  }, [user]);
+  }, [orders, user]);
 
-  // Sync session & live orders from Supabase when connected
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        const u = data.session.user;
-        setUser({
-          id: u.id,
-          fullName: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Dorasani Customer',
-          email: u.email || '',
-          phone: u.user_metadata?.phone || '',
-          whatsappOptIn: true,
-        });
-
-        checkoutService.getCustomerOrders(u.id).then((liveOrders) => {
-          if (liveOrders && liveOrders.length > 0) {
-            setOrders(liveOrders);
-          }
-        });
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const u = session.user;
-        setUser({
-          id: u.id,
-          fullName: u.user_metadata?.full_name || u.email?.split('@')[0] || 'Dorasani Customer',
-          email: u.email || '',
-          phone: u.user_metadata?.phone || '',
-          whatsappOptIn: true,
-        });
-        checkoutService.getCustomerOrders(u.id).then((liveOrders) => {
-          if (liveOrders && liveOrders.length > 0) {
-            setOrders(liveOrders);
-          }
-        });
-      }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'info' | 'error' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3200);
-  };
+    }, 3400);
+  }, []);
+
+  const hydrateAuthenticatedUser = useCallback(async (authUser: any): Promise<UserProfile | null> => {
+    if (!authUser?.id) {
+      setUser(null);
+      setOrders([]);
+      setAddresses([]);
+      setAuthLoading(false);
+      return null;
+    }
+
+    const seq = ++hydrationSeqRef.current;
+
+    try {
+      const [profile, roleInfo, liveOrders, addressRes] = await Promise.all([
+        authService.getProfile(authUser.id),
+        authService.getUserRoleInfo(authUser.id),
+        checkoutService.getCustomerOrders(authUser.id),
+        supabase
+          .from('customer_addresses')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .order('is_default', { ascending: false }),
+      ]);
+
+      // Ignore stale responses if a newer auth change occurred
+      if (seq !== hydrationSeqRef.current) return null;
+
+      const hydratedUser: UserProfile = {
+        id: authUser.id,
+        fullName:
+          profile?.fullName ||
+          authUser.user_metadata?.full_name ||
+          (roleInfo.isAdmin ? 'DORASANI Admin' : authUser.email?.split('@')[0] || 'DORASANI Member'),
+        email: profile?.email || authUser.email || '',
+        phone: profile?.phone || authUser.user_metadata?.phone || '',
+        avatarUrl: profile?.avatarUrl || authUser.user_metadata?.avatar_url,
+        whatsappOptIn: profile?.whatsappOptIn ?? true,
+        role: roleInfo.role,
+        isAdmin: roleInfo.isAdmin,
+      };
+
+      setUser(hydratedUser);
+
+      if (liveOrders) {
+        setOrders(liveOrders);
+      }
+
+      if (addressRes?.data && addressRes.data.length > 0) {
+        const mappedAddresses: Address[] = addressRes.data.map((a: any) => ({
+          id: a.id,
+          addressType: (a.address_type as 'Home' | 'Work' | 'Other') || 'Home',
+          fullName: a.full_name,
+          phone: a.phone,
+          streetAddress: a.street_address,
+          landmark: a.landmark || '',
+          city: a.city,
+          state: a.state,
+          pincode: a.pincode,
+          isDefault: Boolean(a.is_default),
+        }));
+        setAddresses(mappedAddresses);
+        setSelectedAddress(mappedAddresses[0]);
+      }
+
+      return hydratedUser;
+    } catch (err) {
+      console.warn('[DORASANI Auth] Failed to hydrate user session:', err);
+      if (seq === hydrationSeqRef.current) {
+        const fallbackUser: UserProfile = {
+          id: authUser.id,
+          fullName: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'DORASANI Member',
+          email: authUser.email || '',
+          phone: authUser.user_metadata?.phone || '',
+          whatsappOptIn: true,
+          role: 'customer',
+          isAdmin: false,
+        };
+        setUser(fallbackUser);
+        return fallbackUser;
+      }
+      return null;
+    } finally {
+      if (seq === hydrationSeqRef.current) {
+        setAuthLoading(false);
+      }
+    }
+  }, []);
+
+  // Sync verified session, DB role & live orders from Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setAuthLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        if (!isMounted) return;
+        if (data.session?.user) {
+          await hydrateAuthenticatedUser(data.session.user);
+        } else {
+          setUser(null);
+          setOrders([]);
+          setAddresses([]);
+          setAuthLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setUser(null);
+        setAuthLoading(false);
+      });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        hydrationSeqRef.current += 1;
+        setUser(null);
+        setOrders([]);
+        setAddresses([]);
+        setSelectedAddress(EMPTY_ADDRESS);
+        setAuthLoading(false);
+        return;
+      }
+
+      // Defer Supabase DB queries outside the auth callback lock context
+      setTimeout(() => {
+        if (isMounted) {
+          void hydrateAuthenticatedUser(session.user);
+        }
+      }, 0);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, [hydrateAuthenticatedUser]);
 
   const addToCart = (product: Product, colorName?: string, quantity: number = 1) => {
     const color = colorName || product.colors[0]?.name || 'Standard';
@@ -509,7 +453,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       discount = appliedCoupon.flatDiscount;
     }
   } else if (subtotal > 3000) {
-    // Default festive discount if eligible
     discount = 2100;
   }
 
@@ -519,97 +462,205 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
   const wishlistCount = wishlist.length;
 
-  // Auth
-  const login = async (email: string, passwordOrName: string = 'Maddiboina Lokesh') => {
-    if (isSupabaseConfigured && passwordOrName && !passwordOrName.includes('•') && passwordOrName.length >= 6) {
-      try {
-        const { user: authUser, error } = await authService.signIn(email, passwordOrName);
-        if (!error && authUser) {
-          const profile = await authService.getProfile(authUser.id);
-          const fullUser: UserProfile = {
-            id: authUser.id,
-            fullName: profile?.fullName || authUser.user_metadata?.full_name || 'Valued Patron',
-            email: authUser.email || email,
-            phone: profile?.phone || '',
-            whatsappOptIn: profile?.whatsappOptIn ?? true
-          };
-          setUser(fullUser);
-          showToast(`Welcome back, ${fullUser.fullName}!`);
-          return true;
-        }
-      } catch (e) {
-        console.warn('Supabase sign in failed, fallback to local user:', e);
-      }
+  // Auth: verified database sign-in
+  const login = async (email: string, password: string = ''): Promise<AuthActionResult> => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      const msg = 'Please enter both your email address and password.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
     }
 
-    const name = passwordOrName && !passwordOrName.includes('•') ? passwordOrName : 'Maddiboina Lokesh';
-    const newUser: UserProfile = {
+    if (isSupabaseConfigured) {
+      const { user: authUser, session, error, emailUnconfirmed } = await authService.signIn(
+        cleanEmail,
+        password
+      );
+
+      if (error || !authUser || !session) {
+        const msg = error || 'Invalid email or password.';
+        showToast(msg, 'error');
+        return { success: false, error: msg, emailUnconfirmed };
+      }
+
+      const hydrated = await hydrateAuthenticatedUser(authUser);
+      if (hydrated?.isAdmin) {
+        showToast(`Signed in as Admin (${hydrated.email})`);
+      } else {
+        showToast(`Welcome back, ${hydrated?.fullName || 'Valued Patron'}!`);
+      }
+
+      return {
+        success: true,
+        user: hydrated || undefined,
+        isAdmin: Boolean(hydrated?.isAdmin),
+        role: hydrated?.role || 'customer',
+      };
+    }
+
+    // Offline fallback only when Supabase env vars are not configured
+    const localUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      fullName: name,
-      email,
-      phone: '+91 99xxxxxxxx',
+      fullName: cleanEmail.split('@')[0] || 'DORASANI Customer',
+      email: cleanEmail,
+      phone: '',
       whatsappOptIn: true,
+      role: 'customer',
+      isAdmin: false,
     };
-    setUser(newUser);
-    showToast(`Welcome back, ${name}!`);
-    return true;
+    setUser(localUser);
+    showToast(`Welcome back, ${localUser.fullName}!`);
+    return { success: true, user: localUser, isAdmin: false, role: 'customer' };
   };
 
-  const register = async (name: string, email: string, phone: string, password?: string) => {
-    if (isSupabaseConfigured && password && password.length >= 6) {
-      try {
-        const { user: authUser, error } = await authService.signUp(email, password, name, phone);
-        if (!error && authUser) {
-          const newUser: UserProfile = {
-            id: authUser.id,
-            fullName: name,
-            email,
-            phone,
-            whatsappOptIn: true
-          };
-          setUser(newUser);
-          showToast(`Account created successfully! Welcome to DORASANI.`);
-          return true;
-        }
-      } catch (e) {
-        console.warn('Supabase registration fallback:', e);
+  // Auth: verified registration
+  const register = async (
+    name: string,
+    email: string,
+    phone: string,
+    password: string = ''
+  ): Promise<AuthActionResult> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanPhone = phone.trim();
+
+    if (!cleanName) {
+      const msg = 'Please enter your full name.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+    if (!cleanEmail) {
+      const msg = 'Please enter a valid email address.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+    if (!password || password.length < 6) {
+      const msg = 'Password must be at least 6 characters long.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+
+    if (isSupabaseConfigured) {
+      const {
+        user: authUser,
+        session,
+        confirmationRequired,
+        alreadyExists,
+        error,
+      } = await authService.signUp(cleanEmail, password, cleanName, cleanPhone);
+
+      if (error || !authUser) {
+        const msg = error || 'Unable to create account.';
+        showToast(msg, 'error');
+        return { success: false, error: msg, alreadyExists };
       }
+
+      if (confirmationRequired || !session) {
+        showToast('Verification link sent to your email. Please confirm to sign in.', 'info');
+        return {
+          success: true,
+          requiresConfirmation: true,
+        };
+      }
+
+      const hydrated = await hydrateAuthenticatedUser(authUser);
+      if (hydrated?.isAdmin) {
+        showToast(`Admin account ready! Welcome, ${hydrated.fullName}.`);
+      } else {
+        showToast('Account created successfully! Welcome to DORASANI.');
+      }
+
+      return {
+        success: true,
+        user: hydrated || undefined,
+        isAdmin: Boolean(hydrated?.isAdmin),
+        role: hydrated?.role || 'customer',
+      };
     }
 
     const newUser: UserProfile = {
       id: `usr-${Date.now()}`,
-      fullName: name,
-      email,
-      phone,
+      fullName: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
       whatsappOptIn: true,
+      role: 'customer',
+      isAdmin: false,
     };
     setUser(newUser);
-    showToast(`Account created successfully! Welcome to DORASANI.`);
-    return true;
+    showToast('Account created successfully! Welcome to DORASANI.');
+    return { success: true, user: newUser, isAdmin: false, role: 'customer' };
   };
 
   const logout = async () => {
+    hydrationSeqRef.current += 1;
     if (isSupabaseConfigured) {
       await authService.signOut().catch(() => {});
     }
+    localStorage.removeItem('dorasani_user');
+    localStorage.removeItem('dorasani_orders');
+    localStorage.removeItem('dorasani_admin_override');
     setUser(null);
+    setOrders([]);
+    setAddresses([]);
+    setSelectedAddress(EMPTY_ADDRESS);
     showToast('Signed out successfully', 'info');
   };
 
-  const updateProfile = (updated: Partial<UserProfile>) => {
-    if (user) {
-      setUser({ ...user, ...updated });
-      showToast('Profile updated successfully');
+  const updateProfile = async (updated: Partial<UserProfile>): Promise<boolean> => {
+    if (!user) return false;
+    // Strip role/isAdmin so client-side updates can never alter privileges
+    const { role: _ignoredRole, isAdmin: _ignoredIsAdmin, ...safeUpdates } = updated;
+
+    if (isSupabaseConfigured) {
+      const ok = await authService.updateProfile(user.id, safeUpdates);
+      if (!ok) {
+        showToast('Failed to update profile. Please try again.', 'error');
+        return false;
+      }
     }
+
+    setUser({ ...user, ...safeUpdates });
+    showToast('Profile updated successfully');
+    return true;
   };
 
   const addAddress = (addr: Omit<Address, 'id'>) => {
+    const tempId = `addr-${Date.now()}`;
     const newAddr: Address = {
       ...addr,
-      id: `addr-${Date.now()}`,
+      id: tempId,
     };
     setAddresses((prev) => [...prev, newAddr]);
     setSelectedAddress(newAddr);
+
+    if (isSupabaseConfigured && user?.id) {
+      supabase
+        .from('customer_addresses')
+        .insert({
+          user_id: user.id,
+          address_type: addr.addressType,
+          full_name: addr.fullName,
+          phone: addr.phone,
+          street_address: addr.streetAddress,
+          landmark: addr.landmark || null,
+          city: addr.city,
+          state: addr.state,
+          pincode: addr.pincode,
+          is_default: Boolean(addr.isDefault),
+        })
+        .select()
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setAddresses((prev) =>
+              prev.map((a) => (a.id === tempId ? { ...a, id: data.id } : a))
+            );
+          }
+        });
+    }
+
     showToast('Address saved successfully');
   };
 
@@ -681,30 +732,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setOrders((prev) => [newOrder, ...prev]);
-    // Remove ordered items from cart
     setCart((prev) => prev.filter((item) => !item.selected));
 
-    // Asynchronously persist order into Supabase PostgreSQL
     if (isSupabaseConfigured) {
-      checkoutService.processOrder({
-        userId: user?.id,
-        customerName: newOrder.shippingAddress?.fullName || user?.fullName || 'Dorasani Customer',
-        customerEmail: user?.email || 'customer@dorasanisarees.com',
-        customerPhone: newOrder.shippingAddress?.phone || user?.phone || '+91 9999999999',
-        billingAddress: newOrder.shippingAddress || selectedAddress,
-        shippingAddress: newOrder.shippingAddress || selectedAddress,
-        deliveryOption: newOrder.deliveryOption || 'standard',
-        paymentMethod: newOrder.paymentMethod || 'upi',
-        cartItems: selectedCartItems,
-        couponCode: appliedCoupon?.code,
-        idempotencyKey: `idem-${newOrder.id}`
-      }).then((res) => {
-        if (res.success && res.orderNumber) {
-          console.log('[DORASANI Supabase] Order persisted to PostgreSQL:', res.orderNumber);
-        }
-      }).catch((err) => {
-        console.warn('[DORASANI Supabase] Failed to persist order:', err);
-      });
+      checkoutService
+        .processOrder({
+          userId: user?.id,
+          customerName: newOrder.shippingAddress?.fullName || user?.fullName || 'Dorasani Customer',
+          customerEmail: user?.email || 'customer@dorasanisarees.com',
+          customerPhone: newOrder.shippingAddress?.phone || user?.phone || '+91 9999999999',
+          billingAddress: newOrder.shippingAddress || selectedAddress,
+          shippingAddress: newOrder.shippingAddress || selectedAddress,
+          deliveryOption: newOrder.deliveryOption || 'standard',
+          paymentMethod: newOrder.paymentMethod || 'upi',
+          cartItems: selectedCartItems,
+          couponCode: appliedCoupon?.code,
+          idempotencyKey: `idem-${newOrder.id}`,
+        })
+        .then((res) => {
+          if (res.success && res.orderNumber) {
+            console.log('[DORASANI Supabase] Order persisted to PostgreSQL:', res.orderNumber);
+          }
+        })
+        .catch((err) => {
+          console.warn('[DORASANI Supabase] Failed to persist order:', err);
+        });
     }
 
     return newOrder;
@@ -742,6 +794,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         moveAllToBag,
         wishlistCount,
         user,
+        authLoading,
+        isAdmin: Boolean(user?.isAdmin),
         login,
         logout,
         register,
