@@ -1,10 +1,7 @@
 import React from 'react';
-import { PRODUCTS } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const NewArrivalsPage: React.FC = () => {
-  const newProducts = PRODUCTS.filter((p) => p.isNew);
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/new-arrivalsdesktop.png"
@@ -17,7 +14,6 @@ export const NewArrivalsPage: React.FC = () => {
         { name: 'New Arrivals' },
       ]}
       highlights={['Latest Weave Drops', 'Contemporary South Indian Styles', 'Limited Yardage']}
-      products={newProducts}
       isNew={true}
     />
   );

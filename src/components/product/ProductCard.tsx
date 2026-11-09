@@ -24,6 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!product.inStock) return;
     const color = product.colors[0]?.name || 'Standard';
     addToCart(product, color, 1);
   };
@@ -50,12 +51,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Badges (Top Left) */}
         <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 z-10">
-          {product.isNew && (
+          {!product.inStock && (
+            <span className={`bg-rose-700 text-white ${compact ? 'text-[8px] sm:text-[8.5px] px-1.5 py-0.5' : 'text-[9px] px-2 py-0.5'} font-bold rounded uppercase tracking-wider shadow-xs`}>
+              OUT OF STOCK
+            </span>
+          )}
+          {product.inStock && product.isNew && (
             <span className={`bg-[#1E432D] text-white ${compact ? 'text-[8px] sm:text-[8.5px] px-1.5 py-0.5' : 'text-[9px] px-2 py-0.5'} font-bold rounded uppercase tracking-wider shadow-xs`}>
               NEW
             </span>
           )}
-          {product.isBestseller && !product.isNew && (
+          {product.inStock && product.isBestseller && !product.isNew && (
             <span className={`bg-[#1E432D] text-white ${compact ? 'text-[8px] sm:text-[8.5px] px-1.5 py-0.5' : 'text-[9px] px-2 py-0.5'} font-bold rounded uppercase tracking-wider shadow-xs`}>
               BESTSELLER
             </span>
@@ -122,15 +128,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Bottom Action Row: Fabric Tag + Cart Button */}
         <div className={`flex items-center justify-between ${compact ? 'mt-2 pt-1.5' : 'mt-3 pt-2'} border-t border-[#F5EFE6]`}>
           <span className={`${compact ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-[11px]'} text-[#7A8A7E] font-medium tracking-wide uppercase truncate max-w-[70%]`}>
-            {product.fabric || 'Pure Silk'}
+            {product.fabric || product.category}
           </span>
 
           {/* Add to Bag Button */}
           <button
+            type="button"
+            disabled={!product.inStock}
             onClick={handleAddToCart}
-            className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white flex items-center justify-center transition-all duration-200 shrink-0`}
-            title="Add to Bag"
-            aria-label="Add to Bag"
+            className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white disabled:opacity-40 disabled:hover:bg-[#F3F8F1]/60 disabled:hover:text-[#285A3C] disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 shrink-0`}
+            title={product.inStock ? 'Add to Bag' : 'Out of Stock'}
+            aria-label={product.inStock ? 'Add to Bag' : 'Out of Stock'}
           >
             <ShoppingBag className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
           </button>

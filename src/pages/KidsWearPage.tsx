@@ -1,11 +1,7 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const KidsWearPage: React.FC = () => {
-  const kidsProducts = PRODUCTS.filter((p) => p.categorySlug === 'kids-wear');
-  const kidsSub = CATEGORIES.find((c) => c.slug === 'kids-wear')?.subcategories;
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/lehengasdesktop.png"
@@ -18,9 +14,7 @@ export const KidsWearPage: React.FC = () => {
         { name: 'Kids Wear' },
       ]}
       highlights={['Gentle Pure Silk Fabrics', 'Handloom Pattu Pavadai', 'Auspicious Festive Colors']}
-      products={kidsProducts.length > 0 ? kidsProducts : PRODUCTS.slice(0, 4)}
       categorySlug="kids-wear"
-      subCategories={kidsSub}
     />
   );
 };

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon, UserRole } from '../types';
-import { COUPONS } from '../data/products';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { checkoutService } from '../services/checkoutService';
+import { checkoutService, calculateCouponDiscount } from '../services/checkoutService';
 import { authService } from '../services/authService';
 
 interface Toast {
@@ -36,7 +35,9 @@ interface StoreContextType {
   shippingFee: number;
   total: number;
   appliedCoupon: Coupon | null;
-  applyCoupon: (code: string) => { success: boolean; message: string };
+  availableCoupons: Coupon[];
+  refreshCoupons: () => Promise<void>;
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
 
   // Wishlist
@@ -66,7 +67,9 @@ interface StoreContextType {
 
   // Orders
   orders: Order[];
-  placeOrder: (orderData: Partial<Order>) => Order;
+  placeOrder: (
+    orderData: Partial<Order> & { customerEmail?: string }
+  ) => Promise<{ success: boolean; order?: Order; error?: string }>;
   getOrder: (orderNumber: string) => Order | undefined;
 
   // Toasts
@@ -161,9 +164,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(COUPONS[0]);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const hydrationSeqRef = useRef(0);
+
+  const refreshCoupons = useCallback(async () => {
+    const liveCoupons = await checkoutService.getActiveCoupons();
+    setAvailableCoupons(liveCoupons);
+  }, []);
+
+  useEffect(() => {
+    void refreshCoupons();
+  }, [refreshCoupons]);
 
   useEffect(() => {
     localStorage.setItem('dorasani_cart', JSON.stringify(cart));
@@ -340,7 +353,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [hydrateAuthenticatedUser, showToast]);
 
   const addToCart = (product: Product, colorName?: string, quantity: number = 1) => {
+    if (!product.inStock) {
+      showToast(`"${product.title}" is currently out of stock.`, 'info');
+      return;
+    }
     const color = colorName || product.colors[0]?.name || 'Standard';
+    const maxStock = product.stock && product.stock > 0 ? product.stock : 999;
     setCart((prev) => {
       const existing = prev.find(
         (item) => item.product.id === product.id && item.selectedColor === color
@@ -348,7 +366,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (existing) {
         return prev.map((item) =>
           item.id === existing.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: Math.min(maxStock, item.quantity + quantity) }
             : item
         );
       }
@@ -358,7 +376,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           id: `cart-${Date.now()}-${Math.random()}`,
           product,
           selectedColor: color,
-          quantity,
+          quantity: Math.min(maxStock, quantity),
           selected: true,
         },
       ];
@@ -422,29 +440,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const moveAllToBag = () => {
-    wishlist.forEach((w) => {
+    const available = wishlist.filter((w) => w.product.inStock);
+    if (available.length === 0) {
+      showToast('None of your wishlisted items are currently in stock.', 'info');
+      return;
+    }
+    available.forEach((w) => {
       addToCart(w.product);
     });
-    setWishlist([]);
-    showToast('All wishlist items moved to Bag!');
+    const movedIds = new Set(available.map((w) => w.product.id));
+    setWishlist((prev) => prev.filter((w) => !movedIds.has(w.product.id)));
+    showToast('Available wishlist items moved to Bag!');
   };
 
-  const applyCoupon = (code: string) => {
-    const match = COUPONS.find(
-      (c) => c.code.toUpperCase() === code.trim().toUpperCase()
-    );
-    if (!match) {
-      return { success: false, message: 'Invalid coupon code.' };
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
+    const res = await checkoutService.validateCoupon(code, subtotal);
+    if (!res.valid || !res.coupon) {
+      showToast(res.message, 'error');
+      return { success: false, message: res.message };
     }
-    if (subtotal < match.minOrderValue) {
-      return {
-        success: false,
-        message: `Min order value for ${match.code} is ₹${match.minOrderValue.toLocaleString('en-IN')}`,
-      };
-    }
-    setAppliedCoupon(match);
-    showToast(`Coupon "${match.code}" applied successfully!`);
-    return { success: true, message: `Coupon applied: ${match.description}` };
+    setAppliedCoupon(res.coupon);
+    showToast(`Coupon "${res.coupon.code}" applied successfully!`);
+    return { success: true, message: res.message };
   };
 
   const removeCoupon = () => {
@@ -459,17 +476,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     0
   );
 
-  let discount = 0;
-  if (appliedCoupon) {
-    if (appliedCoupon.discountPercent) {
-      discount = Math.round((subtotal * appliedCoupon.discountPercent) / 100);
-    } else if (appliedCoupon.flatDiscount) {
-      discount = appliedCoupon.flatDiscount;
+  // Auto-clear coupon if selected subtotal drops below minimum order requirement
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    if (subtotal === 0) {
+      setAppliedCoupon(null);
+      return;
     }
-  } else if (subtotal > 3000) {
-    discount = 2100;
-  }
+    if (subtotal < (appliedCoupon.minOrderValue || 0)) {
+      const removedCode = appliedCoupon.code;
+      setAppliedCoupon(null);
+      showToast(
+        `Coupon "${removedCode}" removed because order dropped below ₹${appliedCoupon.minOrderValue.toLocaleString('en-IN')}.`,
+        'info'
+      );
+    }
+  }, [appliedCoupon, subtotal, showToast]);
 
+  const discount = appliedCoupon ? calculateCouponDiscount(appliedCoupon, subtotal) : 0;
   const shippingFee = subtotal > 999 || subtotal === 0 ? 0 : 99;
   const total = Math.max(0, subtotal - discount + shippingFee);
 
@@ -679,18 +703,61 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Address saved successfully');
   };
 
-  const placeOrder = (orderData: Partial<Order>): Order => {
-    const orderNumber = `DOR${new Date().getFullYear()}${String(Date.now()).slice(-6)}`;
+  const placeOrder = async (
+    orderData: Partial<Order> & { customerEmail?: string }
+  ): Promise<{ success: boolean; order?: Order; error?: string }> => {
+    if (selectedCartItems.length === 0) {
+      const msg = 'No items selected for checkout.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+
+    if (!isSupabaseConfigured) {
+      const msg = 'Live order service is not configured.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+
+    const chosenAddress = orderData.shippingAddress || selectedAddress;
+    const chosenDelivery = orderData.deliveryOption || 'standard';
+    const chosenPayment = orderData.paymentMethod || 'upi';
+    const effectiveShipping = chosenDelivery === 'express' ? 99 : shippingFee;
+    const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);
+    const idempotencyKey = `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const res = await checkoutService.processOrder({
+      userId: user?.id,
+      customerName: chosenAddress.fullName || user?.fullName || '',
+      customerEmail: orderData.customerEmail || user?.email || '',
+      customerPhone: chosenAddress.phone || user?.phone || '',
+      billingAddress: chosenAddress,
+      shippingAddress: chosenAddress,
+      deliveryOption: chosenDelivery,
+      paymentMethod: chosenPayment,
+      cartItems: selectedCartItems,
+      couponCode: appliedCoupon?.code,
+      idempotencyKey,
+    });
+
+    if (!res.success || !res.orderNumber) {
+      const errMsg = res.error || 'Unable to place order. Please try again.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    }
+
+    const dbTotal = res.total ?? computedTotal;
+    const nowLabel = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
     const newOrder: Order = {
-      id: `ord-${Date.now()}`,
-      orderNumber,
-      date: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      id: res.orderId || `ord-${Date.now()}`,
+      orderNumber: res.orderNumber,
+      date: nowLabel,
       items: selectedCartItems.map((item) => ({
         productId: item.product.id,
         productTitle: item.product.title,
@@ -699,40 +766,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         quantity: item.quantity,
         imageUrl: item.product.primaryImage,
       })),
-      shippingAddress: selectedAddress,
-      deliveryOption: orderData.deliveryOption || 'standard',
+      shippingAddress: chosenAddress,
+      deliveryOption: chosenDelivery,
       subtotal,
       discount,
-      shippingFee,
-      total,
-      paymentMethod: orderData.paymentMethod || 'upi',
-      paymentStatus: 'paid',
+      shippingFee: effectiveShipping,
+      total: dbTotal,
+      paymentMethod: chosenPayment,
+      paymentStatus: chosenPayment === 'cod' ? 'pending' : 'pending',
       status: 'confirmed',
-      courierPartner: 'Delhivery',
-      trackingId: `1490${Math.floor(10000000 + Math.random() * 90000000)}`,
+      courierPartner: '',
+      trackingId: '',
+      orderNotes: orderData.orderNotes,
       timeline: [
         {
           title: 'Order Placed',
           description: 'Your order has been confirmed and is being processed.',
-          timestamp: 'Just now',
+          timestamp: nowLabel,
           completed: true,
           current: true,
         },
         {
-          title: 'Processing',
-          description: 'We are preparing your order.',
+          title: 'Processing & Packing',
+          description: 'Preparing your handloom order.',
           timestamp: 'Upcoming',
           completed: false,
         },
         {
           title: 'Shipped',
-          description: 'Track your delivery soon.',
+          description: 'Handed over to delivery partner.',
           timestamp: 'Upcoming',
           completed: false,
         },
         {
           title: 'Out for Delivery',
-          description: 'Arriving at your doorstep.',
+          description: 'Your package is on the way to your doorstep.',
           timestamp: 'Upcoming',
           completed: false,
         },
@@ -743,38 +811,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           completed: false,
         },
       ],
-      ...orderData,
     };
 
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => [newOrder, ...prev.filter((o) => o.orderNumber !== newOrder.orderNumber)]);
     setCart((prev) => prev.filter((item) => !item.selected));
+    setAppliedCoupon(null);
+    void refreshCoupons();
 
-    if (isSupabaseConfigured) {
-      checkoutService
-        .processOrder({
-          userId: user?.id,
-          customerName: newOrder.shippingAddress?.fullName || user?.fullName || 'Dorasani Customer',
-          customerEmail: user?.email || 'customer@dorasanisarees.com',
-          customerPhone: newOrder.shippingAddress?.phone || user?.phone || '+91 9999999999',
-          billingAddress: newOrder.shippingAddress || selectedAddress,
-          shippingAddress: newOrder.shippingAddress || selectedAddress,
-          deliveryOption: newOrder.deliveryOption || 'standard',
-          paymentMethod: newOrder.paymentMethod || 'upi',
-          cartItems: selectedCartItems,
-          couponCode: appliedCoupon?.code,
-          idempotencyKey: `idem-${newOrder.id}`,
-        })
-        .then((res) => {
-          if (res.success && res.orderNumber) {
-            console.log('[DORASANI Supabase] Order persisted to PostgreSQL:', res.orderNumber);
-          }
-        })
-        .catch((err) => {
-          console.warn('[DORASANI Supabase] Failed to persist order:', err);
-        });
+    if (user?.id) {
+      checkoutService.getCustomerOrders(user.id).then((liveOrders) => {
+        if (liveOrders && liveOrders.length > 0) {
+          setOrders(liveOrders);
+        }
+      }).catch(() => {});
     }
 
-    return newOrder;
+    showToast(`Order #${newOrder.orderNumber} placed successfully!`);
+    return { success: true, order: newOrder };
   };
 
   const getOrder = (orderNumber: string) => {
@@ -800,6 +853,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         shippingFee,
         total,
         appliedCoupon,
+        availableCoupons,
+        refreshCoupons,
         applyCoupon,
         removeCoupon,
         wishlist,

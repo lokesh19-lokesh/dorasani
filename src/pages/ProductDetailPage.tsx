@@ -11,62 +11,161 @@ import {
   CreditCard,
   ChevronRight,
   Check,
-  MapPin
+  MapPin,
+  AlertCircle,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
-import { PRODUCTS } from '../data/products';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
 import { productService } from '../services/productService';
+import type { Product, ProductReview } from '../types';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart, toggleWishlist, isInWishlist, showToast } = useStore();
 
-  const [product, setProduct] = useState(() => {
-    return PRODUCTS.find((p) => p.slug === slug) || PRODUCTS[0];
-  });
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    if (slug) {
-      productService.getProductBySlug(slug).then((live) => {
-        if (live) {
-          setProduct(live);
-          setSelectedImage(live.primaryImage);
-          if (live.colors && live.colors[0]) {
-            setSelectedColor(live.colors[0].name);
-          }
-        }
-      });
-    }
-  }, [slug]);
-  const [selectedImage, setSelectedImage] = useState(product.primaryImage);
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]?.name || 'Standard');
-  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>('Standard');
+  const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'details' | 'care' | 'shipping' | 'reviews'>('details');
   const [pincode, setPincode] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState<string | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setProduct(null);
+    setRelatedProducts([]);
+    setReviews([]);
+    setQuantity(1);
+
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
+    productService
+      .getProductBySlug(slug)
+      .then(async (live) => {
+        if (!isMounted) return;
+        if (!live) {
+          setProduct(null);
+          return;
+        }
+        setProduct(live);
+        setSelectedImage(live.primaryImage);
+        setSelectedColor(live.colors[0]?.name || 'Standard');
+
+        const [related, prodReviews] = await Promise.all([
+          productService.getRelatedProducts(live.categorySlug, live.id, 4),
+          productService.getProductReviews(live.id),
+        ]);
+        if (!isMounted) return;
+        setRelatedProducts(related);
+        setReviews(prodReviews);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+        <div className="h-5 w-64 bg-[#EDE2D4] rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          <div className="lg:col-span-7 aspect-[4/5] bg-[#EDE2D4] rounded-xl animate-pulse" />
+          <div className="lg:col-span-5 space-y-4">
+            <div className="h-8 w-3/4 bg-[#EDE2D4] rounded animate-pulse" />
+            <div className="h-5 w-1/2 bg-[#EDE2D4] rounded animate-pulse" />
+            <div className="h-10 w-1/3 bg-[#EDE2D4] rounded animate-pulse" />
+            <div className="h-28 w-full bg-[#EDE2D4] rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="py-20 text-center max-w-md mx-auto px-4 space-y-4">
+        <AlertCircle className="w-12 h-12 text-[#285A3C] mx-auto" />
+        <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">Product Not Found</h1>
+        <p className="text-xs text-[#4F6355]">
+          This piece may have been archived or moved to another collection.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <Link
+            to="/shop"
+            className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-5 py-2.5 rounded text-xs font-semibold transition-colors"
+          >
+            Browse Collections
+          </Link>
+          <Link
+            to="/"
+            className="border border-[#D8C7B5] hover:bg-[#FAF5EE] text-[#1A3B2B] px-5 py-2.5 rounded text-xs font-semibold transition-colors"
+          >
+            Return Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const isWishlisted = isInWishlist(product.id);
-  const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
+  const maxAllowedQty = Math.max(1, product.stock || 1);
+  const totalReviewCount = Math.max(product.reviewsCount || 0, reviews.length);
+
+  const featureBadges = [
+    product.fabric,
+    product.weave,
+    product.occasion,
+    product.category,
+  ]
+    .filter((v): v is string => Boolean(v && v.trim()))
+    .slice(0, 4);
+
+  const categoryPath =
+    product.categorySlug && product.categorySlug !== 'all'
+      ? `/collections/${product.categorySlug}`
+      : '/shop';
 
   const handleAddToCart = () => {
+    if (!product.inStock) {
+      showToast('This item is currently out of stock.', 'info');
+      return;
+    }
     addToCart(product, selectedColor, quantity);
   };
 
   const handleBuyNow = () => {
+    if (!product.inStock) {
+      showToast('This item is currently out of stock.', 'info');
+      return;
+    }
     addToCart(product, selectedColor, quantity);
     navigate('/checkout');
   };
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: product.title,
-        text: product.description,
-        url: window.location.href,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: product.title,
+          text: product.description,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       showToast('Link copied to clipboard!');
@@ -75,7 +174,7 @@ export const ProductDetailPage: React.FC = () => {
 
   const checkPincode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pincode.length === 6) {
+    if (/^\d{6}$/.test(pincode)) {
       setPincodeStatus('Available! Standard delivery in 3-5 business days.');
     } else {
       setPincodeStatus('Please enter a valid 6-digit Indian PIN code.');
@@ -87,13 +186,17 @@ export const ProductDetailPage: React.FC = () => {
       {/* 1. Breadcrumbs */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex items-center space-x-1.5 text-xs text-[#4F6355]">
-          <Link to="/" className="hover:text-[#285A3C]">Home</Link>
+          <Link to="/" className="hover:text-[#285A3C]">
+            Home
+          </Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <Link to="/collections/sarees" className="hover:text-[#285A3C]">{product.category}</Link>
+          <Link to={categoryPath} className="hover:text-[#285A3C]">
+            {product.category}
+          </Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
           {product.subCategory && (
             <>
-              <span className="hover:text-[#285A3C] cursor-pointer">{product.subCategory}</span>
+              <span className="text-[#4F6355]">{product.subCategory}</span>
               <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
             </>
           )}
@@ -106,11 +209,11 @@ export const ProductDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* Left Column: Image Gallery */}
           <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 items-start">
-            {/* Thumbnails (Vertical on desktop) */}
             <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto no-scrollbar w-full sm:w-20 shrink-0">
               {product.images.map((img, idx) => (
                 <button
-                  key={idx}
+                  key={`${img}-${idx}`}
+                  type="button"
                   onClick={() => setSelectedImage(img)}
                   className={`w-16 h-20 sm:w-20 sm:h-24 rounded-md overflow-hidden border-2 transition-all shrink-0 bg-[#FAF5EE] ${
                     selectedImage === img
@@ -127,10 +230,9 @@ export const ProductDetailPage: React.FC = () => {
               ))}
             </div>
 
-            {/* Main Image */}
             <div className="flex-1 w-full rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm bg-[#FAF5EE] relative aspect-[4/5] group">
               <img
-                src={selectedImage}
+                src={selectedImage || product.primaryImage}
                 alt={product.title}
                 className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
               />
@@ -139,13 +241,19 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Right Column: Product Details & Purchase Actions */}
           <div className="lg:col-span-5 space-y-5">
-            {/* Badges & Title */}
             <div>
-              {product.isBestseller && (
-                <span className="bg-[#285A3C] text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
-                  Bestseller
-                </span>
-              )}
+              <div className="flex flex-wrap gap-1.5">
+                {product.isNew && (
+                  <span className="bg-[#18482C] text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                    New Arrival
+                  </span>
+                )}
+                {product.isBestseller && (
+                  <span className="bg-[#285A3C] text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                    Bestseller
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-start justify-between gap-4 mt-2">
                 <h1 className="font-serif-royal text-2xl sm:text-3xl font-bold text-[#1A3B2B]">
@@ -153,13 +261,16 @@ export const ProductDetailPage: React.FC = () => {
                 </h1>
                 <div className="flex items-center space-x-2">
                   <button
+                    type="button"
                     onClick={handleShare}
                     className="p-2 rounded-full border border-[#BCD8AA] hover:border-[#285A3C] hover:text-[#285A3C] transition-colors"
                     title="Share product"
+                    aria-label="Share product"
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => toggleWishlist(product)}
                     className={`p-2 rounded-full border transition-all ${
                       isWishlisted
@@ -167,11 +278,9 @@ export const ProductDetailPage: React.FC = () => {
                         : 'border-[#BCD8AA] hover:border-[#18482C] hover:text-[#0D2818] text-[#18482C]'
                     }`}
                     title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                   >
-                    <WishlistIcon
-                      className="w-4 h-4"
-                      filled={isWishlisted}
-                    />
+                    <WishlistIcon className="w-4 h-4" filled={isWishlisted} />
                   </button>
                 </div>
               </div>
@@ -182,20 +291,38 @@ export const ProductDetailPage: React.FC = () => {
                 </p>
               )}
 
-              {/* Rating and Sold count */}
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <div className="flex items-center text-[#C99632]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                  ))}
-                </div>
-                <span className="font-semibold text-[#1A3B2B]">
-                  {product.rating} ({product.reviewsCount} reviews)
-                </span>
-                <span className="text-[#8E9B92]">|</span>
-                <span className="text-[#285A3C] font-semibold">
-                  {product.soldCount || 500}+ sold
-                </span>
+              {/* Live Rating & Sold metadata */}
+              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                {product.rating > 0 ? (
+                  <>
+                    <div className="flex items-center text-[#C99632]">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3.5 h-3.5 ${
+                            i < Math.round(product.rating) ? 'fill-current' : 'opacity-30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-semibold text-[#1A3B2B]">
+                      {product.rating.toFixed(1)} ({totalReviewCount}{' '}
+                      {totalReviewCount === 1 ? 'review' : 'reviews'})
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[#4F6355] font-medium">
+                    {totalReviewCount > 0
+                      ? `${totalReviewCount} customer review${totalReviewCount === 1 ? '' : 's'}`
+                      : 'Authentic DORASANI Collection'}
+                  </span>
+                )}
+                {(product.soldCount ?? 0) > 0 && (
+                  <>
+                    <span className="text-[#8E9B92]">|</span>
+                    <span className="text-[#285A3C] font-semibold">{product.soldCount} sold</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -205,42 +332,43 @@ export const ProductDetailPage: React.FC = () => {
                 <span className="text-2xl sm:text-3xl font-bold text-[#1A3B2B]">
                   ₹{product.price.toLocaleString('en-IN')}
                 </span>
-                <span className="text-sm sm:text-base text-[#8E9B92] line-through">
-                  ₹{product.mrp.toLocaleString('en-IN')}
-                </span>
-                <span className="text-xs font-bold text-[#1A3B2B] bg-[#D0E9C0] px-2 py-0.5 rounded border border-[#BCD8AA]">
-                  {product.discountPercent}% OFF
-                </span>
+                {product.mrp > product.price && (
+                  <span className="text-sm sm:text-base text-[#8E9B92] line-through">
+                    ₹{product.mrp.toLocaleString('en-IN')}
+                  </span>
+                )}
+                {Boolean(product.discountPercent && product.discountPercent > 0) && (
+                  <span className="text-xs font-bold text-[#1A3B2B] bg-[#D0E9C0] px-2 py-0.5 rounded border border-[#BCD8AA]">
+                    {product.discountPercent}% OFF
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-[#4F6355] mt-0.5">
-                Inclusive of all taxes • Pan India Free Shipping
+                Inclusive of all taxes • Free shipping above ₹999 • SKU: {product.sku}
               </p>
             </div>
 
             {/* Description Paragraph */}
-            <p className="text-xs sm:text-sm text-[#4F6355] leading-relaxed">
-              {product.description}
-            </p>
+            {product.description && (
+              <p className="text-xs sm:text-sm text-[#4F6355] leading-relaxed">
+                {product.description}
+              </p>
+            )}
 
-            {/* 4 Feature Badges Grid */}
-            <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-              <div className="bg-[#FAF5EE] p-2.5 rounded border border-[#D8C7B5] flex items-center gap-2">
-                <span className="text-[#C99632] font-bold">✦</span>
-                <span className="font-semibold text-[#1A3B2B]">Pure Kanjivaram Silk</span>
+            {/* Dynamic Feature Badges Grid */}
+            {featureBadges.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                {featureBadges.map((badge) => (
+                  <div
+                    key={badge}
+                    className="bg-[#FAF5EE] p-2.5 rounded border border-[#D8C7B5] flex items-center gap-2"
+                  >
+                    <span className="text-[#C99632] font-bold">✦</span>
+                    <span className="font-semibold text-[#1A3B2B] truncate">{badge}</span>
+                  </div>
+                ))}
               </div>
-              <div className="bg-[#FAF5EE] p-2.5 rounded border border-[#D8C7B5] flex items-center gap-2">
-                <span className="text-[#C99632] font-bold">✦</span>
-                <span className="font-semibold text-[#1A3B2B]">Handwoven Zari Work</span>
-              </div>
-              <div className="bg-[#FAF5EE] p-2.5 rounded border border-[#D8C7B5] flex items-center gap-2">
-                <span className="text-[#C99632] font-bold">✦</span>
-                <span className="font-semibold text-[#1A3B2B]">Traditional Motifs</span>
-              </div>
-              <div className="bg-[#FAF5EE] p-2.5 rounded border border-[#D8C7B5] flex items-center gap-2">
-                <span className="text-[#C99632] font-bold">✦</span>
-                <span className="font-semibold text-[#1A3B2B]">Authentic Handloom</span>
-              </div>
-            </div>
+            )}
 
             {/* Color Swatches */}
             <div className="space-y-2 pt-2">
@@ -248,14 +376,17 @@ export const ProductDetailPage: React.FC = () => {
                 <span className="font-semibold text-[#1A3B2B]">
                   Color: <span className="text-[#285A3C] font-bold">{selectedColor}</span>
                 </span>
-                <span className="text-[#285A3C] underline cursor-pointer font-medium">
-                  Size Guide
-                </span>
+                {product.sizes && product.sizes.length > 0 && (
+                  <span className="text-[#4F6355] font-medium">
+                    Size: {product.sizes.join(', ')}
+                  </span>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 {product.colors.map((c) => (
                   <button
                     key={c.name}
+                    type="button"
                     onClick={() => setSelectedColor(c.name)}
                     className={`w-7 h-7 rounded-full border transition-all ${
                       selectedColor === c.name
@@ -264,17 +395,21 @@ export const ProductDetailPage: React.FC = () => {
                     }`}
                     style={{ backgroundColor: c.hex }}
                     title={c.name}
+                    aria-label={`Select color ${c.name}`}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Quantity Selector & Stock Status */}
-            <div className="flex items-center gap-4 pt-1">
+            {/* Quantity Selector & Real Stock Status */}
+            <div className="flex flex-wrap items-center gap-4 pt-1">
               <div className="flex items-center border border-[#BCD8AA] rounded bg-white text-xs">
                 <button
+                  type="button"
+                  disabled={!product.inStock || quantity <= 1}
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30"
+                  className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30 disabled:opacity-40"
+                  aria-label="Decrease quantity"
                 >
                   -
                 </button>
@@ -282,32 +417,46 @@ export const ProductDetailPage: React.FC = () => {
                   {quantity}
                 </span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30"
+                  type="button"
+                  disabled={!product.inStock || quantity >= maxAllowedQty}
+                  onClick={() => setQuantity(Math.min(maxAllowedQty, quantity + 1))}
+                  className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30 disabled:opacity-40"
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs text-[#285A3C] font-semibold bg-[#D0E9C0]/40 px-3 py-2 rounded border border-[#BCD8AA]">
-                <Check className="w-3.5 h-3.5" />
-                <span>In Stock & Ready to Ship</span>
-              </div>
+              {product.inStock ? (
+                <div className="flex items-center gap-1.5 text-xs text-[#285A3C] font-semibold bg-[#D0E9C0]/40 px-3 py-2 rounded border border-[#BCD8AA]">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>In Stock ({product.stock} ready to ship)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-rose-700 font-semibold bg-rose-50 px-3 py-2 rounded border border-rose-200">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Currently Out of Stock</span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons: Add to Bag & Buy Now */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
+                type="button"
+                disabled={!product.inStock}
                 onClick={handleAddToCart}
-                className="w-full border-2 border-[#285A3C] text-[#285A3C] hover:bg-[#D0E9C0]/30 py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-xs"
+                className="w-full border-2 border-[#285A3C] text-[#285A3C] hover:bg-[#D0E9C0]/30 disabled:opacity-45 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-xs"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Add to Bag</span>
+                <span>{product.inStock ? 'Add to Bag' : 'Out of Stock'}</span>
               </button>
 
               <button
+                type="button"
+                disabled={!product.inStock}
                 onClick={handleBuyNow}
-                className="w-full bg-[#285A3C] hover:bg-[#1E432D] text-white py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-md"
+                className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-45 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-md"
               >
                 <Zap className="w-4 h-4 fill-current" />
                 <span>Buy Now</span>
@@ -315,18 +464,29 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* PIN Code Delivery Check */}
-            <form onSubmit={checkPincode} className="pt-2">
-              <label className="text-xs font-semibold text-[#1A3B2B] block mb-1.5 flex items-center gap-1">
+            <form onSubmit={checkPincode} className="pt-2 dorasani-form">
+              <label
+                htmlFor="delivery-pincode"
+                className="text-xs font-semibold text-[#1A3B2B] block mb-1.5 flex items-center gap-1"
+              >
                 <MapPin className="w-3.5 h-3.5 text-[#285A3C]" />
                 <span>Check Estimated Delivery</span>
               </label>
               <div className="flex max-w-sm">
                 <input
+                  id="delivery-pincode"
+                  name="pincode"
                   type="text"
+                  inputMode="numeric"
+                  pattern="\d{6}"
                   maxLength={6}
+                  autoComplete="postal-code"
                   placeholder="Enter 6-digit PIN code"
                   value={pincode}
-                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => {
+                    setPincode(e.target.value.replace(/\D/g, ''));
+                    if (pincodeStatus) setPincodeStatus(null);
+                  }}
                   className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3 py-2 text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
                 />
                 <button
@@ -337,13 +497,11 @@ export const ProductDetailPage: React.FC = () => {
                 </button>
               </div>
               {pincodeStatus && (
-                <p className="text-[11px] font-medium text-[#285A3C] mt-1.5">
-                  {pincodeStatus}
-                </p>
+                <p className="text-[11px] font-medium text-[#285A3C] mt-1.5">{pincodeStatus}</p>
               )}
             </form>
 
-            {/* 4 Trust Badges Strip */}
+            {/* Trust Badges Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-[#D8C7B5] text-center text-[10px] text-[#4F6355]">
               <div className="p-2 rounded bg-[#FAF5EE] flex flex-col items-center gap-1 border border-[#D8C7B5]">
                 <Truck className="w-4 h-4 text-[#285A3C]" />
@@ -369,17 +527,17 @@ export const ProductDetailPage: React.FC = () => {
       {/* 3. Product Tabs & Specifications */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-4">
         <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs">
-          {/* Tab Headers */}
           <div className="flex border-b border-[#D8C7B5] overflow-x-auto no-scrollbar gap-6 sm:gap-8 text-xs sm:text-sm font-semibold">
             {[
               { id: 'desc', label: 'Description' },
               { id: 'details', label: 'Product Details' },
               { id: 'care', label: 'Care Instructions' },
               { id: 'shipping', label: 'Shipping & Returns' },
-              { id: 'reviews', label: `Reviews (${product.reviewsCount})` },
+              { id: 'reviews', label: `Reviews (${totalReviewCount})` },
             ].map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`pb-3 relative whitespace-nowrap transition-colors ${
                   activeTab === tab.id
@@ -395,54 +553,73 @@ export const ProductDetailPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Tab Content */}
           <div className="py-6 text-xs sm:text-sm text-[#4F6355] leading-relaxed">
             {activeTab === 'details' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="space-y-3">
-                  <p>
-                    Crafted by skilled master artisans, this saree features rich zari weaving, traditional Dravidian motifs, and a luxurious heavy pallu.
-                  </p>
+                  <p>{product.description || 'Crafted by skilled heritage artisans for DORASANI.'}</p>
                   <ul className="space-y-2 text-xs">
+                    {product.fabric && (
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C]" />
+                        <span>
+                          <strong>Material:</strong> {product.fabric}
+                        </span>
+                      </li>
+                    )}
+                    {product.weave && (
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C]" />
+                        <span>
+                          <strong>Weave:</strong> {product.weave}
+                        </span>
+                      </li>
+                    )}
+                    {product.occasion && (
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C]" />
+                        <span>
+                          <strong>Occasion:</strong> {product.occasion}
+                        </span>
+                      </li>
+                    )}
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span><strong>Material:</strong> {product.fabric} (Pure Mulberry Silk)</span>
+                      <span>
+                        <strong>Blouse Piece:</strong>{' '}
+                        {product.blouseIncluded
+                          ? 'Included (Unstitched matching piece)'
+                          : 'Not included / Styled separately'}
+                      </span>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span><strong>Weave:</strong> {product.weave || 'Traditional Zari Weaving'}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span><strong>Occasion:</strong> {product.occasion}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span><strong>Blouse Piece:</strong> Included (Unstitched, matching zari border)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span><strong>Length:</strong> {product.length || '6.3 meters (including blouse)'}</span>
-                    </li>
+                    {product.length && (
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C]" />
+                        <span>
+                          <strong>Length / Fit:</strong> {product.length}
+                        </span>
+                      </li>
+                    )}
                   </ul>
                 </div>
 
-                {/* Blouse Piece Callout Banner */}
-                <div className="rounded-xl overflow-hidden border border-[#BCD8AA] bg-[#D0E9C0]/25 p-4 flex items-center gap-4">
-                  <img
-                    src="/assets/products/blouse_piece.jpg"
-                    alt="Unstitched Blouse Piece"
-                    className="w-24 h-20 object-cover rounded-md border border-[#D8C7B5]"
-                  />
-                  <div>
-                    <h4 className="font-bold text-xs text-[#285A3C]">
-                      Includes Unstitched Blouse Piece
-                    </h4>
-                    <p className="text-[11px] text-[#4F6355] mt-0.5">
-                      80 cm running contrast/matching silk fabric with zari border ready for custom tailoring.
-                    </p>
+                {product.blouseIncluded && (
+                  <div className="rounded-xl overflow-hidden border border-[#BCD8AA] bg-[#D0E9C0]/25 p-4 flex items-center gap-4">
+                    <img
+                      src="/assets/products/blouse_piece.jpg"
+                      alt="Unstitched Blouse Piece"
+                      className="w-24 h-20 object-cover rounded-md border border-[#D8C7B5]"
+                    />
+                    <div>
+                      <h4 className="font-bold text-xs text-[#285A3C]">
+                        Includes Unstitched Blouse Piece
+                      </h4>
+                      <p className="text-[11px] text-[#4F6355] mt-0.5">
+                        Coordinated fabric piece with woven border ready for custom tailoring.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -457,7 +634,9 @@ export const ProductDetailPage: React.FC = () => {
 
             {activeTab === 'care' && (
               <div className="space-y-2">
-                <p>• {product.careInstructions || 'Dry Clean Only to preserve the luster and gold zari work.'}</p>
+                <p>
+                  • {product.careInstructions || 'Dry Clean Only to preserve the luster and zari work.'}
+                </p>
                 <p>• Store folded in a clean, breathable cotton or muslin bag.</p>
                 <p>• Iron on low heat on the reverse side; avoid spraying water directly onto zari threads.</p>
               </div>
@@ -465,28 +644,61 @@ export const ProductDetailPage: React.FC = () => {
 
             {activeTab === 'shipping' && (
               <div className="space-y-2">
-                <p>• <strong>Free Shipping:</strong> On all orders above ₹999 across India.</p>
-                <p>• <strong>Delivery Time:</strong> 3-5 business days for metro cities, 5-7 days for rest of India.</p>
-                <p>• <strong>Easy 7-Day Returns:</strong> Hassle-free pickup and immediate refund upon item receipt.</p>
+                <p>
+                  • <strong>Free Shipping:</strong> On all orders above ₹999 across India.
+                </p>
+                <p>
+                  • <strong>Delivery Time:</strong> 3-5 business days for metro cities, 5-7 days for rest of India.
+                </p>
+                <p>
+                  • <strong>Easy 7-Day Returns:</strong> Hassle-free pickup and immediate refund upon item receipt.
+                </p>
               </div>
             )}
 
             {activeTab === 'reviews' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-4 bg-[#FAF5EE] p-4 rounded-lg border border-[#D8C7B5]">
-                  <div className="text-center">
-                    <span className="text-3xl font-bold text-[#285A3C]">{product.rating}</span>
-                    <div className="flex text-[#C99632] mt-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                      ))}
-                    </div>
+                {reviews.length === 0 ? (
+                  <div className="bg-[#FAF5EE] p-5 rounded-lg border border-[#D8C7B5] text-xs text-[#4F6355]">
+                    <p className="font-semibold text-[#1A3B2B]">
+                      No customer reviews published for this item yet.
+                    </p>
+                    <p className="mt-1">
+                      Verified buyers can leave ratings and reviews after their order is delivered.
+                    </p>
                   </div>
-                  <div className="text-xs text-[#4F6355]">
-                    <p className="font-semibold text-[#1A3B2B]">Based on {product.reviewsCount} verified customer ratings</p>
-                    <p>98% of customers recommended this product for weddings and festivals.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {reviews.map((rev) => (
+                      <div
+                        key={rev.id}
+                        className="bg-[#FAF5EE] p-4 rounded-lg border border-[#D8C7B5] space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-[#1A3B2B]">
+                              {rev.reviewerName}
+                            </span>
+                            {rev.verifiedPurchase && (
+                              <span className="text-[10px] font-semibold bg-[#D0E9C0] text-[#1A3B2B] px-2 py-0.5 rounded">
+                                Verified Buyer
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center text-[#C99632]">
+                            {Array.from({ length: Math.max(1, Math.round(rev.rating)) }).map((_, i) => (
+                              <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                            ))}
+                          </div>
+                        </div>
+                        {rev.title && (
+                          <p className="font-semibold text-xs text-[#1A3B2B]">{rev.title}</p>
+                        )}
+                        {rev.content && <p className="text-xs text-[#4F6355]">{rev.content}</p>}
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -494,18 +706,20 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 4. You May Also Like Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="text-center sm:text-left mb-6">
-          <h2 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B]">
-            You May Also Like
-          </h2>
+      {relatedProducts.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="text-center sm:text-left mb-6">
+            <h2 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B]">
+              You May Also Like
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
+            {relatedProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
-          {relatedProducts.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

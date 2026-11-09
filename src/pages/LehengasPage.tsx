@@ -1,11 +1,7 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const LehengasPage: React.FC = () => {
-  const lehengaProducts = PRODUCTS.filter((p) => p.categorySlug === 'lehengas');
-  const lehengaSub = CATEGORIES.find((c) => c.slug === 'lehengas')?.subcategories;
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/lehengasdesktop.png"
@@ -18,9 +14,7 @@ export const LehengasPage: React.FC = () => {
         { name: 'Lehengas' },
       ]}
       highlights={['Voluminous Flares', 'Intricate Zardozi Work', 'Heirloom Keepsakes']}
-      products={lehengaProducts}
       categorySlug="lehengas"
-      subCategories={lehengaSub}
     />
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { SlidersHorizontal, ChevronDown, X, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, ChevronDown, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { Product, SortOption } from '../../types';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
@@ -16,7 +16,7 @@ interface CollectionTemplateProps {
   title: string;
   subtitle: string;
   breadcrumbs: { name: string; path?: string }[];
-  products: Product[];
+  products?: Product[];
   categorySlug?: string;
   isFestive?: boolean;
   isNew?: boolean;
@@ -30,11 +30,13 @@ interface CollectionTemplateProps {
   bannerImage?: string;
 }
 
+const ITEMS_PER_PAGE = 12;
+
 export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   title,
   subtitle,
   breadcrumbs,
-  products,
+  products = [],
   categorySlug,
   isFestive,
   isNew,
@@ -48,40 +50,12 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   bannerImage,
 }) => {
   const [liveProducts, setLiveProducts] = useState<Product[]>(products);
-  const [liveSubCategories, setLiveSubCategories] = useState<SubCategory[] | undefined>(subCategories);
+  const [liveSubCategories, setLiveSubCategories] = useState<SubCategory[] | undefined>(
+    subCategories
+  );
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedSubCategorySlug, setSelectedSubCategorySlug] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    productService.getProducts({ 
-      categorySlug: categorySlug && categorySlug !== 'all' ? categorySlug : undefined,
-      isFestive,
-      isNew,
-      isBestseller,
-      limit: 100 
-    })
-      .then((res) => {
-        if (isMounted && res.products.length > 0) {
-          setLiveProducts(res.products);
-        }
-      })
-      .catch(() => {});
-
-    productService.getCategories().then((cats) => {
-      if (!isMounted) return;
-      if (categorySlug) {
-        const found = cats.find(c => c.slug === categorySlug);
-        if (found && found.subcategories && found.subcategories.length > 0) {
-          setLiveSubCategories(found.subcategories);
-        }
-      }
-    }).catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, [categorySlug, isFestive, isNew, isBestseller]);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
   const [selectedOccasion, setSelectedOccasion] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<number>(30000);
@@ -89,9 +63,97 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
-  // Available filter options
-  const fabrics = ['Silk', 'Cotton', 'Organza', 'Georgette', 'Velvet'];
-  const occasions = ['Wedding', 'Festive', 'Party Wear', 'Daily Wear'];
+  // Reset subcategory & filters when switching collection route
+  useEffect(() => {
+    setSelectedSubCategorySlug(null);
+    setSelectedFabric([]);
+    setSelectedOccasion([]);
+    setMaxPrice(30000);
+    setSortBy('featured');
+    setCurrentPage(1);
+  }, [categorySlug, isFestive, isNew, isBestseller]);
+
+  // Fetch products dynamically from Supabase
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    productService
+      .getProducts({
+        categorySlug: categorySlug && categorySlug !== 'all' ? categorySlug : undefined,
+        subCategorySlug: selectedSubCategorySlug || undefined,
+        isFestive,
+        isNew,
+        isBestseller,
+        limit: 120,
+      })
+      .then((res) => {
+        if (!isMounted) return;
+        setLiveProducts(res.products);
+        const highestPrice = res.products.reduce(
+          (max, p) => (p.price > max ? p.price : max),
+          30000
+        );
+        const roundedMax = Math.ceil(highestPrice / 1000) * 1000;
+        setMaxPrice((prev) => (prev < roundedMax ? roundedMax : prev));
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [categorySlug, selectedSubCategorySlug, isFestive, isNew, isBestseller]);
+
+  // Fetch subcategories (or top showcase categories when on /shop) dynamically
+  useEffect(() => {
+    let isMounted = true;
+    if (categorySlug && categorySlug !== 'all') {
+      productService.getCategoryBySlug(categorySlug).then((cat) => {
+        if (!isMounted) return;
+        if (cat && cat.subcategories && cat.subcategories.length > 0) {
+          setLiveSubCategories(cat.subcategories);
+        } else {
+          setLiveSubCategories(undefined);
+        }
+      });
+    } else if (categorySlug === 'all') {
+      productService.getCategories().then((cats) => {
+        if (!isMounted) return;
+        setLiveSubCategories(
+          cats
+            .filter((c) => c.slug !== 'new-arrivals' && c.slug !== 'bestsellers')
+            .map((c) => ({
+              name: c.name,
+              slug: c.slug,
+              imageUrl: c.imageUrl,
+            }))
+        );
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [categorySlug]);
+
+  // Derive available fabric and occasion filters dynamically from loaded products
+  const fabrics = useMemo(() => {
+    return Array.from(
+      new Set(liveProducts.map((p) => p.fabric?.trim()).filter(Boolean) as string[])
+    ).sort();
+  }, [liveProducts]);
+
+  const occasions = useMemo(() => {
+    return Array.from(
+      new Set(liveProducts.map((p) => p.occasion?.trim()).filter(Boolean) as string[])
+    ).sort();
+  }, [liveProducts]);
+
+  const ceilingPrice = useMemo(() => {
+    const maxFound = liveProducts.reduce((m, p) => Math.max(m, p.price), 30000);
+    return Math.max(30000, Math.ceil(maxFound / 1000) * 1000);
+  }, [liveProducts]);
 
   // Filtering logic
   const filteredProducts = useMemo(() => {
@@ -127,18 +189,28 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     return list;
   }, [filteredProducts, sortBy]);
 
+  // Genuine client-side pagination derived from sortedProducts.length
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedProducts = useMemo(() => {
+    const start = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+    return sortedProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedProducts, safeCurrentPage]);
+
   const clearAllFilters = () => {
-    setSelectedCategory('all');
+    setSelectedSubCategorySlug(null);
     setSelectedFabric([]);
     setSelectedOccasion([]);
-    setMaxPrice(30000);
+    setMaxPrice(ceilingPrice);
     setSortBy('featured');
+    setCurrentPage(1);
   };
 
   const activeFilterCount =
-    (selectedFabric.length > 0 ? selectedFabric.length : 0) +
-    (selectedOccasion.length > 0 ? selectedOccasion.length : 0) +
-    (maxPrice < 30000 ? 1 : 0);
+    (selectedSubCategorySlug ? 1 : 0) +
+    selectedFabric.length +
+    selectedOccasion.length +
+    (maxPrice < ceilingPrice ? 1 : 0);
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
@@ -157,7 +229,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       ) : (
         <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] pt-4 pb-8 sm:pb-12 px-4 sm:px-8">
           <div className="max-w-7xl mx-auto space-y-4">
-            {/* Breadcrumbs */}
             <nav className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
               {breadcrumbs.map((crumb, idx) => (
                 <React.Fragment key={crumb.name}>
@@ -173,7 +244,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               ))}
             </nav>
 
-            {/* Banner Title & Description */}
             <div className="max-w-2xl">
               <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#1A3B2B]">
                 {title}
@@ -186,7 +256,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         </div>
       )}
 
-      {/* Sub-categories horizontal bar (dynamically fetched from Supabase) */}
+      {/* Sub-categories horizontal bar (dynamically fetched & interactive) */}
       {liveSubCategories && liveSubCategories.length > 0 && (
         <div className="bg-[#FAF5EE]/70 border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -196,29 +266,49 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               <span className="text-[#C99632]">✦</span>
             </div>
             <div className="overflow-x-auto no-scrollbar flex items-center gap-4 sm:gap-6 py-1">
-              {liveSubCategories.map((sub) => (
-                <div
-                  key={sub.slug}
-                  className="flex flex-col items-center shrink-0 cursor-pointer group"
-                >
-                  <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border border-[#D8C7B5] group-hover:border-[#285A3C] shadow-xs transition-all">
-                    {sub.imageUrl ? (
-                      <img
-                        src={sub.imageUrl}
-                        alt={sub.name}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#D0E9C0]/50 flex items-center justify-center text-[#285A3C] font-bold text-xs">
-                        {sub.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[11px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] mt-1.5 text-center max-w-[80px] line-clamp-1">
-                    {sub.name}
-                  </span>
-                </div>
-              ))}
+              {liveSubCategories.map((sub) => {
+                const isSelected = selectedSubCategorySlug === sub.slug;
+                return (
+                  <button
+                    key={sub.slug}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubCategorySlug(isSelected ? null : sub.slug);
+                      setCurrentPage(1);
+                    }}
+                    className="flex flex-col items-center shrink-0 cursor-pointer group focus:outline-none"
+                  >
+                    <div
+                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border-2 shadow-xs transition-all ${
+                        isSelected
+                          ? 'border-[#18482C] ring-2 ring-[#285A3C]/40 scale-105'
+                          : 'border-[#D8C7B5] group-hover:border-[#285A3C]'
+                      }`}
+                    >
+                      {sub.imageUrl ? (
+                        <img
+                          src={sub.imageUrl}
+                          alt={sub.name}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#D0E9C0]/50 flex items-center justify-center text-[#285A3C] font-bold text-xs">
+                          {sub.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <span
+                      className={`text-[11px] mt-1.5 text-center max-w-[84px] line-clamp-1 ${
+                        isSelected
+                          ? 'font-bold text-[#18482C]'
+                          : 'font-medium text-[#1A3B2B] group-hover:text-[#285A3C]'
+                      }`}
+                    >
+                      {sub.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -229,6 +319,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         {/* Mobile Filter & Sort Bar */}
         <div className="lg:hidden flex items-center justify-between pb-4 border-b border-[#D8C7B5] mb-6">
           <button
+            type="button"
             onClick={() => setIsMobileFilterOpen(true)}
             className="flex items-center gap-2 text-xs font-semibold text-[#1A3B2B] bg-[#F5EFE6] px-3.5 py-2 rounded-md border border-[#BCD8AA]"
           >
@@ -237,13 +328,17 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           </button>
 
           <span className="text-xs text-[#4F6355]">
-            {sortedProducts.length} Products
+            {loading ? 'Loading...' : `${sortedProducts.length} Products`}
           </span>
 
           <div className="relative">
             <select
+              aria-label="Sort products"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              onChange={(e) => {
+                setSortBy(e.target.value as SortOption);
+                setCurrentPage(1);
+              }}
               className="text-xs bg-[#F5EFE6] border border-[#BCD8AA] rounded-md px-3 py-2 pr-7 text-[#1A3B2B] font-medium appearance-none focus:outline-none"
             >
               <option value="featured">Sort: Featured</option>
@@ -265,6 +360,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               </h3>
               {activeFilterCount > 0 && (
                 <button
+                  type="button"
                   onClick={clearAllFilters}
                   className="text-xs text-[#285A3C] hover:underline font-semibold"
                 >
@@ -275,7 +371,10 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
 
             {/* Price Range */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase">
+              <label
+                htmlFor="desktop-max-price"
+                className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block"
+              >
                 Price Range
               </label>
               <div className="flex justify-between text-xs text-[#4F6355]">
@@ -283,82 +382,128 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                 <span>₹{maxPrice.toLocaleString('en-IN')}</span>
               </div>
               <input
+                id="desktop-max-price"
                 type="range"
                 min="500"
-                max="30000"
+                max={ceilingPrice}
                 step="500"
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
+                onChange={(e) => {
+                  setMaxPrice(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
                 className="w-full accent-[#285A3C] cursor-pointer"
               />
             </div>
 
-            {/* Fabric */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase">
-                Fabric
-              </label>
-              <div className="space-y-1.5 text-xs text-[#4F6355]">
-                {fabrics.map((f) => (
-                  <label key={f} className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]">
-                    <input
-                      type="checkbox"
-                      checked={selectedFabric.includes(f)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedFabric([...selectedFabric, f]);
-                        } else {
-                          setSelectedFabric(selectedFabric.filter((item) => item !== f));
-                        }
-                      }}
-                      className="accent-[#285A3C] rounded"
-                    />
-                    <span>{f}</span>
-                  </label>
-                ))}
+            {/* Dynamic Fabric Filters */}
+            {fabrics.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block">
+                  Fabric
+                </span>
+                <div className="space-y-1.5 text-xs text-[#4F6355]">
+                  {fabrics.map((f) => (
+                    <label
+                      key={f}
+                      className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedFabric.includes(f)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedFabric([...selectedFabric, f]);
+                          } else {
+                            setSelectedFabric(selectedFabric.filter((item) => item !== f));
+                          }
+                          setCurrentPage(1);
+                        }}
+                        className="accent-[#285A3C] rounded"
+                      />
+                      <span>{f}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Occasion */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase">
-                Occasion
-              </label>
-              <div className="space-y-1.5 text-xs text-[#4F6355]">
-                {occasions.map((occ) => (
-                  <label key={occ} className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]">
-                    <input
-                      type="checkbox"
-                      checked={selectedOccasion.includes(occ)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedOccasion([...selectedOccasion, occ]);
-                        } else {
-                          setSelectedOccasion(selectedOccasion.filter((item) => item !== occ));
-                        }
-                      }}
-                      className="accent-[#285A3C] rounded"
-                    />
-                    <span>{occ}</span>
-                  </label>
-                ))}
+            {/* Dynamic Occasion Filters */}
+            {occasions.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block">
+                  Occasion
+                </span>
+                <div className="space-y-1.5 text-xs text-[#4F6355]">
+                  {occasions.map((occ) => (
+                    <label
+                      key={occ}
+                      className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedOccasion.includes(occ)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOccasion([...selectedOccasion, occ]);
+                          } else {
+                            setSelectedOccasion(
+                              selectedOccasion.filter((item) => item !== occ)
+                            );
+                          }
+                          setCurrentPage(1);
+                        }}
+                        className="accent-[#285A3C] rounded"
+                      />
+                      <span>{occ}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </aside>
 
           {/* Products Grid Area */}
           <main className="lg:col-span-9 space-y-6">
             {/* Top Bar (Showing count & Sort dropdown) */}
             <div className="hidden lg:flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
-              <span className="text-xs text-[#4F6355] font-medium">
-                Showing 1-{sortedProducts.length} of {liveProducts.length} products
-              </span>
+              <div className="flex items-center gap-3 text-xs text-[#4F6355] font-medium">
+                <span>
+                  {loading
+                    ? 'Loading collection...'
+                    : sortedProducts.length === 0
+                    ? '0 products found'
+                    : `Showing ${(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}-${Math.min(
+                        safeCurrentPage * ITEMS_PER_PAGE,
+                        sortedProducts.length
+                      )} of ${sortedProducts.length} products`}
+                </span>
+                {selectedSubCategorySlug && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubCategorySlug(null)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#D0E9C0] text-[#1A3B2B] font-semibold"
+                  >
+                    <span>
+                      {liveSubCategories?.find((s) => s.slug === selectedSubCategorySlug)
+                        ?.name || selectedSubCategorySlug}
+                    </span>
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
 
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-[#4F6355]">Sort by:</span>
+                <label htmlFor="desktop-sort-select" className="text-[#4F6355]">
+                  Sort by:
+                </label>
                 <select
+                  id="desktop-sort-select"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as SortOption);
+                    setCurrentPage(1);
+                  }}
                   className="bg-white border border-[#BCD8AA] rounded px-3 py-1.5 text-xs text-[#1A3B2B] font-medium focus:outline-none focus:border-[#285A3C]"
                 >
                   <option value="featured">Featured</option>
@@ -371,66 +516,75 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
             </div>
 
             {/* Products Grid */}
-            {sortedProducts.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-lg border border-[#E8DCCF] h-64 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : sortedProducts.length === 0 ? (
               <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8">
                 <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
-                  No products match your selected filters
+                  No products found
                 </h3>
                 <p className="text-xs text-[#4F6355] mt-1">
-                  Try adjusting your price range or fabric options.
+                  {activeFilterCount > 0
+                    ? 'Try adjusting your category, fabric, or price filters.'
+                    : 'No active products are currently assigned to this collection.'}
                 </p>
-                <button
-                  onClick={clearAllFilters}
-                  className="mt-4 bg-[#285A3C] hover:bg-[#1E432D] text-white px-5 py-2 rounded text-xs font-semibold"
-                >
-                  Reset Filters
-                </button>
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="mt-4 bg-[#285A3C] hover:bg-[#1E432D] text-white px-5 py-2 rounded text-xs font-semibold"
+                  >
+                    Reset Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-                {sortedProducts.map((p) => (
+                {paginatedProducts.map((p) => (
                   <ProductCard key={p.id} product={p} showRating={true} />
                 ))}
               </div>
             )}
 
-            {/* Pagination */}
-            {sortedProducts.length > 0 && (
+            {/* Real Dynamic Pagination */}
+            {!loading && totalPages > 1 && (
               <div className="flex items-center justify-center space-x-1 sm:space-x-2 pt-8">
                 <button
-                  onClick={() => setCurrentPage(1)}
-                  className="w-8 h-8 rounded bg-[#285A3C] text-white text-xs font-bold"
+                  type="button"
+                  disabled={safeCurrentPage <= 1}
+                  onClick={() => setCurrentPage(Math.max(1, safeCurrentPage - 1))}
+                  aria-label="Previous page"
+                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] disabled:opacity-40 text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30 flex items-center justify-center"
                 >
-                  1
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 rounded text-xs font-bold transition-colors ${
+                      safeCurrentPage === pageNum
+                        ? 'bg-[#285A3C] text-white'
+                        : 'bg-white border border-[#BCD8AA] text-[#1A3B2B] hover:bg-[#D0E9C0]/30'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
                 <button
-                  onClick={() => setCurrentPage(2)}
-                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30"
-                >
-                  2
-                </button>
-                <button
-                  onClick={() => setCurrentPage(3)}
-                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30"
-                >
-                  3
-                </button>
-                <button
-                  onClick={() => setCurrentPage(4)}
-                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30"
-                >
-                  4
-                </button>
-                <span className="px-2 text-xs text-[#8E9B92]">...</span>
-                <button
-                  onClick={() => setCurrentPage(28)}
-                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30"
-                >
-                  28
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.min(currentPage + 1, 28))}
-                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30 flex items-center justify-center"
+                  type="button"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => setCurrentPage(Math.min(totalPages, safeCurrentPage + 1))}
+                  aria-label="Next page"
+                  className="w-8 h-8 rounded bg-white border border-[#BCD8AA] disabled:opacity-40 text-[#1A3B2B] text-xs font-medium hover:bg-[#D0E9C0]/30 flex items-center justify-center"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -450,52 +604,103 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           <div className="relative w-4/5 max-w-xs bg-white h-full ml-auto shadow-xl flex flex-col p-5 overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
               <h3 className="font-bold text-sm text-[#1A3B2B]">Filters</h3>
-              <button onClick={() => setIsMobileFilterOpen(false)}>
+              <button
+                type="button"
+                aria-label="Close filters"
+                onClick={() => setIsMobileFilterOpen(false)}
+              >
                 <X className="w-5 h-5 text-[#4F6355]" />
               </button>
             </div>
 
             <div className="py-4 space-y-6 flex-1 text-xs">
-              {/* Mobile Price */}
               <div>
-                <label className="font-bold block mb-2 text-[#1A3B2B]">Price: Up to ₹{maxPrice.toLocaleString('en-IN')}</label>
+                <label
+                  htmlFor="mobile-max-price"
+                  className="font-bold block mb-2 text-[#1A3B2B]"
+                >
+                  Price: Up to ₹{maxPrice.toLocaleString('en-IN')}
+                </label>
                 <input
+                  id="mobile-max-price"
                   type="range"
                   min="500"
-                  max="30000"
+                  max={ceilingPrice}
                   step="500"
                   value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  onChange={(e) => {
+                    setMaxPrice(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
                   className="w-full accent-[#285A3C]"
                 />
               </div>
 
-              {/* Mobile Fabric */}
-              <div>
-                <label className="font-bold block mb-2 text-[#1A3B2B]">Fabric</label>
-                {fabrics.map((f) => (
-                  <label key={f} className="flex items-center gap-2 py-1 text-[#4F6355]">
-                    <input
-                      type="checkbox"
-                      checked={selectedFabric.includes(f)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedFabric([...selectedFabric, f]);
-                        else setSelectedFabric(selectedFabric.filter((item) => item !== f));
-                      }}
-                      className="accent-[#285A3C]"
-                    />
-                    <span>{f}</span>
-                  </label>
-                ))}
-              </div>
+              {fabrics.length > 0 && (
+                <div>
+                  <span className="font-bold block mb-2 text-[#1A3B2B]">Fabric</span>
+                  {fabrics.map((f) => (
+                    <label key={f} className="flex items-center gap-2 py-1 text-[#4F6355]">
+                      <input
+                        type="checkbox"
+                        checked={selectedFabric.includes(f)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedFabric([...selectedFabric, f]);
+                          else
+                            setSelectedFabric(selectedFabric.filter((item) => item !== f));
+                          setCurrentPage(1);
+                        }}
+                        className="accent-[#285A3C]"
+                      />
+                      <span>{f}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {occasions.length > 0 && (
+                <div>
+                  <span className="font-bold block mb-2 text-[#1A3B2B]">Occasion</span>
+                  {occasions.map((occ) => (
+                    <label key={occ} className="flex items-center gap-2 py-1 text-[#4F6355]">
+                      <input
+                        type="checkbox"
+                        checked={selectedOccasion.includes(occ)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedOccasion([...selectedOccasion, occ]);
+                          else
+                            setSelectedOccasion(
+                              selectedOccasion.filter((item) => item !== occ)
+                            );
+                          setCurrentPage(1);
+                        }}
+                        className="accent-[#285A3C]"
+                      />
+                      <span>{occ}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <button
-              onClick={() => setIsMobileFilterOpen(false)}
-              className="w-full bg-[#285A3C] hover:bg-[#1E432D] text-white py-2.5 rounded font-semibold text-xs"
-            >
-              Apply Filters
-            </button>
+            <div className="space-y-2 pt-2 border-t border-[#E8DCCF]">
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="w-full border border-[#D8C7B5] text-[#1A3B2B] py-2 rounded font-semibold text-xs"
+                >
+                  Clear All
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="w-full bg-[#285A3C] hover:bg-[#1E432D] text-white py-2.5 rounded font-semibold text-xs"
+              >
+                Show {sortedProducts.length} Products
+              </button>
+            </div>
           </div>
         </div>
       )}

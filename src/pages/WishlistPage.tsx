@@ -132,14 +132,16 @@ export const WishlistPage: React.FC = () => {
                       {/* Add to Bag action button */}
                       <div className="flex items-center gap-1.5 pt-2 border-t border-[#F5EAE2]">
                         <button
+                          type="button"
+                          disabled={!item.product.inStock}
                           onClick={() => {
                             addToCart(item.product);
                             removeFromWishlist(item.product.id);
                           }}
-                          className="flex-1 bg-[#FAF5EE] hover:bg-[#285A3C] text-[#285A3C] hover:text-white py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-[#BCD8AA]"
+                          className="flex-1 bg-[#FAF5EE] hover:bg-[#285A3C] text-[#285A3C] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-[#BCD8AA]"
                         >
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>Add to Bag</span>
+                          <span>{item.product.inStock ? 'Add to Bag' : 'Out of Stock'}</span>
                         </button>
                         <button
                           onClick={() => removeFromWishlist(item.product.id)}

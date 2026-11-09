@@ -1,13 +1,7 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const KurtisPage: React.FC = () => {
-  const kurtiProducts = PRODUCTS.filter(
-    (p) => p.categorySlug === 'kurtis' || p.categorySlug === 'ethnic-wear'
-  );
-  const kurtiSub = CATEGORIES.find((c) => c.slug === 'kurtis')?.subcategories;
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/ethnic-weardesktop.png"
@@ -20,9 +14,7 @@ export const KurtisPage: React.FC = () => {
         { name: 'Kurthis' },
       ]}
       highlights={['Fine Zari Detailing', 'Pure Chanderi & Raw Silk', 'Modern Festive Drapes']}
-      products={kurtiProducts}
       categorySlug="kurtis"
-      subCategories={kurtiSub}
     />
   );
 };

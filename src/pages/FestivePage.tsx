@@ -1,11 +1,7 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const FestivePage: React.FC = () => {
-  const festiveProducts = PRODUCTS.filter((p) => p.isFestive);
-  const festiveSub = CATEGORIES.find((c) => c.slug === 'festive')?.subcategories;
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/festivedesktop.png"
@@ -18,9 +14,8 @@ export const FestivePage: React.FC = () => {
         { name: 'Festive Collection' },
       ]}
       highlights={['Auspicious Temple Colors', 'Handloom Pure Zari', 'Limited Festive Drops']}
-      products={festiveProducts}
+      categorySlug="festive"
       isFestive={true}
-      subCategories={festiveSub}
     />
   );
 };

@@ -1,11 +1,7 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const EthnicWearPage: React.FC = () => {
-  const ethnicProducts = PRODUCTS.filter((p) => p.categorySlug === 'ethnic-wear');
-  const ethnicSub = CATEGORIES.find((c) => c.slug === 'ethnic-wear')?.subcategories;
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/ethnic-weardesktop.png"
@@ -18,9 +14,7 @@ export const EthnicWearPage: React.FC = () => {
         { name: 'Ethnic Wear' },
       ]}
       highlights={['Artisan Hand-Embroidery', 'Pure Breathable Fabrics', 'Regal Drapes & Cuts']}
-      products={ethnicProducts}
       categorySlug="ethnic-wear"
-      subCategories={ethnicSub}
     />
   );
 };

@@ -1,5 +1,4 @@
 import React from 'react';
-import { PRODUCTS, CATEGORIES } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const ShopPage: React.FC = () => {
@@ -15,9 +14,7 @@ export const ShopPage: React.FC = () => {
         { name: 'Shop All' },
       ]}
       highlights={['Hereditary Looms', 'Certified Pure Silks', 'Heirloom Craftsmanship']}
-      products={PRODUCTS}
       categorySlug="all"
-      subCategories={CATEGORIES[0].subcategories}
     />
   );
 };

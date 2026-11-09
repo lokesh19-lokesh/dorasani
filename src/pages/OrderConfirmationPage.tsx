@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -9,20 +9,48 @@ import {
   Truck,
   MapPin,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useStore } from '../context/StoreContext';
+import { checkoutService } from '../services/checkoutService';
+import type { Order } from '../types';
 
 export const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { getOrder, orders } = useStore();
 
-  const order = (orderId ? getOrder(orderId) : orders[0]) || orders[0];
+  const localOrder = (orderId ? getOrder(orderId) : orders[0]) || null;
+  const [fetchedOrder, setFetchedOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState<boolean>(Boolean(orderId && !localOrder));
+
+  useEffect(() => {
+    let isMounted = true;
+    if (localOrder || !orderId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    checkoutService
+      .lookupOrderByNumber(orderId)
+      .then((live) => {
+        if (!isMounted) return;
+        setFetchedOrder(live);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId, localOrder]);
+
+  const order = localOrder || fetchedOrder;
 
   useEffect(() => {
     if (!order) return;
-    // Elegant celebratory confetti burst on mount
     try {
       confetti({
         particleCount: 50,
@@ -30,10 +58,19 @@ export const OrderConfirmationPage: React.FC = () => {
         origin: { y: 0.6 },
         colors: ['#285A3C', '#C99632', '#D0E9C0', '#FAF5EE'],
       });
-    } catch (e) {
-      // Ignore if confetti not supported
+    } catch {
+      // Ignore if confetti canvas is unavailable
     }
-  }, [order]);
+  }, [order?.id]);
+
+  if (loading) {
+    return (
+      <div className="py-24 text-center space-y-3">
+        <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-[#4F6355]">Loading your order confirmation...</p>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -43,7 +80,7 @@ export const OrderConfirmationPage: React.FC = () => {
           No Recent Order Found
         </h1>
         <p className="text-xs text-[#4F6355]">
-          You can view your past purchases in your account or track any order with its order number.
+          You can view your past purchases in your account or track an order using its order number.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link
@@ -79,7 +116,7 @@ export const OrderConfirmationPage: React.FC = () => {
             Thank you for shopping with DORASANI
           </p>
           <p className="text-xs sm:text-sm text-[#4F6355]">
-            Your order has been confirmed and our artisans are carefully preparing your package.
+            Your order has been received and our team is preparing your handloom package.
           </p>
         </div>
       </div>
@@ -106,7 +143,10 @@ export const OrderConfirmationPage: React.FC = () => {
               <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total Amount
             </span>
             <p className="text-sm font-bold text-[#285A3C]">
-              ₹{order.total.toLocaleString('en-IN')} <span className="text-[10px] text-[#4F6355] font-normal">(Paid via {order.paymentMethod.toUpperCase()})</span>
+              ₹{order.total.toLocaleString('en-IN')}{' '}
+              <span className="text-[10px] text-[#4F6355] font-normal">
+                ({order.paymentMethod.toUpperCase()} • {order.paymentStatus})
+              </span>
             </p>
           </div>
 
@@ -115,58 +155,61 @@ export const OrderConfirmationPage: React.FC = () => {
               <Clock className="w-3.5 h-3.5 text-[#285A3C]" /> Order Status
             </span>
             <span className="inline-block bg-[#D0E9C0] text-[#1A3B2B] font-bold text-xs px-2.5 py-0.5 rounded uppercase border border-[#BCD8AA]">
-              Confirmed
+              {order.status.replace(/_/g, ' ')}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Horizontal Order Status Timeline */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 shadow-xs">
-          <h3 className="font-bold text-xs uppercase tracking-wider text-[#4F6355] mb-6">
-            Estimated Progress
-          </h3>
+      {/* 3. Dynamic Horizontal Order Status Timeline */}
+      {order.timeline && order.timeline.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 shadow-xs">
+            <h2 className="font-bold text-xs uppercase tracking-wider text-[#4F6355] mb-6">
+              Order Progress
+            </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
-            {/* Step 1 */}
-            <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm">
-                ✓
-              </div>
-              <h4 className="font-bold text-xs text-[#1A3B2B]">Order Placed</h4>
-              <p className="text-[11px] text-[#4F6355]">{order.date}</p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#285A3C] text-white flex items-center justify-center text-xs font-bold mb-1 shadow-sm animate-pulse">
-                2
-              </div>
-              <h4 className="font-bold text-xs text-[#285A3C]">Processing</h4>
-              <p className="text-[11px] text-[#4F6355]">We are preparing your order</p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92] flex items-center justify-center text-xs font-bold mb-1">
-                3
-              </div>
-              <h4 className="font-bold text-xs text-[#8E9B92]">Shipped</h4>
-              <p className="text-[11px] text-[#8E9B92]">Track your delivery soon</p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1">
-              <div className="w-7 h-7 rounded-full bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92] flex items-center justify-center text-xs font-bold mb-1">
-                4
-              </div>
-              <h4 className="font-bold text-xs text-[#8E9B92]">Out for Delivery</h4>
-              <p className="text-[11px] text-[#8E9B92]">Arriving at your doorstep</p>
+            <div
+              className={`grid gap-4 relative ${
+                order.timeline.length <= 2
+                  ? 'grid-cols-2'
+                  : order.timeline.length === 4
+                  ? 'grid-cols-2 md:grid-cols-4'
+                  : 'grid-cols-2 md:grid-cols-5'
+              }`}
+            >
+              {order.timeline.map((step, idx) => (
+                <div
+                  key={step.title}
+                  className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1"
+                >
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
+                      step.completed
+                        ? 'bg-[#285A3C] text-white shadow-sm'
+                        : 'bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92]'
+                    }`}
+                  >
+                    {step.completed ? '✓' : idx + 1}
+                  </div>
+                  <h4
+                    className={`font-bold text-xs ${
+                      step.current
+                        ? 'text-[#285A3C]'
+                        : step.completed
+                        ? 'text-[#1A3B2B]'
+                        : 'text-[#8E9B92]'
+                    }`}
+                  >
+                    {step.title}
+                  </h4>
+                  <p className="text-[11px] text-[#4F6355]">{step.timestamp}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 4. Bottom 3-Column Info Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -179,7 +222,7 @@ export const OrderConfirmationPage: React.FC = () => {
 
             <div className="space-y-3">
               {order.items.map((item, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs">
+                <div key={`${item.productId}-${i}`} className="flex items-center gap-3 text-xs">
                   <img
                     src={item.imageUrl}
                     alt={item.productTitle}
@@ -187,8 +230,12 @@ export const OrderConfirmationPage: React.FC = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[#1A3B2B] truncate">{item.productTitle}</p>
-                    <p className="text-[11px] text-[#4F6355]">Color: {item.variantColor} | Qty: {item.quantity}</p>
-                    <p className="font-bold text-[#1A3B2B]">₹{item.price.toLocaleString('en-IN')}</p>
+                    <p className="text-[11px] text-[#4F6355]">
+                      Color: {item.variantColor} | Qty: {item.quantity}
+                    </p>
+                    <p className="font-bold text-[#1A3B2B]">
+                      ₹{item.price.toLocaleString('en-IN')}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -205,23 +252,27 @@ export const OrderConfirmationPage: React.FC = () => {
             <div className="text-xs text-[#4F6355] space-y-1">
               <p className="font-bold text-sm text-[#1A3B2B]">{order.shippingAddress.fullName}</p>
               <p>{order.shippingAddress.streetAddress}</p>
-              <p>{order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}</p>
+              <p>
+                {order.shippingAddress.city}, {order.shippingAddress.state} -{' '}
+                {order.shippingAddress.pincode}
+              </p>
               <p>Phone: {order.shippingAddress.phone}</p>
             </div>
 
             <div className="pt-2 border-t border-[#F5EAE2]">
               <span className="text-[11px] font-bold text-[#1A3B2B] block">
-                Estimated Delivery:
+                Delivery Option:
               </span>
               <p className="text-xs text-[#285A3C] font-semibold">
-                3-5 Business Days (Expected within this week)
+                {order.deliveryOption === 'express'
+                  ? 'Express Delivery (1-2 Business Days)'
+                  : 'Standard Delivery (3-5 Business Days)'}
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-2 pt-2">
               <Link
-                to={`/track-order?order=${order.orderNumber}`}
+                to={`/track-order/${order.orderNumber}`}
                 className="w-full bg-[#285A3C] hover:bg-[#1E432D] text-white py-2.5 rounded font-semibold text-xs tracking-wide transition-colors flex items-center justify-center gap-2 shadow-xs"
               >
                 <Truck className="w-4 h-4" />

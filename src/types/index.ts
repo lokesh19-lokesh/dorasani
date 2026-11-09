@@ -77,11 +77,39 @@ export interface Address {
 }
 
 export interface Coupon {
+  id?: string;
   code: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  maxDiscountInr?: number | null;
   discountPercent?: number;
   flatDiscount?: number;
   minOrderValue: number;
+  usageLimit?: number | null;
+  usedCount?: number;
+  endDate?: string | null;
+  isActive?: boolean;
   description: string;
+}
+
+export interface ServiceBenefit {
+  id: string;
+  iconName: string;
+  title: string;
+  description: string;
+  displayOrder: number;
+}
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  reviewerName: string;
+  rating: number;
+  title?: string;
+  content?: string;
+  photos?: string[];
+  verifiedPurchase: boolean;
+  createdAt: string;
 }
 
 export interface OrderItem {
@@ -105,8 +133,18 @@ export interface Order {
   shippingFee: number;
   total: number;
   paymentMethod: 'upi' | 'card' | 'netbanking' | 'wallet' | 'cod';
-  paymentStatus: 'pending' | 'paid';
-  status: 'confirmed' | 'processing' | 'shipped' | 'out_for_delivery' | 'delivered';
+  paymentStatus: 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'processing'
+    | 'packed'
+    | 'shipped'
+    | 'out_for_delivery'
+    | 'delivered'
+    | 'cancelled'
+    | 'returned'
+    | 'refunded';
   timeline: {
     title: string;
     description: string;

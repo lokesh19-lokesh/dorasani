@@ -1,10 +1,7 @@
 import React from 'react';
-import { PRODUCTS } from '../data/products';
 import { CollectionTemplate } from '../components/collection/CollectionTemplate';
 
 export const BestsellersPage: React.FC = () => {
-  const bestsellers = PRODUCTS.filter((p) => p.isBestseller);
-
   return (
     <CollectionTemplate
       desktopBanner="/assets/hero/subpageshero/bestsellersdesktop.png"
@@ -17,7 +14,6 @@ export const BestsellersPage: React.FC = () => {
         { name: 'Bestsellers' },
       ]}
       highlights={['5-Star Patron Rating', 'Signature DORASANI Weaves', 'Restocked on Popular Demand']}
-      products={bestsellers}
       isBestseller={true}
     />
   );

@@ -229,3 +229,135 @@ h6 {
   border-radius: 50%;
   transform: rotate(-30deg);
 }
+
+/* Native Modal <dialog> top-layer scroll containment & backdrop */
+dialog[open] {
+  display: block;
+}
+
+dialog:modal {
+  overscroll-behavior: contain;
+  margin: auto;
+  max-height: min(92vh, 92dvh);
+  max-width: calc(100vw - 2rem);
+}
+
+dialog::backdrop {
+  background: rgba(15, 49, 29, 0.55);
+  backdrop-filter: blur(3px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Responsive Admin Tables with Sticky Headers & Container Query Card Stacking */
+.admin-table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(560px, 75vh);
+  container-type: inline-size;
+}
+
+.admin-responsive-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+}
+
+.admin-responsive-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: #FAF5EE;
+}
+
+.admin-responsive-table thead th {
+  background: #FAF5EE;
+  border-bottom: 1px solid #D8C7B5;
+}
+
+.admin-responsive-table tbody th[scope="row"] {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: #FFFFFF;
+  font-weight: 600;
+}
+
+.admin-responsive-table tbody tr:hover th[scope="row"] {
+  background: #FCF9F4;
+}
+
+@container (width < 600px) {
+  .admin-responsive-table,
+  .admin-responsive-table thead,
+  .admin-responsive-table tbody,
+  .admin-responsive-table tr,
+  .admin-responsive-table th,
+  .admin-responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-responsive-table thead {
+    display: none;
+  }
+
+  .admin-responsive-table tr {
+    margin-block-end: 1rem;
+    border: 1px solid #D8C7B5;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #FFFFFF;
+  }
+
+  .admin-responsive-table tbody th[scope="row"] {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background: #FAF5EE;
+    border-bottom: 1px solid #E8DCCF;
+    padding: 0.75rem;
+  }
+
+  .admin-responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid #F5EFE6;
+    text-align: right;
+  }
+
+  .admin-responsive-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-responsive-table td::before {
+    font-weight: 600;
+    color: #647268;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .admin-responsive-table td:nth-child(2)::before { content: var(--label-2, ""); }
+  .admin-responsive-table td:nth-child(3)::before { content: var(--label-3, ""); }
+  .admin-responsive-table td:nth-child(4)::before { content: var(--label-4, ""); }
+  .admin-responsive-table td:nth-child(5)::before { content: var(--label-5, ""); }
+  .admin-responsive-table td:nth-child(6)::before { content: var(--label-6, ""); }
+  .admin-responsive-table td:nth-child(7)::before { content: var(--label-7, ""); }
+}
+
+/* Post-interaction form validation feedback */
+.dorasani-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):user-invalid,
+.dorasani-form textarea:user-invalid,
+.dorasani-form select:user-invalid {
+  border-color: #d93025;
+  background-color: #fff6f5;
+}
+
+.dorasani-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):user-valid,
+.dorasani-form textarea:user-valid {
+  border-color: #285A3C;
+}

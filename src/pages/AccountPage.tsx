@@ -448,7 +448,7 @@ export const AccountPage: React.FC = () => {
                               ₹{ord.total.toLocaleString('en-IN')}
                             </span>
                             <Link
-                              to="/track-order"
+                              to={`/track-order/${ord.orderNumber}`}
                               className="bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs px-3.5 py-1.5 rounded font-semibold transition-colors shadow-xs"
                             >
                               Track Order
