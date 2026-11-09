@@ -1,6 +1,6 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { StoreProvider } from './context/StoreContext';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { StoreProvider, useStore } from './context/StoreContext';
 import { RootLayout } from './layouts/RootLayout';
 import { ToastContainer } from './components/common/ToastContainer';
 
@@ -36,10 +36,48 @@ import { TermsPage } from './pages/TermsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 
+const AuthCallbackHandler: React.FC = () => {
+  const { passwordRecoveryPending, user, authLoading, showToast } = useStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Route password recovery / invite completions directly to the Change Password screen
+  useEffect(() => {
+    if (!authLoading && user && passwordRecoveryPending) {
+      if (location.pathname !== '/account' || !location.search.includes('reset-password')) {
+        navigate('/account?action=reset-password', { replace: true });
+      }
+    }
+  }, [authLoading, user, passwordRecoveryPending, location.pathname, location.search, navigate]);
+
+  // Surface Supabase email callback errors (e.g. expired confirmation / magic / reset links)
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(window.location.search);
+    const errDesc = hashParams.get('error_description') || queryParams.get('error_description');
+    const messageDesc = hashParams.get('message') || queryParams.get('message');
+
+    if (errDesc) {
+      if (location.pathname !== '/login') {
+        navigate(`/login?auth_error=${encodeURIComponent(errDesc)}`, { replace: true });
+      }
+      return;
+    }
+
+    if (messageDesc) {
+      showToast(messageDesc, 'info');
+      window.history.replaceState(null, '', `${location.pathname}${location.search}`);
+    }
+  }, [location.pathname, location.search, navigate, showToast]);
+
+  return null;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <StoreProvider>
+        <AuthCallbackHandler />
         <Routes>
           <Route path="/" element={<RootLayout />}>
             {/* Primary Landing & Catalog Pages */}
@@ -106,8 +144,11 @@ export const App: React.FC = () => {
             <Route path="contact" element={<ContactPage />} />
             <Route path="faq" element={<FAQPage />} />
             <Route path="shipping-policy" element={<ShippingPolicyPage />} />
+            <Route path="shipping" element={<ShippingPolicyPage />} />
             <Route path="returns-policy" element={<ReturnsPolicyPage />} />
+            <Route path="returns" element={<ReturnsPolicyPage />} />
             <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="privacy" element={<PrivacyPolicyPage />} />
             <Route path="terms" element={<TermsPage />} />
 
             {/* Catch-all 404 */}

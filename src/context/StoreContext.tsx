@@ -51,6 +51,8 @@ interface StoreContextType {
   user: UserProfile | null;
   authLoading: boolean;
   isAdmin: boolean;
+  passwordRecoveryPending: boolean;
+  clearPasswordRecovery: () => void;
   login: (email: string, password?: string) => Promise<AuthActionResult>;
   logout: () => Promise<void>;
   register: (name: string, email: string, phone: string, password?: string) => Promise<AuthActionResult>;
@@ -138,6 +140,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [authLoading, setAuthLoading] = useState<boolean>(isSupabaseConfigured);
+  const [passwordRecoveryPending, setPasswordRecoveryPending] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const combined = `${window.location.search}&${window.location.hash}`.toLowerCase();
+    return combined.includes('type=recovery') || combined.includes('type=invite');
+  });
+  const clearPasswordRecovery = useCallback(() => setPasswordRecoveryPending(false), []);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address>(EMPTY_ADDRESS);
 
@@ -307,8 +315,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOrders([]);
         setAddresses([]);
         setSelectedAddress(EMPTY_ADDRESS);
+        setPasswordRecoveryPending(false);
         setAuthLoading(false);
         return;
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryPending(true);
+        showToast('Verification successful. Please set your new password.', 'info');
       }
 
       // Defer Supabase DB queries outside the auth callback lock context
@@ -323,7 +337,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isMounted = false;
       authListener?.subscription.unsubscribe();
     };
-  }, [hydrateAuthenticatedUser]);
+  }, [hydrateAuthenticatedUser, showToast]);
 
   const addToCart = (product: Product, colorName?: string, quantity: number = 1) => {
     const color = colorName || product.colors[0]?.name || 'Standard';
@@ -605,6 +619,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders([]);
     setAddresses([]);
     setSelectedAddress(EMPTY_ADDRESS);
+    setPasswordRecoveryPending(false);
     showToast('Signed out successfully', 'info');
   };
 
@@ -796,6 +811,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         user,
         authLoading,
         isAdmin: Boolean(user?.isAdmin),
+        passwordRecoveryPending,
+        clearPasswordRecovery,
         login,
         logout,
         register,

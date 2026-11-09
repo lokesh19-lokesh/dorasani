@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Clock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const ContactPage: React.FC = () => {
   const { showToast } = useStore();
@@ -8,14 +9,32 @@ export const ContactPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Your message has been sent! Our heritage concierge will respond within 24 hours.');
-    setName('');
-    setEmail('');
-    setSubject('');
-    setMessage('');
+    setSubmitting(true);
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('contact_messages').insert({
+          full_name: name.trim(),
+          email: email.trim().toLowerCase(),
+          subject: subject.trim(),
+          message: message.trim(),
+        });
+        if (error) {
+          showToast('Could not send your message right now. Please try again.', 'error');
+          return;
+        }
+      }
+      showToast('Your message has been sent! Our heritage concierge will respond within 24 hours.');
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -148,10 +167,11 @@ export const ContactPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-6 py-2.5 rounded font-semibold text-xs tracking-wide transition-colors flex items-center gap-2 shadow-xs"
+                disabled={submitting}
+                className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-6 py-2.5 rounded font-semibold text-xs tracking-wide transition-colors flex items-center gap-2 shadow-xs"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send Message</span>
+                <span>{submitting ? 'Sending...' : 'Send Message'}</span>
               </button>
             </form>
           </div>

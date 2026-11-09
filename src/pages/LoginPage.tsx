@@ -1,33 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
+
+type AuthMode = 'password' | 'magic' | 'forgot';
 
 export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get('redirect');
+  const authErrorParam = searchParams.get('auth_error');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    if (authErrorParam) return authErrorParam;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    return hashParams.get('error_description') || null;
+  });
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  // Forgot password inline mode
-  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('password');
+  const [magicEmail, setMagicEmail] = useState('');
+  const [isSendingMagic, setIsSendingMagic] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
 
-  const { login, user, authLoading, showToast } = useStore();
+  const { login, user, authLoading, passwordRecoveryPending, showToast } = useStore();
   const navigate = useNavigate();
 
-  // If already authenticated (or returning from confirmation email), route based on DB role
+  // If already authenticated (or returning from confirmation / magic link), route based on DB role
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !passwordRecoveryPending) {
       if (user.isAdmin) {
         navigate(redirectParam && redirectParam.startsWith('/admin') ? redirectParam : '/admin', {
           replace: true,
@@ -38,7 +46,13 @@ export const LoginPage: React.FC = () => {
         });
       }
     }
-  }, [authLoading, user, navigate, redirectParam]);
+  }, [authLoading, user, passwordRecoveryPending, navigate, redirectParam]);
+
+  useEffect(() => {
+    if (authErrorParam) {
+      setErrorMessage(authErrorParam);
+    }
+  }, [authErrorParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +97,26 @@ export const LoginPage: React.FC = () => {
       }
     } finally {
       setResendingConfirmation(false);
+    }
+  };
+
+  const handleMagicSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setNeedsConfirmation(false);
+    setIsSendingMagic(true);
+
+    try {
+      const res = await authService.signInWithMagicLink(magicEmail);
+      if (res.success) {
+        setInfoMessage(`One-time sign-in link sent to ${magicEmail.trim().toLowerCase()}. Check your inbox to sign in.`);
+        showToast('Sign-in link sent to your email!');
+      } else {
+        setErrorMessage(res.error || 'Unable to send magic sign-in link.');
+      }
+    } finally {
+      setIsSendingMagic(false);
     }
   };
 
@@ -151,7 +185,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setIsForgotMode(false);
+                setAuthMode('password');
                 setErrorMessage(null);
               }}
               className="flex-1 pb-2.5 border-b-2 border-[#285A3C] text-[#285A3C]"
@@ -199,7 +233,7 @@ export const LoginPage: React.FC = () => {
             )}
           </div>
 
-          {!isForgotMode ? (
+          {authMode === 'password' && (
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               {/* Email */}
               <div>
@@ -218,7 +252,7 @@ export const LoginPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                   />
                   <Mail className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                 </div>
@@ -240,7 +274,7 @@ export const LoginPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-10 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-10 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                   />
                   <Lock className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                   <button
@@ -255,12 +289,25 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Forgot Password Link */}
-              <div className="flex items-center justify-end text-[11px] pt-0.5">
+              {/* Magic Link & Forgot Password Actions */}
+              <div className="flex items-center justify-between text-[11px] pt-0.5 gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setIsForgotMode(true);
+                    setAuthMode('magic');
+                    setMagicEmail(email);
+                    setErrorMessage(null);
+                    setInfoMessage(null);
+                  }}
+                  className="text-[#285A3C] hover:underline font-semibold inline-flex items-center gap-1"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Sign in with Magic Link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('forgot');
                     setResetEmail(email);
                     setErrorMessage(null);
                     setInfoMessage(null);
@@ -283,7 +330,60 @@ export const LoginPage: React.FC = () => {
                 )}
               </button>
             </form>
-          ) : (
+          )}
+
+          {authMode === 'magic' && (
+            <form onSubmit={handleMagicSubmit} className="space-y-4 text-xs">
+              <p className="text-[#4F6355] leading-relaxed">
+                Enter your email address and we will email you a one-time sign-in link—no password required.
+              </p>
+
+              <div>
+                <label htmlFor="magic-email" className="block text-[#1A3B2B] font-semibold mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    id="magic-email"
+                    name="email"
+                    type="email"
+                    autoComplete="username"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                    required
+                    value={magicEmail}
+                    onChange={(e) => setMagicEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                  />
+                  <Mail className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('password');
+                    setErrorMessage(null);
+                    setInfoMessage(null);
+                  }}
+                  className="flex-1 border border-[#D8C7B5] hover:bg-[#FAF5EE] text-[#1A3B2B] py-2.5 rounded font-semibold transition-colors"
+                >
+                  Use Password
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingMagic}
+                  className="flex-1 bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white py-2.5 rounded font-bold transition-all shadow-md"
+                >
+                  {isSendingMagic ? 'Sending...' : 'Send Sign-In Link'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {authMode === 'forgot' && (
             <form onSubmit={handleForgotSubmit} className="space-y-4 text-xs">
               <p className="text-[#4F6355] leading-relaxed">
                 Enter your registered email address and we will send you a password reset link.
@@ -305,7 +405,7 @@ export const LoginPage: React.FC = () => {
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                    className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                   />
                   <Mail className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                 </div>
@@ -315,7 +415,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsForgotMode(false);
+                    setAuthMode('password');
                     setErrorMessage(null);
                     setInfoMessage(null);
                   }}

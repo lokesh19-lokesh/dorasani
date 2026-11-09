@@ -21,6 +21,7 @@ export const OrderConfirmationPage: React.FC = () => {
   const order = (orderId ? getOrder(orderId) : orders[0]) || orders[0];
 
   useEffect(() => {
+    if (!order) return;
     // Elegant celebratory confetti burst on mount
     try {
       confetti({
@@ -32,7 +33,35 @@ export const OrderConfirmationPage: React.FC = () => {
     } catch (e) {
       // Ignore if confetti not supported
     }
-  }, []);
+  }, [order]);
+
+  if (!order) {
+    return (
+      <div className="py-20 text-center max-w-md mx-auto px-4 space-y-4">
+        <Package className="w-12 h-12 text-[#285A3C] mx-auto" />
+        <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
+          No Recent Order Found
+        </h1>
+        <p className="text-xs text-[#4F6355]">
+          You can view your past purchases in your account or track any order with its order number.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <Link
+            to="/track-order"
+            className="bg-[#285A3C] hover:bg-[#1E432D] text-white px-5 py-2.5 rounded text-xs font-semibold transition-colors"
+          >
+            Track Order
+          </Link>
+          <Link
+            to="/shop"
+            className="border border-[#D8C7B5] hover:bg-[#FAF5EE] text-[#1A3B2B] px-5 py-2.5 rounded text-xs font-semibold transition-colors"
+          >
+            Browse Collections
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 sm:space-y-12 pb-16">

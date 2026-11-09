@@ -237,7 +237,7 @@ export const RegisterPage: React.FC = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter your full name"
-                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                     />
                     <User className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                   </div>
@@ -259,7 +259,7 @@ export const RegisterPage: React.FC = () => {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                     />
                     <Phone className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                   </div>
@@ -282,7 +282,7 @@ export const RegisterPage: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                     />
                     <Mail className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                   </div>
@@ -306,7 +306,7 @@ export const RegisterPage: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Create a strong password (min 6 characters)"
-                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-10 text-sm sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
+                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2.5 pl-9 pr-10 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#285A3C] focus:border-[#285A3C]"
                     />
                     <Lock className="w-4 h-4 text-[#4F6355] absolute left-3 pointer-events-none" />
                     <button

@@ -13,6 +13,10 @@ import {
   ShieldCheck,
   Store,
   Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  CheckCircle2,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
@@ -22,6 +26,8 @@ export const AccountPage: React.FC = () => {
   const {
     user,
     authLoading,
+    passwordRecoveryPending,
+    clearPasswordRecovery,
     logout,
     updateProfile,
     orders,
@@ -34,7 +40,9 @@ export const AccountPage: React.FC = () => {
   const actionParam = searchParams.get('action');
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'addresses' | 'profile'>(
-    actionParam === 'reset-password' ? 'profile' : 'dashboard'
+    actionParam === 'reset-password' || actionParam === 'email-updated' || passwordRecoveryPending
+      ? 'profile'
+      : 'dashboard'
   );
 
   // Editable Profile State
@@ -45,7 +53,14 @@ export const AccountPage: React.FC = () => {
 
   // Password Update State
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordSuccessNotice, setPasswordSuccessNotice] = useState<string | null>(null);
+
+  // Email Change State
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [updatingEmail, setUpdatingEmail] = useState(false);
+  const [emailChangeNotice, setEmailChangeNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -56,10 +71,10 @@ export const AccountPage: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (actionParam === 'reset-password') {
+    if (actionParam === 'reset-password' || actionParam === 'email-updated' || passwordRecoveryPending) {
       setActiveTab('profile');
     }
-  }, [actionParam]);
+  }, [actionParam, passwordRecoveryPending]);
 
   if (authLoading) {
     return (
@@ -108,16 +123,44 @@ export const AccountPage: React.FC = () => {
       return;
     }
     setUpdatingPassword(true);
+    setPasswordSuccessNotice(null);
     try {
       const res = await authService.updatePassword(newPassword);
       if (res.success) {
         setNewPassword('');
+        clearPasswordRecovery();
+        setPasswordSuccessNotice('Your password has been updated cleanly.');
         showToast('Password updated successfully!');
       } else {
         showToast(res.error || 'Could not update password.', 'error');
       }
     } finally {
       setUpdatingPassword(false);
+    }
+  };
+
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = newEmailInput.trim().toLowerCase();
+    if (!cleaned || cleaned === user.email.toLowerCase()) {
+      showToast('Please enter a different valid email address.', 'error');
+      return;
+    }
+    setUpdatingEmail(true);
+    setEmailChangeNotice(null);
+    try {
+      const res = await authService.updateEmail(cleaned);
+      if (res.success) {
+        setEmailChangeNotice(
+          `Confirmation link sent to ${cleaned}. Open the verification email to complete updating your login email.`
+        );
+        setNewEmailInput('');
+        showToast('Email verification sent!');
+      } else {
+        showToast(res.error || 'Could not request email update.', 'error');
+      }
+    } finally {
+      setUpdatingEmail(false);
     }
   };
 
@@ -599,38 +642,113 @@ export const AccountPage: React.FC = () => {
                   </button>
                 </form>
 
-                <form
-                  onSubmit={handleUpdatePassword}
-                  className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs self-start"
-                >
-                  <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-[#285A3C]" />
-                    <span>Change Password</span>
-                  </h3>
-                  <div>
-                    <label htmlFor="new-account-password" className="block font-semibold text-[#1A3B2B] mb-1">
-                      New Password
-                    </label>
-                    <input
-                      id="new-account-password"
-                      type="password"
-                      minLength={6}
-                      required
-                      autoComplete="new-password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 px-3 text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={updatingPassword}
-                    className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-5 py-2.5 rounded font-bold transition-colors"
+                <div className="space-y-6">
+                  <form
+                    onSubmit={handleUpdatePassword}
+                    className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
                   >
-                    {updatingPassword ? 'Updating...' : 'Update Password'}
-                  </button>
-                </form>
+                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-[#285A3C]" />
+                      <span>Change Password</span>
+                    </h3>
+
+                    {(actionParam === 'reset-password' || passwordRecoveryPending) && (
+                      <div className="p-3 rounded-lg bg-[#D0E9C0]/50 border border-[#BCD8AA] text-[#113520] font-medium">
+                        Your verification link is confirmed. Enter and save your new password below.
+                      </div>
+                    )}
+
+                    {passwordSuccessNotice && (
+                      <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 font-medium">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-700" />
+                        <span>{passwordSuccessNotice}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="new-account-password" className="block font-semibold text-[#1A3B2B] mb-1">
+                        New Password
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          id="new-account-password"
+                          name="new-password"
+                          type={showNewPassword ? 'text' : 'password'}
+                          minLength={6}
+                          required
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Minimum 6 characters"
+                          className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 pl-3 pr-9 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          aria-pressed={showNewPassword}
+                          aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                          className="absolute right-2.5 p-1 text-[#4F6355] hover:text-[#285A3C]"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={updatingPassword}
+                      className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-5 py-2.5 rounded font-bold transition-colors"
+                    >
+                      {updatingPassword ? 'Updating...' : 'Update Password'}
+                    </button>
+                  </form>
+
+                  <form
+                    onSubmit={handleUpdateEmail}
+                    className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
+                  >
+                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-[#285A3C]" />
+                      <span>Change Email Address</span>
+                    </h3>
+
+                    {actionParam === 'email-updated' && (
+                      <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 font-medium">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-700" />
+                        <span>Email address update confirmed and synchronized.</span>
+                      </div>
+                    )}
+
+                    {emailChangeNotice && (
+                      <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium leading-relaxed">
+                        {emailChangeNotice}
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="new-account-email" className="block font-semibold text-[#1A3B2B] mb-1">
+                        New Email Address
+                      </label>
+                      <input
+                        id="new-account-email"
+                        name="newEmail"
+                        type="email"
+                        spellCheck={false}
+                        required
+                        value={newEmailInput}
+                        onChange={(e) => setNewEmailInput(e.target.value)}
+                        placeholder="newemail@example.com"
+                        className="w-full bg-[#FAF5EE] border border-[#D8C7B5] rounded py-2 px-3 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={updatingEmail}
+                      className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white px-5 py-2.5 rounded font-bold transition-colors"
+                    >
+                      {updatingEmail ? 'Sending Verification...' : 'Send Email Change Link'}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </main>

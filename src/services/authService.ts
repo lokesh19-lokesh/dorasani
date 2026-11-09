@@ -119,6 +119,28 @@ export const authService = {
     }
   },
 
+  // Send passwordless one-time Magic Link email
+  async signInWithMagicLink(email: string): Promise<{ success: boolean; error?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      return { success: false, error: 'Please enter your email address.' };
+    }
+    if (!isSupabaseConfigured) return { success: true };
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Unable to send sign-in link.' };
+    }
+  },
+
   // Resend confirmation email
   async resendConfirmation(email: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured) return { success: true };
@@ -172,6 +194,25 @@ export const authService = {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
+    }
+  },
+
+  // Request email address change (triggers confirmation email via Supabase Auth)
+  async updateEmail(newEmail: string): Promise<{ success: boolean; error?: string }> {
+    const normalizedEmail = newEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
+      return { success: false, error: 'Please enter a valid new email address.' };
+    }
+    if (!isSupabaseConfigured) return { success: true };
+    try {
+      const { error } = await supabase.auth.updateUser(
+        { email: normalizedEmail },
+        { emailRedirectTo: `${window.location.origin}/account?action=email-updated` }
+      );
+      if (error) throw error;
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Unable to request email update.' };
     }
   },
 

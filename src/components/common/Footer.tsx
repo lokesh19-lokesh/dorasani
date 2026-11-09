@@ -10,17 +10,31 @@ import {
   Minus
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const { showToast } = useStore();
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
+    const cleaned = email.trim().toLowerCase();
+    if (!cleaned) return;
+    setSubscribing(true);
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('newsletter_subscribers').insert({ email: cleaned });
+        if (error && error.code !== '23505') {
+          showToast('Unable to subscribe right now. Please try again.', 'error');
+          return;
+        }
+      }
       showToast('Thank you for joining the DORASANI family!');
       setEmail('');
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -119,7 +133,8 @@ export const Footer: React.FC = () => {
             />
             <button
               type="submit"
-              className="bg-[#18482C] hover:bg-[#0E2C1A] text-white px-5 rounded-r-md transition-colors flex items-center justify-center shadow-xs"
+              disabled={subscribing}
+              className="bg-[#18482C] hover:bg-[#0E2C1A] disabled:opacity-60 text-white px-5 rounded-r-md transition-colors flex items-center justify-center shadow-xs"
               aria-label="Subscribe"
             >
               <Send className="w-4 h-4" />

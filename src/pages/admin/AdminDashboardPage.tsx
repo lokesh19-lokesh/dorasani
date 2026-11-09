@@ -72,7 +72,6 @@ export const AdminDashboardPage: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Categories & Coupons
   const [categories, setCategories] = useState<any[]>([]);
@@ -199,6 +198,17 @@ export const AdminDashboardPage: React.FC = () => {
       loadData();
     } catch (err: any) {
       showToast('Failed to adjust stock: ' + err.message, 'error');
+    }
+  };
+
+  // Toggle Coupon Active Status
+  const handleToggleCoupon = async (couponId: string, currentActive: boolean) => {
+    try {
+      await adminService.toggleCoupon(couponId, !currentActive);
+      showToast(`Coupon ${!currentActive ? 'activated' : 'disabled'}.`);
+      loadData();
+    } catch (err: any) {
+      showToast('Failed to update coupon: ' + err.message, 'error');
     }
   };
 
@@ -841,9 +851,18 @@ export const AdminDashboardPage: React.FC = () => {
                     <div key={c.id} className="p-5 rounded-2xl border border-[#BCD8AA] bg-[#D0E9C0]/25 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="font-mono font-bold text-base text-[#1A3B2B]">{c.code}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCoupon(c.id, Boolean(c.is_active))}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${
+                            c.is_active
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                          }`}
+                          title="Click to toggle status"
+                        >
                           {c.is_active ? 'Active' : 'Disabled'}
-                        </span>
+                        </button>
                       </div>
                       <div className="space-y-1 text-xs text-[#3A443D]">
                         <p className="font-semibold">

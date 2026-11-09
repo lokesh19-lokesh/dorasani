@@ -75,7 +75,7 @@ export const adminService = {
       return {
         totalSales,
         totalOrders: orders.length,
-        totalCustomers: customersRes.count || 48,
+        totalCustomers: customersRes.count ?? 0,
         totalProducts: products.length,
         activeProducts,
         outOfStockProducts,

@@ -274,3 +274,13 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_my_role_info() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_my_role_info() TO authenticated, anon;
+
+-- 7. Allow admins to insert/manage order_status_history when updating order statuses
+DROP POLICY IF EXISTS "Admins manage status history" ON public.order_status_history;
+CREATE POLICY "Admins manage status history"
+  ON public.order_status_history
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
