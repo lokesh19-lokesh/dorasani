@@ -9,10 +9,12 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { cart, updateQuantity, removeFromCart, subtotal, cartCount } = useStore();
+  const { cart, updateQuantity, removeFromCart, subtotal, cartCount, siteSettings } = useStore();
   const navigate = useNavigate();
 
   if (!isOpen) return null;
+
+  const freeThreshold = siteSettings.freeShippingThreshold;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -43,10 +45,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         {/* Free Shipping Alert in Pastel Pistachio */}
         <div className="bg-[#D0E9C0] px-4 py-2 text-center text-xs text-[#1A3B2B] font-medium border-b border-[#BCD8AA]">
-          {subtotal >= 999 ? (
+          {subtotal >= freeThreshold ? (
             <span>🎉 Congratulations! You have unlocked FREE Pan-India Shipping!</span>
           ) : (
-            <span>Add ₹{(999 - subtotal).toLocaleString('en-IN')} more to unlock FREE Shipping!</span>
+            <span>
+              Add ₹{(freeThreshold - subtotal).toLocaleString('en-IN')} more to unlock FREE
+              Shipping!
+            </span>
           )}
         </div>
 

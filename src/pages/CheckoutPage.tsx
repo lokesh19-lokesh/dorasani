@@ -31,6 +31,7 @@ export const CheckoutPage: React.FC = () => {
     discount,
     shippingFee,
     selectedAddress,
+    siteSettings,
     placeOrder,
     user,
   } = useStore();
@@ -83,7 +84,8 @@ export const CheckoutPage: React.FC = () => {
   } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const effectiveShipping = deliveryOption === 'express' ? 99 : shippingFee;
+  const effectiveShipping =
+    deliveryOption === 'express' ? siteSettings.expressShippingFee : shippingFee;
   const payableTotal = Math.max(0, subtotal - discount + effectiveShipping);
 
   const validateSingleField = (field: string, val: string): string => {
@@ -721,7 +723,9 @@ export const CheckoutPage: React.FC = () => {
                       <p className="text-[11px] text-[#4F6355]">1-2 Business Days</p>
                     </div>
                   </div>
-                  <span className="font-bold text-[#285A3C]">₹99</span>
+                  <span className="font-bold text-[#285A3C]">
+                    ₹{siteSettings.expressShippingFee.toLocaleString('en-IN')}
+                  </span>
                 </label>
               </div>
             </fieldset>

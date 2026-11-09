@@ -1,7 +1,10 @@
 import React from 'react';
 import { Truck, Clock } from 'lucide-react';
+import { useStore } from '../context/StoreContext';
 
 export const ShippingPolicyPage: React.FC = () => {
+  const { siteSettings } = useStore();
+
   return (
     <div className="space-y-10 pb-16">
       <div className="bg-[#D0E9C0]/40 border-b border-[#BCD8AA] py-10 px-4 sm:px-8 text-center">
@@ -17,7 +20,12 @@ export const ShippingPolicyPage: React.FC = () => {
             </div>
             <div>
               <h4 className="font-bold text-[#1A3B2B]">Free Pan-India Delivery</h4>
-              <p className="text-xs">Applicable on all orders above ₹999.</p>
+              <p className="text-xs">
+                Applicable on standard orders above ₹
+                {siteSettings.freeShippingThreshold.toLocaleString('en-IN')} (Standard shipping below
+                threshold: ₹{siteSettings.standardShippingFee.toLocaleString('en-IN')}; Express air
+                dispatch: ₹{siteSettings.expressShippingFee.toLocaleString('en-IN')}).
+              </p>
             </div>
           </div>
           <div className="flex gap-3 items-start">

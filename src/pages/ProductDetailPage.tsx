@@ -23,7 +23,7 @@ import type { Product, ProductReview } from '../types';
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addToCart, toggleWishlist, isInWishlist, showToast } = useStore();
+  const { addToCart, toggleWishlist, isInWishlist, showToast, user, siteSettings } = useStore();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -36,6 +36,20 @@ export const ProductDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'desc' | 'details' | 'care' | 'shipping' | 'reviews'>('details');
   const [pincode, setPincode] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState<string | null>(null);
+
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [reviewName, setReviewName] = useState(user?.fullName || '');
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewContent, setReviewContent] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (user?.fullName && !reviewName) {
+      setReviewName(user.fullName);
+    }
+  }, [user?.fullName, reviewName]);
 
   useEffect(() => {
     let isMounted = true;
@@ -344,7 +358,8 @@ export const ProductDetailPage: React.FC = () => {
                 )}
               </div>
               <p className="text-[11px] text-[#4F6355] mt-0.5">
-                Inclusive of all taxes • Free shipping above ₹999 • SKU: {product.sku}
+                Inclusive of all taxes • Free shipping above ₹
+                {siteSettings.freeShippingThreshold.toLocaleString('en-IN')} • SKU: {product.sku}
               </p>
             </div>
 
@@ -505,7 +520,9 @@ export const ProductDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-[#D8C7B5] text-center text-[10px] text-[#4F6355]">
               <div className="p-2 rounded bg-[#FAF5EE] flex flex-col items-center gap-1 border border-[#D8C7B5]">
                 <Truck className="w-4 h-4 text-[#285A3C]" />
-                <span className="font-semibold text-[#1A3B2B]">Free Shipping Above ₹999</span>
+                <span className="font-semibold text-[#1A3B2B]">
+                  Free Shipping Above ₹{siteSettings.freeShippingThreshold.toLocaleString('en-IN')}
+                </span>
               </div>
               <div className="p-2 rounded bg-[#FAF5EE] flex flex-col items-center gap-1 border border-[#D8C7B5]">
                 <RotateCcw className="w-4 h-4 text-[#285A3C]" />
@@ -645,7 +662,11 @@ export const ProductDetailPage: React.FC = () => {
             {activeTab === 'shipping' && (
               <div className="space-y-2">
                 <p>
-                  • <strong>Free Shipping:</strong> On all orders above ₹999 across India.
+                  • <strong>Free Shipping:</strong> On all orders above ₹
+                  {siteSettings.freeShippingThreshold.toLocaleString('en-IN')} across India
+                  (Standard shipping below threshold: ₹
+                  {siteSettings.standardShippingFee.toLocaleString('en-IN')}; Express priority air
+                  dispatch: ₹{siteSettings.expressShippingFee.toLocaleString('en-IN')}).
                 </p>
                 <p>
                   • <strong>Delivery Time:</strong> 3-5 business days for metro cities, 5-7 days for rest of India.
@@ -657,14 +678,206 @@ export const ProductDetailPage: React.FC = () => {
             )}
 
             {activeTab === 'reviews' && (
-              <div className="space-y-4">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5]">
+                  <div>
+                    <h4 className="font-bold text-sm text-[#1A3B2B]">Customer Reviews</h4>
+                    <p className="text-xs text-[#4F6355]">
+                      Share your experience with this handloom creation.
+                    </p>
+                  </div>
+
+                  {user ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewFormOpen((prev) => !prev);
+                        setReviewMessage(null);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs font-semibold transition-colors"
+                    >
+                      {reviewFormOpen ? 'Close Review Form' : 'Write a Review'}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="px-4 py-2 rounded-lg border border-[#285A3C] text-[#285A3C] hover:bg-[#D0E9C0]/40 text-xs font-semibold transition-colors"
+                    >
+                      Sign In to Write a Review
+                    </Link>
+                  )}
+                </div>
+
+                {reviewMessage && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className={`p-3 rounded-lg border text-xs font-medium ${
+                      reviewMessage.type === 'success'
+                        ? 'bg-[#D0E9C0]/50 border-[#8EC493] text-[#113520]'
+                        : 'bg-rose-50 border-rose-200 text-rose-700'
+                    }`}
+                  >
+                    {reviewMessage.text}
+                  </p>
+                )}
+
+                {user && reviewFormOpen && (
+                  <form
+                    method="POST"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!reviewName.trim() || !reviewContent.trim()) {
+                        setReviewMessage({
+                          type: 'error',
+                          text: 'Please provide your name and review comments.',
+                        });
+                        return;
+                      }
+                      setSubmittingReview(true);
+                      setReviewMessage(null);
+                      try {
+                        const created = await productService.submitProductReview({
+                          productId: product.id,
+                          userId: user.id,
+                          reviewerName: reviewName,
+                          rating: reviewRating,
+                          title: reviewTitle,
+                          content: reviewContent,
+                        });
+                        setReviews((prev) => [created, ...prev]);
+                        setReviewTitle('');
+                        setReviewContent('');
+                        setReviewRating(5);
+                        setReviewFormOpen(false);
+                        setReviewMessage({
+                          type: 'success',
+                          text: 'Thank you! Your review has been submitted and is awaiting admin approval.',
+                        });
+                        showToast('Review submitted for moderation');
+                      } catch (err: any) {
+                        setReviewMessage({
+                          type: 'error',
+                          text: err?.message || 'Unable to submit review right now.',
+                        });
+                      } finally {
+                        setSubmittingReview(false);
+                      }
+                    }}
+                    className="bg-[#FAF5EE] p-5 rounded-xl border border-[#D8C7B5] space-y-4 dorasani-form"
+                  >
+                    <fieldset className="space-y-2">
+                      <legend className="text-xs font-semibold text-[#1A3B2B]">Your Rating *</legend>
+                      <div className="flex flex-wrap gap-3">
+                        {[5, 4, 3, 2, 1].map((starVal) => (
+                          <label
+                            key={starVal}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              reviewRating === starVal
+                                ? 'bg-[#D0E9C0] border-[#285A3C] text-[#113520] font-bold'
+                                : 'bg-white border-[#D8C7B5] text-[#4F6355]'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="reviewRating"
+                              value={starVal}
+                              checked={reviewRating === starVal}
+                              onChange={() => setReviewRating(starVal)}
+                              className="accent-[#285A3C]"
+                            />
+                            <span>
+                              {starVal} Star{starVal > 1 ? 's' : ''}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="review-name"
+                          className="block text-xs font-semibold text-[#1A3B2B] mb-1"
+                        >
+                          Display Name *
+                        </label>
+                        <input
+                          id="review-name"
+                          name="reviewerName"
+                          type="text"
+                          required
+                          autoComplete="name"
+                          value={reviewName}
+                          onChange={(e) => setReviewName(e.target.value)}
+                          className="w-full bg-white border border-[#D8C7B5] rounded-lg px-3 py-2 text-xs text-[#1A3B2B]"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="review-title"
+                          className="block text-xs font-semibold text-[#1A3B2B] mb-1"
+                        >
+                          Headline (Optional)
+                        </label>
+                        <input
+                          id="review-title"
+                          name="reviewTitle"
+                          type="text"
+                          value={reviewTitle}
+                          onChange={(e) => setReviewTitle(e.target.value)}
+                          placeholder="e.g. Exquisite weave & rich zari"
+                          className="w-full bg-white border border-[#D8C7B5] rounded-lg px-3 py-2 text-xs text-[#1A3B2B]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="review-content"
+                        className="block text-xs font-semibold text-[#1A3B2B] mb-1"
+                      >
+                        Your Review *
+                      </label>
+                      <textarea
+                        id="review-content"
+                        name="reviewContent"
+                        rows={3}
+                        required
+                        value={reviewContent}
+                        onChange={(e) => setReviewContent(e.target.value)}
+                        placeholder="Describe the silk texture, drape, colour accuracy, and craftsmanship..."
+                        className="w-full bg-white border border-[#D8C7B5] rounded-lg px-3 py-2 text-xs text-[#1A3B2B]"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setReviewFormOpen(false)}
+                        className="px-4 py-2 rounded-lg border border-[#D8C7B5] bg-white text-xs font-semibold text-[#4F6355]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submittingReview}
+                        className="px-5 py-2 rounded-lg bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white text-xs font-semibold"
+                      >
+                        {submittingReview ? 'Submitting...' : 'Submit Review'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {reviews.length === 0 ? (
                   <div className="bg-[#FAF5EE] p-5 rounded-lg border border-[#D8C7B5] text-xs text-[#4F6355]">
                     <p className="font-semibold text-[#1A3B2B]">
                       No customer reviews published for this item yet.
                     </p>
                     <p className="mt-1">
-                      Verified buyers can leave ratings and reviews after their order is delivered.
+                      Be the first patron to review this handloom piece.
                     </p>
                   </div>
                 ) : (
@@ -675,13 +888,18 @@ export const ProductDetailPage: React.FC = () => {
                         className="bg-[#FAF5EE] p-4 rounded-lg border border-[#D8C7B5] space-y-1.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-xs text-[#1A3B2B]">
                               {rev.reviewerName}
                             </span>
                             {rev.verifiedPurchase && (
                               <span className="text-[10px] font-semibold bg-[#D0E9C0] text-[#1A3B2B] px-2 py-0.5 rounded">
                                 Verified Buyer
+                              </span>
+                            )}
+                            {rev.status === 'pending' && (
+                              <span className="text-[10px] font-semibold bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded">
+                                Pending Moderation
                               </span>
                             )}
                           </div>

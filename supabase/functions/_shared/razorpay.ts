@@ -350,8 +350,31 @@ export async function computeServerCheckoutSummary(
     appliedCouponCode = coupon.code;
   }
 
+  const { data: shippingSettings } = await admin
+    .from('site_settings')
+    .select('key, value')
+    .in('key', ['free_shipping_threshold', 'standard_shipping_fee', 'express_shipping_fee']);
+
+  const settingsMap = new Map<string, unknown>(
+    (shippingSettings || []).map((row: { key: string; value: unknown }) => [row.key, row.value])
+  );
+
+  const parseSettingInt = (key: string, fallback: number): number => {
+    const raw = settingsMap.get(key);
+    const num = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(num) && num >= 0 ? Math.round(num) : fallback;
+  };
+
+  const freeShippingThreshold = parseSettingInt('free_shipping_threshold', 1999);
+  const standardShippingFee = parseSettingInt('standard_shipping_fee', 99);
+  const expressShippingFee = parseSettingInt('express_shipping_fee', 199);
+
   const shippingFeeInr =
-    deliveryOption === 'express' ? 99 : subtotalInr > 999 || subtotalInr === 0 ? 0 : 99;
+    deliveryOption === 'express'
+      ? expressShippingFee
+      : subtotalInr === 0 || subtotalInr >= freeShippingThreshold
+        ? 0
+        : standardShippingFee;
 
   const totalInr = Math.max(0, subtotalInr - discountInr + shippingFeeInr);
 

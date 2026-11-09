@@ -61,7 +61,7 @@ serve(async (req: Request) => {
       admin.from('orders').select('id, total_inr, order_status, payment_status, created_at').order('created_at', { ascending: false }).limit(200),
       admin.from('products').select('id, title, stock_quantity, sku, mrp_inr, price_inr').filter('stock_quantity', 'lte', 5).limit(20),
       admin.from('products').select('id, title, sold_count, price_inr').order('sold_count', { ascending: false }).limit(10),
-      admin.from('coupons').select('code, times_used, discount_value, is_active')
+      admin.from('coupons').select('code, used_count, discount_value, is_active')
     ]);
 
     const orders = ordersRes.data || [];

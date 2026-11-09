@@ -26,6 +26,15 @@ import {
   SlidersHorizontal,
   History,
   AlertTriangle,
+  Eye,
+  Mail,
+  MessageSquare,
+  Star,
+  Settings,
+  Sparkles,
+  Headphones,
+  Activity,
+  Shield,
 } from 'lucide-react';
 import {
   adminService,
@@ -33,9 +42,15 @@ import {
   type AdminCategoryInput,
   type AdminCouponInput,
   type AdminBannerInput,
+  type AdminServiceBenefitInput,
 } from '../../services/adminService';
 import { authService } from '../../services/authService';
 import { useStore } from '../../context/StoreContext';
+import {
+  DEFAULT_SITE_SETTINGS,
+  type SiteSettings,
+  type UserRole,
+} from '../../types';
 
 type AdminTab =
   | 'overview'
@@ -44,6 +59,7 @@ type AdminTab =
   | 'inventory'
   | 'categories'
   | 'coupons'
+  | 'users'
   | 'cms'
   | 'reports';
 

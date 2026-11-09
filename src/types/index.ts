@@ -109,8 +109,50 @@ export interface ProductReview {
   content?: string;
   photos?: string[];
   verifiedPurchase: boolean;
+  status?: string;
   createdAt: string;
 }
+
+export interface SiteSettings {
+  storeName: string;
+  supportEmail: string;
+  conciergeEmail: string;
+  supportPhone: string;
+  storeAddress: string;
+  storeCityStatePin: string;
+  studioHours: string;
+  freeShippingThreshold: number;
+  standardShippingFee: number;
+  expressShippingFee: number;
+  announcementItems: string[];
+  instagramUrl: string;
+  facebookUrl: string;
+  youtubeUrl: string;
+  footerCopyright: string;
+}
+
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  storeName: 'DORASANI Flagship Studio',
+  supportEmail: 'dorasanisarees@gmail.com',
+  conciergeEmail: 'dorasanisarees@gmail.com',
+  supportPhone: '',
+  storeAddress: 'Flagship Handloom Studio, Banjara Hills',
+  storeCityStatePin: 'Hyderabad, Telangana',
+  studioHours: 'Monday – Sunday: 10:30 AM – 8:30 PM IST',
+  freeShippingThreshold: 1999,
+  standardShippingFee: 99,
+  expressShippingFee: 199,
+  announcementItems: [
+    'Free Shipping Above ₹{threshold}',
+    'Easy Returns',
+    'Authentic Handloom',
+    'Customer Support',
+  ],
+  instagramUrl: 'https://instagram.com',
+  facebookUrl: 'https://facebook.com',
+  youtubeUrl: 'https://youtube.com',
+  footerCopyright: '© 2026 DORASANI. All rights reserved.',
+};
 
 export interface OrderItem {
   productId: string;

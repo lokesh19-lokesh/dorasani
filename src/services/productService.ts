@@ -1,5 +1,12 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Product, Category, ServiceBenefit, ProductReview } from '../types';
+import {
+  DEFAULT_SITE_SETTINGS,
+  type Product,
+  type Category,
+  type ServiceBenefit,
+  type ProductReview,
+  type SiteSettings,
+} from '../types';
 
 export interface ProductFilters {
   categorySlug?: string;
@@ -437,7 +444,7 @@ export const productService = {
     }
   },
 
-  // Fetch approved reviews for a product
+  // Fetch reviews visible to current viewer via RLS (approved + author's own pending reviews)
   async getProductReviews(productId: string): Promise<ProductReview[]> {
     if (!isSupabaseConfigured || !productId) return [];
     try {
@@ -445,7 +452,6 @@ export const productService = {
         .from('product_reviews')
         .select('*')
         .eq('product_id', productId)
-        .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
       if (error || !data) return [];
@@ -458,11 +464,140 @@ export const productService = {
         content: r.content || undefined,
         photos: r.photos || undefined,
         verifiedPurchase: Boolean(r.verified_purchase),
+        status: r.status || 'approved',
         createdAt: r.created_at || '',
       }));
     } catch (err) {
       console.error('Failed to fetch product reviews:', err);
       return [];
+    }
+  },
+
+  // Submit a customer review (saved as 'pending' for admin moderation; verified if bought)
+  async submitProductReview(input: {
+    productId: string;
+    userId: string;
+    reviewerName: string;
+    rating: number;
+    title?: string;
+    content?: string;
+  }): Promise<ProductReview> {
+    if (!isSupabaseConfigured) {
+      throw new Error('Store database is not configured.');
+    }
+
+    let verifiedPurchase = false;
+    try {
+      const { data: userOrders } = await supabase
+        .from('orders')
+        .select('id, order_items(product_id)')
+        .eq('user_id', input.userId)
+        .neq('order_status', 'cancelled')
+        .limit(50);
+
+      verifiedPurchase = Boolean(
+        (userOrders || []).some((ord: any) =>
+          (ord.order_items || []).some((oi: any) => oi.product_id === input.productId)
+        )
+      );
+    } catch {
+      verifiedPurchase = false;
+    }
+
+    const safeRating = Math.min(5, Math.max(1, Math.round(input.rating || 5)));
+
+    const { data, error } = await supabase
+      .from('product_reviews')
+      .insert({
+        product_id: input.productId,
+        user_id: input.userId,
+        reviewer_name: input.reviewerName.trim(),
+        rating: safeRating,
+        title: input.title?.trim() || null,
+        content: input.content?.trim() || null,
+        verified_purchase: verifiedPurchase,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || 'Unable to submit your review.');
+    }
+
+    return {
+      id: data.id,
+      productId: data.product_id,
+      reviewerName: data.reviewer_name,
+      rating: Number(data.rating),
+      title: data.title || undefined,
+      content: data.content || undefined,
+      photos: data.photos || undefined,
+      verifiedPurchase: Boolean(data.verified_purchase),
+      status: data.status || 'pending',
+      createdAt: data.created_at || new Date().toISOString(),
+    };
+  },
+
+  // Fetch public site settings (gracefully falling back to defaults if empty)
+  async getSiteSettings(): Promise<SiteSettings> {
+    if (!isSupabaseConfigured) return DEFAULT_SITE_SETTINGS;
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('key, value');
+
+      if (error || !data || data.length === 0) {
+        return DEFAULT_SITE_SETTINGS;
+      }
+
+      const map = new Map<string, unknown>(data.map((row) => [row.key, row.value]));
+
+      const str = (key: string, fallback: string, allowEmpty = false): string => {
+        if (!map.has(key)) return fallback;
+        const val = map.get(key);
+        if (val === null || val === undefined) return fallback;
+        const parsed = String(val).trim();
+        if (!allowEmpty && parsed.length === 0) return fallback;
+        return parsed;
+      };
+
+      const num = (key: string, fallback: number): number => {
+        if (!map.has(key)) return fallback;
+        const raw = map.get(key);
+        const parsed = typeof raw === 'number' ? raw : Number(raw);
+        return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : fallback;
+      };
+
+      let announcementItems = DEFAULT_SITE_SETTINGS.announcementItems;
+      const rawAnn = map.get('announcement_items');
+      if (Array.isArray(rawAnn)) {
+        const cleaned = rawAnn
+          .map((item) => String(item).trim())
+          .filter(Boolean);
+        if (cleaned.length > 0) announcementItems = cleaned;
+      }
+
+      return {
+        storeName: str('store_name', DEFAULT_SITE_SETTINGS.storeName),
+        supportEmail: str('support_email', DEFAULT_SITE_SETTINGS.supportEmail),
+        conciergeEmail: str('concierge_email', DEFAULT_SITE_SETTINGS.conciergeEmail),
+        supportPhone: str('support_phone', DEFAULT_SITE_SETTINGS.supportPhone, true),
+        storeAddress: str('store_address', DEFAULT_SITE_SETTINGS.storeAddress),
+        storeCityStatePin: str('store_city_state_pin', DEFAULT_SITE_SETTINGS.storeCityStatePin),
+        studioHours: str('studio_hours', DEFAULT_SITE_SETTINGS.studioHours),
+        freeShippingThreshold: num('free_shipping_threshold', DEFAULT_SITE_SETTINGS.freeShippingThreshold),
+        standardShippingFee: num('standard_shipping_fee', DEFAULT_SITE_SETTINGS.standardShippingFee),
+        expressShippingFee: num('express_shipping_fee', DEFAULT_SITE_SETTINGS.expressShippingFee),
+        announcementItems,
+        instagramUrl: str('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl, true),
+        facebookUrl: str('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl, true),
+        youtubeUrl: str('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl, true),
+        footerCopyright: str('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright),
+      };
+    } catch (err) {
+      console.error('Failed to fetch site settings:', err);
+      return DEFAULT_SITE_SETTINGS;
     }
   },
 
@@ -488,6 +623,7 @@ export const productService = {
         content: r.content || undefined,
         photos: r.photos || undefined,
         verifiedPurchase: Boolean(r.verified_purchase),
+        status: r.status || 'approved',
         createdAt: r.created_at || '',
       }));
     } catch (err) {

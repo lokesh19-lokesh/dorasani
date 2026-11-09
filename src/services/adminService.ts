@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { TablesUpdate } from '../types/supabase';
+import type { Json, TablesUpdate, UserRoleType } from '../types/supabase';
+import type { UserRole } from '../types';
 
 export interface AdminProductInput {
   title: string;
@@ -67,11 +68,77 @@ export interface AdminBannerInput {
   is_active?: boolean;
 }
 
+export interface AdminServiceBenefitInput {
+  icon_name: string;
+  title: string;
+  description: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+const ROLE_PRIORITY: Record<string, number> = {
+  super_admin: 1,
+  admin: 2,
+  catalog_manager: 3,
+  inventory_manager: 4,
+  order_manager: 5,
+  support_agent: 6,
+  customer: 7,
+};
+
+const STAFF_ROLES = new Set([
+  'super_admin',
+  'admin',
+  'catalog_manager',
+  'inventory_manager',
+  'order_manager',
+  'support_agent',
+]);
+
+async function recomputeProductRatingStats(productId: string | null | undefined) {
+  if (!isSupabaseConfigured || !productId) return;
+  try {
+    const { data: approved } = await supabase
+      .from('product_reviews')
+      .select('rating')
+      .eq('product_id', productId)
+      .eq('status', 'approved');
+
+    const count = approved?.length || 0;
+    const avg =
+      count > 0
+        ? Number(
+            (
+              (approved || []).reduce((sum, r) => sum + Number(r.rating || 0), 0) / count
+            ).toFixed(1)
+          )
+        : 0;
+
+    await supabase
+      .from('products')
+      .update({
+        reviews_count: count,
+        rating: avg,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId);
+  } catch (err) {
+    console.warn('Unable to recompute product review stats:', err);
+  }
+}
+
 function emptyMetrics() {
   return {
     totalSales: 0,
     totalOrders: 0,
     totalCustomers: 0,
+    totalProfiles: 0,
+    staffCount: 0,
+    guestOrderCustomers: 0,
+    unreadMessages: 0,
+    newsletterCount: 0,
+    publishedReviews: 0,
+    pendingReviews: 0,
     totalProducts: 0,
     activeProducts: 0,
     outOfStockProducts: 0,
@@ -91,21 +158,59 @@ export const adminService = {
     }
 
     try {
-      const [ordersRes, productsRes, customersRes] = await Promise.all([
+      const [
+        ordersRes,
+        productsRes,
+        profilesRes,
+        rolesRes,
+        messagesRes,
+        subscribersRes,
+        reviewsRes,
+      ] = await Promise.all([
         supabase
           .from('orders')
-          .select('id, total_inr, order_status, created_at, customer_name, order_number')
+          .select(
+            'id, total_inr, order_status, created_at, customer_name, customer_email, customer_phone, order_number, user_id'
+          )
           .order('created_at', { ascending: false }),
         supabase.from('products').select('id, status, in_stock, stock_quantity'),
-        supabase.from('profiles').select('id', { count: 'exact' }),
+        supabase.from('profiles').select('id'),
+        supabase.from('user_roles').select('user_id, role'),
+        supabase.from('contact_messages').select('id, status'),
+        supabase.from('newsletter_subscribers').select('id, is_active'),
+        supabase.from('product_reviews').select('id, status'),
       ]);
 
       if (ordersRes.error) throw ordersRes.error;
       if (productsRes.error) throw productsRes.error;
-      if (customersRes.error) throw customersRes.error;
+      if (profilesRes.error) throw profilesRes.error;
 
       const orders = ordersRes.data || [];
       const products = productsRes.data || [];
+      const profiles = profilesRes.data || [];
+      const roles = rolesRes.data || [];
+      const messages = messagesRes.data || [];
+      const subscribers = subscribersRes.data || [];
+      const reviews = reviewsRes.data || [];
+
+      const staffUserIds = new Set(
+        roles.filter((r) => STAFF_ROLES.has(r.role)).map((r) => r.user_id)
+      );
+      const staffCount = staffUserIds.size;
+      const totalProfiles = profiles.length;
+      const totalCustomers = profiles.filter((p) => !staffUserIds.has(p.id)).length;
+
+      const guestBuyerKeys = new Set(
+        orders
+          .filter((o) => !o.user_id || !staffUserIds.has(o.user_id))
+          .map((o) => (o.customer_email || o.customer_phone || '').trim().toLowerCase())
+          .filter(Boolean)
+      );
+
+      const unreadMessages = messages.filter((m) => (m.status || 'new') === 'new').length;
+      const newsletterCount = subscribers.filter((s) => s.is_active !== false).length;
+      const publishedReviews = reviews.filter((r) => r.status === 'approved').length;
+      const pendingReviews = reviews.filter((r) => r.status === 'pending').length;
 
       const totalSales = orders
         .filter((o) => o.order_status !== 'cancelled')
@@ -132,7 +237,14 @@ export const adminService = {
       return {
         totalSales,
         totalOrders: orders.length,
-        totalCustomers: customersRes.count ?? 0,
+        totalCustomers,
+        totalProfiles,
+        staffCount,
+        guestOrderCustomers: guestBuyerKeys.size,
+        unreadMessages,
+        newsletterCount,
+        publishedReviews,
+        pendingReviews,
         totalProducts: products.length,
         activeProducts,
         outOfStockProducts,
@@ -754,7 +866,7 @@ export const adminService = {
     return true;
   },
 
-  // 8. Site Settings
+  // 8. Site Settings & Service Benefits
   async getSettings() {
     if (!isSupabaseConfigured) return [];
     const { data, error } = await supabase.from('site_settings').select('*');
@@ -764,8 +876,319 @@ export const adminService = {
 
   async updateSetting(key: string, value: any) {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
-    const { error } = await supabase.from('site_settings').upsert({ key, value });
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert(
+        { key, value: value as Json, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
     if (error) throw error;
+    return true;
+  },
+
+  async updateSettingsBatch(settings: Record<string, any>) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const now = new Date().toISOString();
+    const rows = Object.entries(settings).map(([key, value]) => ({
+      key,
+      value: value as Json,
+      updated_at: now,
+    }));
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert(rows, { onConflict: 'key' });
+    if (error) throw error;
+    return true;
+  },
+
+  async getAllServiceBenefits() {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('service_benefits')
+      .select('*')
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createServiceBenefit(input: AdminServiceBenefitInput) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('service_benefits')
+      .insert({
+        icon_name: input.icon_name || 'Sparkles',
+        title: input.title.trim(),
+        description: input.description.trim(),
+        display_order: Number(input.display_order ?? 1),
+        is_active: input.is_active ?? true,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updateServiceBenefit(id: string, updates: Partial<AdminServiceBenefitInput>) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const payload: TablesUpdate<'service_benefits'> = {};
+    if (updates.icon_name !== undefined) payload.icon_name = updates.icon_name;
+    if (updates.title !== undefined) payload.title = updates.title.trim();
+    if (updates.description !== undefined) payload.description = updates.description.trim();
+    if (updates.display_order !== undefined) payload.display_order = Number(updates.display_order);
+    if (updates.is_active !== undefined) payload.is_active = Boolean(updates.is_active);
+
+    const { data, error } = await supabase
+      .from('service_benefits')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteServiceBenefit(id: string) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { error } = await supabase.from('service_benefits').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // 9. Order Deletion
+  async deleteOrder(orderId: string) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    await supabase.from('coupon_redemptions').delete().eq('order_id', orderId);
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) throw error;
+    return true;
+  },
+
+  // 10. Customers, Roles, Admin Email Allowlist & Activity Logs
+  async getUsersOverview() {
+    if (!isSupabaseConfigured) return [];
+    const [profilesRes, rolesRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_roles').select('user_id, role, created_at'),
+    ]);
+    if (profilesRes.error) throw profilesRes.error;
+    if (rolesRes.error) throw rolesRes.error;
+
+    const rolesByUser = new Map<string, string[]>();
+    for (const r of rolesRes.data || []) {
+      const existing = rolesByUser.get(r.user_id) || [];
+      existing.push(r.role);
+      rolesByUser.set(r.user_id, existing);
+    }
+
+    return (profilesRes.data || []).map((p) => {
+      const assigned = rolesByUser.get(p.id) || ['customer'];
+      const sorted = [...assigned].sort(
+        (a, b) => (ROLE_PRIORITY[a] ?? 99) - (ROLE_PRIORITY[b] ?? 99)
+      );
+      return {
+        ...p,
+        role: (sorted[0] || 'customer') as UserRole,
+        allRoles: sorted,
+      };
+    });
+  },
+
+  async getCustomerActivityLogs(userId: string) {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('customer_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async updateUserRole(
+    userId: string,
+    newRole: UserRole,
+    currentAdminId?: string,
+    email?: string
+  ) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { error: delErr } = await supabase.from('user_roles').delete().eq('user_id', userId);
+    if (delErr) throw delErr;
+
+    const { error: insErr } = await supabase.from('user_roles').insert({
+      user_id: userId,
+      role: newRole as UserRoleType,
+      assigned_by: currentAdminId || null,
+    });
+    if (insErr) throw insErr;
+
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase();
+      const { data: allowRow } = await supabase
+        .from('admin_emails')
+        .select('email')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (allowRow) {
+        const isStaffAdmin =
+          newRole !== 'customer' && newRole !== 'support_agent';
+        await supabase
+          .from('admin_emails')
+          .update({
+            is_active: isStaffAdmin,
+            ...(isStaffAdmin ? { role: newRole as UserRoleType } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('email', cleanEmail);
+      }
+    }
+
+    return true;
+  },
+
+  async getAdminEmails() {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('admin_emails')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async upsertAdminEmail(input: {
+    email: string;
+    role: UserRole;
+    is_active?: boolean;
+    notes?: string;
+  }) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const cleanEmail = input.email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Please enter a valid email address.');
+    }
+    const { data, error } = await supabase
+      .from('admin_emails')
+      .upsert(
+        {
+          email: cleanEmail,
+          role: input.role as UserRoleType,
+          is_active: input.is_active ?? true,
+          notes: input.notes?.trim() || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'email' }
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteAdminEmail(email: string) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { error } = await supabase
+      .from('admin_emails')
+      .delete()
+      .eq('email', email.trim().toLowerCase());
+    if (error) throw error;
+    return true;
+  },
+
+  // 11. Contact Messages
+  async getContactMessages() {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('contact_messages')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async updateContactMessageStatus(id: string, status: 'new' | 'read' | 'responded') {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('contact_messages')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteContactMessage(id: string) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // 12. Newsletter Subscribers
+  async getNewsletterSubscribers() {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('newsletter_subscribers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async toggleNewsletterSubscriber(id: string, is_active: boolean) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('newsletter_subscribers')
+      .update({ is_active })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // 13. Product Reviews Moderation
+  async getAllReviews() {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase
+      .from('product_reviews')
+      .select(
+        `
+        *,
+        products (title, slug)
+      `
+      )
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async updateReviewStatus(id: string, status: 'pending' | 'approved' | 'rejected') {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('product_reviews')
+      .update({ status })
+      .eq('id', id)
+      .select('id, product_id, status')
+      .single();
+    if (error) throw error;
+    await recomputeProductRatingStats(data?.product_id);
+    return data;
+  },
+
+  async deleteReview(id: string) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data: existing } = await supabase
+      .from('product_reviews')
+      .select('product_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    const { error } = await supabase.from('product_reviews').delete().eq('id', id);
+    if (error) throw error;
+    await recomputeProductRatingStats(existing?.product_id);
     return true;
   },
 };

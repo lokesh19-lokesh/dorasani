@@ -1,5 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon, UserRole } from '../types';
+import {
+  DEFAULT_SITE_SETTINGS,
+  type Product,
+  type CartItem,
+  type WishlistItem,
+  type Address,
+  type Order,
+  type UserProfile,
+  type Coupon,
+  type UserRole,
+  type SiteSettings,
+  type Category,
+} from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   checkoutService,
@@ -10,6 +22,8 @@ import {
 } from '../services/checkoutService';
 import { openRazorpayCheckout } from '../services/razorpayService';
 import { authService } from '../services/authService';
+import { productService } from '../services/productService';
+import { userSyncService } from '../services/userSyncService';
 
 export type CheckoutStage =
   | 'idle'
@@ -77,6 +91,12 @@ interface StoreContextType {
   addAddress: (address: Omit<Address, 'id'>) => void;
   selectedAddress: Address;
   setSelectedAddress: (address: Address) => void;
+
+  // Dynamic Storefront Settings & Categories
+  siteSettings: SiteSettings;
+  storeCategories: Category[];
+  refreshSiteSettings: () => Promise<void>;
+  refreshStoreCategories: () => Promise<void>;
 
   // Orders
   orders: Order[];
@@ -180,21 +200,54 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [storeCategories, setStoreCategories] = useState<Category[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const hydrationSeqRef = useRef(0);
+  const activeSyncedUserIdRef = useRef<string | null>(null);
+  const skipNextCartSyncRef = useRef(false);
+  const cartRef = useRef<CartItem[]>(cart);
+  const wishlistRef = useRef<WishlistItem[]>(wishlist);
+
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  useEffect(() => {
+    wishlistRef.current = wishlist;
+  }, [wishlist]);
 
   const refreshCoupons = useCallback(async () => {
     const liveCoupons = await checkoutService.getActiveCoupons();
     setAvailableCoupons(liveCoupons);
   }, []);
 
+  const refreshSiteSettings = useCallback(async () => {
+    const liveSettings = await productService.getSiteSettings();
+    setSiteSettings(liveSettings);
+  }, []);
+
+  const refreshStoreCategories = useCallback(async () => {
+    const liveCats = await productService.getCategories();
+    setStoreCategories(liveCats);
+  }, []);
+
   useEffect(() => {
     void refreshCoupons();
-  }, [refreshCoupons]);
+    void refreshSiteSettings();
+    void refreshStoreCategories();
+  }, [refreshCoupons, refreshSiteSettings, refreshStoreCategories]);
 
   useEffect(() => {
     localStorage.setItem('dorasani_cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isSupabaseConfigured && activeSyncedUserIdRef.current && user?.id === activeSyncedUserIdRef.current) {
+      if (skipNextCartSyncRef.current) {
+        skipNextCartSyncRef.current = false;
+        return;
+      }
+      void userSyncService.syncUserCart(user.id, cart);
+    }
+  }, [cart, user?.id]);
 
   useEffect(() => {
     localStorage.setItem('dorasani_wishlist', JSON.stringify(wishlist));
@@ -221,6 +274,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const hydrateAuthenticatedUser = useCallback(async (authUser: any): Promise<UserProfile | null> => {
     if (!authUser?.id) {
+      activeSyncedUserIdRef.current = null;
       setUser(null);
       setOrders([]);
       setAddresses([]);
@@ -231,7 +285,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const seq = ++hydrationSeqRef.current;
 
     try {
-      const [profile, roleInfo, liveOrders, addressRes] = await Promise.all([
+      const [profile, roleInfo, liveOrders, addressRes, dbCart, dbWishlist] = await Promise.all([
         authService.getProfile(authUser.id),
         authService.getUserRoleInfo(authUser.id),
         checkoutService.getCustomerOrders(authUser.id),
@@ -240,6 +294,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           .select('*')
           .eq('user_id', authUser.id)
           .order('is_default', { ascending: false }),
+        userSyncService.fetchUserCart(authUser.id),
+        userSyncService.fetchUserWishlist(authUser.id),
       ]);
 
       // Ignore stale responses if a newer auth change occurred
@@ -259,7 +315,60 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isAdmin: roleInfo.isAdmin,
       };
 
+      // Idempotently merge any guest cart items with the user's Supabase cart
+      const localCart = cartRef.current || [];
+      const mergedCartMap = new Map<string, CartItem>();
+      for (const dbItem of dbCart) {
+        const key = `${dbItem.product.id}::${(dbItem.selectedColor || '').toLowerCase()}`;
+        mergedCartMap.set(key, dbItem);
+      }
+      let cartNeedsDbSync = false;
+      for (const guestItem of localCart) {
+        const key = `${guestItem.product.id}::${(guestItem.selectedColor || '').toLowerCase()}`;
+        const existing = mergedCartMap.get(key);
+        if (existing) {
+          const maxQty = Math.max(existing.quantity, guestItem.quantity);
+          if (maxQty !== existing.quantity || guestItem.selected !== existing.selected) {
+            mergedCartMap.set(key, {
+              ...existing,
+              quantity: maxQty,
+              selected: existing.selected || guestItem.selected,
+            });
+            cartNeedsDbSync = true;
+          }
+        } else {
+          mergedCartMap.set(key, guestItem);
+          cartNeedsDbSync = true;
+        }
+      }
+      const mergedCart = Array.from(mergedCartMap.values());
+
+      // Merge any guest wishlist items with the user's Supabase wishlist
+      const localWishlist = wishlistRef.current || [];
+      const wishlistProductIds = new Set(dbWishlist.map((w) => w.product.id));
+      const mergedWishlist: WishlistItem[] = [...dbWishlist];
+      const newWishlistProductIds: string[] = [];
+      for (const guestWish of localWishlist) {
+        if (!wishlistProductIds.has(guestWish.product.id)) {
+          wishlistProductIds.add(guestWish.product.id);
+          mergedWishlist.push(guestWish);
+          newWishlistProductIds.push(guestWish.product.id);
+        }
+      }
+
+      activeSyncedUserIdRef.current = authUser.id;
+      skipNextCartSyncRef.current = !cartNeedsDbSync;
+
       setUser(hydratedUser);
+      setCart(mergedCart);
+      setWishlist(mergedWishlist);
+
+      if (cartNeedsDbSync) {
+        void userSyncService.syncUserCart(authUser.id, mergedCart);
+      }
+      for (const pid of newWishlistProductIds) {
+        void userSyncService.syncUserWishlistItem(authUser.id, pid, 'add');
+      }
 
       if (liveOrders) {
         setOrders(liveOrders);
@@ -286,6 +395,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.warn('[DORASANI Auth] Failed to hydrate user session:', err);
       if (seq === hydrationSeqRef.current) {
+        activeSyncedUserIdRef.current = authUser.id;
         const fallbackUser: UserProfile = {
           id: authUser.id,
           fullName: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'DORASANI Member',
@@ -338,8 +448,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!isMounted) return;
       if (event === 'SIGNED_OUT' || !session?.user) {
         hydrationSeqRef.current += 1;
+        activeSyncedUserIdRef.current = null;
         if (event === 'SIGNED_OUT') {
           clearCachedRecentOrders();
+          localStorage.removeItem('dorasani_cart');
+          localStorage.removeItem('dorasani_wishlist');
+          setCart([]);
+          setWishlist([]);
         }
         setUser(null);
         setOrders([]);
@@ -399,6 +514,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ];
     });
     showToast(`Added "${product.title}" to your Bag`);
+    if (user?.id) {
+      void userSyncService.logCustomerActivity(user.id, 'add_to_cart', {
+        productId: product.id,
+        title: product.title,
+        quantity,
+        color,
+      });
+    }
   };
 
   const updateQuantity = (itemId: string, delta: number) => {
@@ -437,12 +560,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const exists = wishlist.some((w) => w.product.id === product.id);
     if (exists) {
       setWishlist((prev) => prev.filter((w) => w.product.id !== product.id));
+      if (user?.id) {
+        void userSyncService.syncUserWishlistItem(user.id, product.id, 'remove');
+      }
       showToast(`Removed from Wishlist`, 'info');
     } else {
       setWishlist((prev) => [
         ...prev,
         { id: `wish-${Date.now()}`, product, addedAt: new Date().toISOString() },
       ]);
+      if (user?.id) {
+        void userSyncService.syncUserWishlistItem(user.id, product.id, 'add');
+      }
       showToast(`Saved to Wishlist ❤️`);
     }
   };
@@ -453,6 +582,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const removeFromWishlist = (productId: string) => {
     setWishlist((prev) => prev.filter((w) => w.product.id !== productId));
+    if (user?.id) {
+      void userSyncService.syncUserWishlistItem(user.id, productId, 'remove');
+    }
     showToast(`Removed from Wishlist`, 'info');
   };
 
@@ -464,6 +596,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     available.forEach((w) => {
       addToCart(w.product);
+      if (user?.id) {
+        void userSyncService.syncUserWishlistItem(user.id, w.product.id, 'remove');
+      }
     });
     const movedIds = new Set(available.map((w) => w.product.id));
     setWishlist((prev) => prev.filter((w) => !movedIds.has(w.product.id)));
@@ -511,7 +646,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [appliedCoupon, subtotal, showToast]);
 
   const discount = appliedCoupon ? calculateCouponDiscount(appliedCoupon, subtotal) : 0;
-  const shippingFee = subtotal > 999 || subtotal === 0 ? 0 : 99;
+  const shippingFee =
+    subtotal === 0 || subtotal >= siteSettings.freeShippingThreshold
+      ? 0
+      : siteSettings.standardShippingFee;
   const total = Math.max(0, subtotal - discount + shippingFee);
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
@@ -540,6 +678,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const hydrated = await hydrateAuthenticatedUser(authUser);
+      if (hydrated?.id) {
+        void userSyncService.logCustomerActivity(hydrated.id, 'login', {
+          method: 'password',
+          isAdmin: Boolean(hydrated.isAdmin),
+        });
+      }
       if (hydrated?.isAdmin) {
         showToast(`Signed in as Admin (${hydrated.email})`);
       } else {
@@ -620,6 +764,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const hydrated = await hydrateAuthenticatedUser(authUser);
+      if (hydrated?.id) {
+        void userSyncService.logCustomerActivity(hydrated.id, 'login', {
+          method: 'signup',
+          isAdmin: Boolean(hydrated.isAdmin),
+        });
+      }
       if (hydrated?.isAdmin) {
         showToast(`Admin account ready! Welcome, ${hydrated.fullName}.`);
       } else {
@@ -650,13 +800,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logout = async () => {
     hydrationSeqRef.current += 1;
+    activeSyncedUserIdRef.current = null;
     if (isSupabaseConfigured) {
       await authService.signOut().catch(() => {});
     }
     localStorage.removeItem('dorasani_user');
     localStorage.removeItem('dorasani_orders');
     localStorage.removeItem('dorasani_admin_override');
+    localStorage.removeItem('dorasani_cart');
+    localStorage.removeItem('dorasani_wishlist');
     clearCachedRecentOrders();
+    setCart([]);
+    setWishlist([]);
+    setAppliedCoupon(null);
     setUser(null);
     setOrders([]);
     setAddresses([]);
@@ -740,7 +896,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const chosenAddress = orderData.shippingAddress || selectedAddress;
     const chosenDelivery = orderData.deliveryOption || 'standard';
     const chosenPayment = orderData.paymentMethod || 'upi';
-    const effectiveShipping = chosenDelivery === 'express' ? 99 : shippingFee;
+    const effectiveShipping =
+      chosenDelivery === 'express' ? siteSettings.expressShippingFee : shippingFee;
     const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);
     const idempotencyKey = `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const customerName = chosenAddress.fullName || user?.fullName || '';
@@ -844,6 +1001,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       void refreshCoupons();
 
       if (user?.id) {
+        void userSyncService.logCustomerActivity(user.id, 'order_placed', {
+          orderNumber: finalOrder.orderNumber,
+          total: finalOrder.total,
+          paymentMethod: finalOrder.paymentMethod,
+          paymentStatus: finalOrder.paymentStatus,
+        });
         checkoutService
           .getCustomerOrders(user.id)
           .then((liveOrders) => {
@@ -859,6 +1022,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     onStageChange?.('creating_order');
+    if (user?.id) {
+      void userSyncService.logCustomerActivity(user.id, 'checkout_start', {
+        subtotal,
+        discount,
+        shippingFee: effectiveShipping,
+        total: computedTotal,
+        deliveryOption: chosenDelivery,
+        paymentMethod: chosenPayment,
+        itemsCount: selectedCartItems.length,
+      });
+    }
 
     const initRes = await checkoutService.initiateCheckoutSession({
       userId: user?.id,
@@ -1057,6 +1231,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addAddress,
         selectedAddress,
         setSelectedAddress,
+        siteSettings,
+        storeCategories,
+        refreshSiteSettings,
+        refreshStoreCategories,
         orders,
         placeOrder,
         getOrder,

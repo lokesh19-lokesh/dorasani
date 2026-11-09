@@ -4,7 +4,7 @@ import { useStore } from '../context/StoreContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const ContactPage: React.FC = () => {
-  const { showToast } = useStore();
+  const { showToast, siteSettings } = useStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -73,21 +73,23 @@ export const ContactPage: React.FC = () => {
                   <MapPin className="w-4 h-4 text-[#285A3C]" />
                 </div>
                 <div>
-                  <p className="font-bold text-[#1A3B2B]">DORASANI Flagship</p>
-                  <p>Road No. 10, Banjara Hills</p>
-                  <p>Hyderabad, Telangana - 500034</p>
+                  <p className="font-bold text-[#1A3B2B]">{siteSettings.storeName}</p>
+                  <p>{siteSettings.storeAddress}</p>
+                  <p>{siteSettings.storeCityStatePin}</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#D0E9C0] flex items-center justify-center shrink-0">
-                  <Phone className="w-4 h-4 text-[#285A3C]" />
+              {siteSettings.supportPhone && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#D0E9C0] flex items-center justify-center shrink-0">
+                    <Phone className="w-4 h-4 text-[#285A3C]" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#1A3B2B]">Customer Care Phone</p>
+                    <p>{siteSettings.supportPhone}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-[#1A3B2B]">Customer Care Phone</p>
-                  <p>+91 99xxxxxxxx (Mon - Sat, 9:30 AM - 7:30 PM)</p>
-                </div>
-              </div>
+              )}
 
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#D0E9C0] flex items-center justify-center shrink-0">
@@ -95,7 +97,14 @@ export const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-bold text-[#1A3B2B]">Email Assistance</p>
-                  <p>support@dorasani.com / concierge@dorasani.com</p>
+                  <p className="break-all">
+                    {siteSettings.supportEmail}
+                    {siteSettings.conciergeEmail &&
+                    siteSettings.conciergeEmail.toLowerCase() !==
+                      siteSettings.supportEmail.toLowerCase()
+                      ? ` / ${siteSettings.conciergeEmail}`
+                      : ''}
+                  </p>
                 </div>
               </div>
 
@@ -105,7 +114,7 @@ export const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-bold text-[#1A3B2B]">Studio Timings</p>
-                  <p>Monday – Sunday: 10:30 AM – 8:30 PM IST</p>
+                  <p>{siteSettings.studioHours}</p>
                 </div>
               </div>
             </div>
@@ -117,12 +126,17 @@ export const ContactPage: React.FC = () => {
               Send Us a Message
             </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmit} method="POST" className="space-y-4 text-xs dorasani-form">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[#1A3B2B] font-semibold mb-1">Your Name *</label>
+                  <label htmlFor="contact-name" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Your Name *
+                  </label>
                   <input
+                    id="contact-name"
+                    name="name"
                     type="text"
+                    autoComplete="name"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -130,9 +144,17 @@ export const ContactPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[#1A3B2B] font-semibold mb-1">Your Email *</label>
+                  <label htmlFor="contact-email" className="block text-[#1A3B2B] font-semibold mb-1">
+                    Your Email *
+                  </label>
                   <input
+                    id="contact-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -142,8 +164,12 @@ export const ContactPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[#1A3B2B] font-semibold mb-1">Subject *</label>
+                <label htmlFor="contact-subject" className="block text-[#1A3B2B] font-semibold mb-1">
+                  Subject *
+                </label>
                 <input
+                  id="contact-subject"
+                  name="subject"
                   type="text"
                   required
                   value={subject}
@@ -154,8 +180,12 @@ export const ContactPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[#1A3B2B] font-semibold mb-1">Your Message *</label>
+                <label htmlFor="contact-message" className="block text-[#1A3B2B] font-semibold mb-1">
+                  Your Message *
+                </label>
                 <textarea
+                  id="contact-message"
+                  name="message"
                   required
                   rows={4}
                   value={message}

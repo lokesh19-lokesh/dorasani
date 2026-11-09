@@ -26,7 +26,7 @@ const MENU_SECTIONS = [
 ];
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) => {
-  const { user } = useStore();
+  const { user, siteSettings } = useStore();
 
   if (!isOpen) return null;
 
@@ -164,8 +164,11 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
 
         {/* Footer Note */}
         <div className="p-4 text-center text-[10px] text-[#4F6355] bg-[#FAF5EE]">
-          <p>© 2024 DORASANI Luxury Fashion</p>
-          <p className="text-[#285A3C] font-medium mt-0.5">Pan India Delivery</p>
+          <p>{siteSettings.footerCopyright}</p>
+          <p className="text-[#285A3C] font-medium mt-0.5">
+            Free Pan-India Shipping Above ₹
+            {siteSettings.freeShippingThreshold.toLocaleString('en-IN')}
+          </p>
         </div>
       </div>
     </div>
