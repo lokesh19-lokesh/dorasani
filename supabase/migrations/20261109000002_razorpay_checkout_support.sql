@@ -353,3 +353,6 @@ $$;
 
 REVOKE ALL ON FUNCTION public.process_checkout_atomic(uuid,text,text,text,jsonb,jsonb,jsonb,text,text,text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.process_checkout_atomic(uuid,text,text,text,jsonb,jsonb,jsonb,text,text,text,text,text) TO anon, authenticated, service_role;
+
+-- Reload PostgREST schema cache so newly created tables/functions are immediately queryable
+NOTIFY pgrst, 'reload schema';

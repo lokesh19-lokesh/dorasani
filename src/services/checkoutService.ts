@@ -344,7 +344,7 @@ export function mapDbOrderToOrder(o: any): Order {
     discount: Number(o.discount_inr ?? 0),
     shippingFee: Number(o.shipping_fee_inr ?? 0),
     total: Number(o.total_inr ?? 0),
-    paymentMethod: (o.payment_method as any) || 'upi',
+    paymentMethod: (o.payment_method as any) || 'razorpay',
     paymentStatus: (o.payment_status as any) || 'pending',
     status: (o.order_status as any) || 'confirmed',
     timeline: buildOrderTimeline(o),

@@ -174,7 +174,7 @@ export interface Order {
   discount: number;
   shippingFee: number;
   total: number;
-  paymentMethod: 'upi' | 'card' | 'netbanking' | 'wallet' | 'cod';
+  paymentMethod: 'razorpay' | 'upi' | 'card' | 'netbanking' | 'wallet' | 'cod';
   paymentStatus: 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
   status:
     | 'pending'

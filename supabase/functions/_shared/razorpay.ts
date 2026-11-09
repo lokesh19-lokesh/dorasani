@@ -168,16 +168,32 @@ export async function captureRazorpayPayment(params: {
   return data;
 }
 
-export function normalizePaymentMethod(rawMethod: unknown, fallback = 'upi'): string {
+export function normalizePaymentMethod(rawMethod: unknown, fallback = 'razorpay'): string {
   const val = String(rawMethod || '').trim().toLowerCase();
-  if (val === 'upi' || val === 'card' || val === 'netbanking' || val === 'wallet' || val === 'cod') {
+  if (val === 'online') return 'razorpay';
+  if (
+    val === 'razorpay' ||
+    val === 'upi' ||
+    val === 'card' ||
+    val === 'netbanking' ||
+    val === 'wallet' ||
+    val === 'cod'
+  ) {
     return val;
   }
-  const fb = String(fallback || 'upi').trim().toLowerCase();
-  if (fb === 'upi' || fb === 'card' || fb === 'netbanking' || fb === 'wallet' || fb === 'cod') {
+  const fb = String(fallback || 'razorpay').trim().toLowerCase();
+  if (fb === 'online') return 'razorpay';
+  if (
+    fb === 'razorpay' ||
+    fb === 'upi' ||
+    fb === 'card' ||
+    fb === 'netbanking' ||
+    fb === 'wallet' ||
+    fb === 'cod'
+  ) {
     return fb;
   }
-  return 'upi';
+  return 'razorpay';
 }
 
 export function extractPaymentMethodDetails(rzpPayment: any): Record<string, unknown> {

@@ -5,9 +5,7 @@ import {
   ShieldCheck,
   Truck,
   CreditCard,
-  Building,
   Coins,
-  Wallet,
   AlertCircle,
   Info,
 } from 'lucide-react';
@@ -74,7 +72,7 @@ export const CheckoutPage: React.FC = () => {
   }, [selectedAddress]);
 
   const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express'>('standard');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'wallet' | 'cod'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutStage, setCheckoutStage] = useState<CheckoutStage>('idle');
@@ -675,7 +673,10 @@ export const CheckoutPage: React.FC = () => {
             {/* Section 3: Delivery Options */}
             <fieldset className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center gap-2.5 pb-3 border-b border-[#D8C7B5]">
-                <span className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center">
+                <span
+                  aria-hidden="true"
+                  className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center"
+                >
                   3
                 </span>
                 <legend className="font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
@@ -684,55 +685,73 @@ export const CheckoutPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${deliveryOption === 'standard'
+                <div
+                  className={`relative p-3.5 rounded-lg border flex items-center justify-between transition-all min-h-[52px] ${deliveryOption === 'standard'
                     ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                     : 'border-[#BCD8AA] bg-[#FAF5EE]'
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
+                      id="checkout-delivery-standard"
                       type="radio"
                       name="deliveryOption"
                       value="standard"
                       checked={deliveryOption === 'standard'}
                       onChange={() => setDeliveryOption('standard')}
-                      className="accent-[#285A3C] w-4 h-4"
+                      aria-describedby="checkout-delivery-standard-desc"
+                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
                     />
                     <div>
-                      <p className="font-bold text-[#1A3B2B]">Standard Delivery</p>
-                      <p className="text-[11px] text-[#4F6355]">3-5 Business Days</p>
+                      <label
+                        htmlFor="checkout-delivery-standard"
+                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
+                      >
+                        Standard Delivery
+                      </label>
+                      <p id="checkout-delivery-standard-desc" className="text-[11px] text-[#4F6355]">
+                        3-5 Business Days
+                      </p>
                     </div>
                   </div>
                   <span className="font-bold text-[#285A3C]">
                     {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
                   </span>
-                </label>
+                </div>
 
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${deliveryOption === 'express'
+                <div
+                  className={`relative p-3.5 rounded-lg border flex items-center justify-between transition-all min-h-[52px] ${deliveryOption === 'express'
                     ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                     : 'border-[#BCD8AA] bg-[#FAF5EE]'
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
+                      id="checkout-delivery-express"
                       type="radio"
                       name="deliveryOption"
                       value="express"
                       checked={deliveryOption === 'express'}
                       onChange={() => setDeliveryOption('express')}
-                      className="accent-[#285A3C] w-4 h-4"
+                      aria-describedby="checkout-delivery-express-desc"
+                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
                     />
                     <div>
-                      <p className="font-bold text-[#1A3B2B]">Express Delivery</p>
-                      <p className="text-[11px] text-[#4F6355]">1-2 Business Days</p>
+                      <label
+                        htmlFor="checkout-delivery-express"
+                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
+                      >
+                        Express Delivery
+                      </label>
+                      <p id="checkout-delivery-express-desc" className="text-[11px] text-[#4F6355]">
+                        1-2 Business Days
+                      </p>
                     </div>
                   </div>
                   <span className="font-bold text-[#285A3C]">
                     ₹{siteSettings.expressShippingFee.toLocaleString('en-IN')}
                   </span>
-                </label>
+                </div>
               </div>
             </fieldset>
 
@@ -740,7 +759,10 @@ export const CheckoutPage: React.FC = () => {
             <fieldset className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#D8C7B5]">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center">
+                  <span
+                    aria-hidden="true"
+                    className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center"
+                  >
                     4
                   </span>
                   <legend className="font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
@@ -748,134 +770,61 @@ export const CheckoutPage: React.FC = () => {
                   </legend>
                 </div>
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#285A3C] bg-[#D0E9C0]/60 px-2.5 py-1 rounded-full border border-[#BCD8AA]">
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Powered by Razorpay</span>
                 </span>
               </div>
 
-              <div className="space-y-2.5 text-xs">
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'upi'
+              <div className="space-y-3 text-xs">
+                <div
+                  className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${paymentMethod === 'razorpay'
                     ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                     : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
+                      id="checkout-payment-razorpay"
                       type="radio"
                       name="paymentMethod"
-                      value="upi"
-                      checked={paymentMethod === 'upi'}
+                      value="razorpay"
+                      checked={paymentMethod === 'razorpay'}
                       onChange={() => {
-                        setPaymentMethod('upi');
+                        setPaymentMethod('razorpay');
                         setPaymentNotice(null);
                       }}
-                      className="accent-[#285A3C] w-4 h-4"
+                      aria-describedby="checkout-payment-razorpay-desc"
+                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
                     />
                     <div>
-                      <span className="font-bold text-[#1A3B2B]">UPI via Razorpay (Recommended)</span>
-                      <p className="text-[11px] text-[#4F6355]">
-                        Instant & zero fee via Google Pay, PhonePe, Paytm, BHIM
+                      <label
+                        htmlFor="checkout-payment-razorpay"
+                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
+                      >
+                        Pay Online via Razorpay (Recommended)
+                      </label>
+                      <p id="checkout-payment-razorpay-desc" className="text-[11px] text-[#4F6355]">
+                        UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, Net Banking & Wallets
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-[#285A3C] bg-[#D0E9C0] px-2 py-0.5 rounded border border-[#BCD8AA] shrink-0">
-                    Fastest
-                  </span>
-                </label>
-
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'card'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={() => {
-                        setPaymentMethod('card');
-                        setPaymentNotice(null);
-                      }}
-                      className="accent-[#285A3C] w-4 h-4"
-                    />
-                    <div>
-                      <span className="font-bold text-[#1A3B2B]">Credit / Debit Card</span>
-                      <p className="text-[11px] text-[#4F6355]">
-                        Visa, MasterCard, RuPay, American Express via Razorpay
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="hidden sm:inline-block text-[10px] font-bold text-[#285A3C] bg-[#D0E9C0] px-2 py-0.5 rounded border border-[#BCD8AA]">
+                      All Online Methods
+                    </span>
+                    <CreditCard className="w-4 h-4 text-[#285A3C]" aria-hidden="true" />
                   </div>
-                  <CreditCard className="w-4 h-4 text-[#4F6355] shrink-0" />
-                </label>
+                </div>
 
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'netbanking'
+                <div
+                  className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${paymentMethod === 'cod'
                     ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                     : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="netbanking"
-                      checked={paymentMethod === 'netbanking'}
-                      onChange={() => {
-                        setPaymentMethod('netbanking');
-                        setPaymentNotice(null);
-                      }}
-                      className="accent-[#285A3C] w-4 h-4"
-                    />
-                    <div>
-                      <span className="font-bold text-[#1A3B2B]">Net Banking</span>
-                      <p className="text-[11px] text-[#4F6355]">
-                        All major Indian banks supported via Razorpay
-                      </p>
-                    </div>
-                  </div>
-                  <Building className="w-4 h-4 text-[#4F6355] shrink-0" />
-                </label>
-
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'wallet'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="wallet"
-                      checked={paymentMethod === 'wallet'}
-                      onChange={() => {
-                        setPaymentMethod('wallet');
-                        setPaymentNotice(null);
-                      }}
-                      className="accent-[#285A3C] w-4 h-4"
-                    />
-                    <div>
-                      <span className="font-bold text-[#1A3B2B]">Digital Wallets</span>
-                      <p className="text-[11px] text-[#4F6355]">
-                        PhonePe Wallet, Amazon Pay, Mobikwik, Freecharge via Razorpay
-                      </p>
-                    </div>
-                  </div>
-                  <Wallet className="w-4 h-4 text-[#4F6355] shrink-0" />
-                </label>
-
-                <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'cod'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
+                      id="checkout-payment-cod"
                       type="radio"
                       name="paymentMethod"
                       value="cod"
@@ -884,17 +833,23 @@ export const CheckoutPage: React.FC = () => {
                         setPaymentMethod('cod');
                         setPaymentNotice(null);
                       }}
-                      className="accent-[#285A3C] w-4 h-4"
+                      aria-describedby="checkout-payment-cod-desc"
+                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
                     />
                     <div>
-                      <span className="font-bold text-[#1A3B2B]">Cash on Delivery (COD)</span>
-                      <p className="text-[11px] text-[#4F6355]">
+                      <label
+                        htmlFor="checkout-payment-cod"
+                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
+                      >
+                        Cash on Delivery (COD)
+                      </label>
+                      <p id="checkout-payment-cod-desc" className="text-[11px] text-[#4F6355]">
                         Pay cash upon delivery at your doorstep
                       </p>
                     </div>
                   </div>
-                  <Coins className="w-4 h-4 text-[#4F6355] shrink-0" />
-                </label>
+                  <Coins className="w-4 h-4 text-[#4F6355] shrink-0" aria-hidden="true" />
+                </div>
               </div>
             </fieldset>
 

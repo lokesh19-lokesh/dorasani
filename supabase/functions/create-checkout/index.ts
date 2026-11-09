@@ -13,7 +13,7 @@ import {
   type NormalizedCartItem,
 } from '../_shared/razorpay.ts';
 
-const ALLOWED_METHODS = new Set(['upi', 'card', 'netbanking', 'wallet', 'cod']);
+const ALLOWED_METHODS = new Set(['razorpay', 'upi', 'card', 'netbanking', 'wallet', 'cod']);
 const ALLOWED_DELIVERY = new Set(['standard', 'express']);
 
 serve(async (req: Request) => {
@@ -54,7 +54,7 @@ serve(async (req: Request) => {
     const shippingAddress = body.shippingAddress;
     const rawItems = Array.isArray(body.items) ? body.items : [];
     const couponCode = body.couponCode ? String(body.couponCode).trim() : null;
-    const paymentMethod = normalizePaymentMethod(body.paymentMethod, 'upi');
+    const paymentMethod = normalizePaymentMethod(body.paymentMethod, 'razorpay');
     const deliveryOption = ALLOWED_DELIVERY.has(String(body.deliveryOption || '').toLowerCase())
       ? String(body.deliveryOption).toLowerCase()
       : 'standard';

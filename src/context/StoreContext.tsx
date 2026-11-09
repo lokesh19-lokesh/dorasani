@@ -895,7 +895,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const chosenAddress = orderData.shippingAddress || selectedAddress;
     const chosenDelivery = orderData.deliveryOption || 'standard';
-    const chosenPayment = orderData.paymentMethod || 'upi';
+    const chosenPayment = orderData.paymentMethod || 'razorpay';
     const effectiveShipping =
       chosenDelivery === 'express' ? siteSettings.expressShippingFee : shippingFee;
     const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);

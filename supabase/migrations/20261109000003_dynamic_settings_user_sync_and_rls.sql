@@ -401,7 +401,7 @@ BEGIN
     v_shipping_fee,
     v_tax_amount,
     v_total,
-    COALESCE(NULLIF(TRIM(p_payment_method), ''), 'upi'),
+    COALESCE(NULLIF(TRIM(p_payment_method), ''), 'razorpay'),
     'pending'::payment_status_type,
     'confirmed'::order_status_type,
     NULLIF(TRIM(COALESCE(p_customer_notes, '')), ''),
@@ -504,4 +504,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.process_checkout_atomic(uuid,text,text,text,jsonb,jsonb,jsonb,text,text,text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.process_checkout_atomic(uuid,text,text,text,jsonb,jsonb,jsonb,text,text,text,text,text) TO anon, authenticated, service_role;
+
+-- Reload PostgREST schema cache after RLS & function updates
+NOTIFY pgrst, 'reload schema';
 

@@ -153,7 +153,7 @@ serve(async (req: Request) => {
           payment_status: 'paid',
           payment_method: normalizePaymentMethod(
             paymentEntity?.method,
-            currentOrder?.payment_method || 'upi'
+            currentOrder?.payment_method || 'razorpay'
           ),
           updated_at: nowIso,
         };
