@@ -66,7 +66,7 @@ export const FAQPage: React.FC = () => {
           },
           {
             q: 'Where is the DORASANI studio located for in-person bridal styling?',
-            a: `Our Flagship Handloom Studio is in ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}, open ${siteSettings.studioHours}. Email ${siteSettings.supportEmail} for private bridal consultations.`,
+            a: `Our studio is at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}, open ${siteSettings.studioHours}. Call ${siteSettings.supportPhone || '+91 7780673360'} or email ${siteSettings.supportEmail} for private bridal consultations.`,
           },
         ],
       },

@@ -50,3 +50,4 @@ SET
   updated_at = TIMEZONE('utc', NOW());
 
 NOTIFY pgrst, 'reload schema';
+
