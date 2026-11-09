@@ -653,6 +653,38 @@ export const AdminDashboardPage: React.FC = () => {
     };
   }, [authLoading, user, loadData]);
 
+  // Keep aria-invalid synchronized with native :user-invalid post-interaction state
+  useEffect(() => {
+    const syncAriaState = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target || !target.matches('input, textarea, select')) return;
+      if (!target.closest('.dorasani-form')) return;
+
+      try {
+        if (target.matches(':user-invalid')) {
+          target.setAttribute('aria-invalid', 'true');
+        } else {
+          target.removeAttribute('aria-invalid');
+        }
+      } catch {
+        // Ignore if selector is unsupported in older engines
+      }
+    };
+
+    const handleInput = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target || !target.hasAttribute('aria-invalid')) return;
+      syncAriaState(event);
+    };
+
+    document.addEventListener('blur', syncAriaState, true);
+    document.addEventListener('input', handleInput);
+    return () => {
+      document.removeEventListener('blur', syncAriaState, true);
+      document.removeEventListener('input', handleInput);
+    };
+  }, []);
+
   const handleSignOut = async () => {
     await logout();
     navigate('/login');
@@ -3369,65 +3401,68 @@ export const AdminDashboardPage: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#E8DCCF]">
-                            {filteredContactMessages.map((msg) => (
-                              <tr key={msg.id} className="hover:bg-[#FAF5EE]/50">
-                                <th scope="row" className="p-3 text-left font-normal">
-                                  <p className="font-semibold text-[#1A3B2B]">{msg.name}</p>
-                                  <p className="text-[11px] font-mono text-[#647268]">{msg.email}</p>
-                                  {msg.phone && (
-                                    <p className="text-[10px] text-[#8E9B92]">{msg.phone}</p>
-                                  )}
-                                </th>
-                                <td className="p-3 font-medium text-[#1A3B2B]">
-                                  {msg.subject || 'General Inquiry'}
-                                </td>
-                                <td className="p-3 text-[#647268] max-w-[240px] truncate">
-                                  {msg.message}
-                                </td>
-                                <td className="p-3">
-                                  <select
-                                    aria-label={`Status for message from ${msg.name}`}
-                                    value={msg.status || 'new'}
-                                    onChange={(e) =>
-                                      void handleUpdateContactStatus(
-                                        msg.id,
-                                        e.target.value as 'new' | 'read' | 'responded'
-                                      )
-                                    }
-                                    className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2 py-1 text-[#1A3B2B]"
-                                  >
-                                    {MESSAGE_STATUSES.map((st) => (
-                                      <option key={st.value} value={st.value}>
-                                        {st.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td className="p-3 text-[#647268]">
-                                  {new Date(msg.created_at).toLocaleDateString('en-GB')}
-                                </td>
-                                <td className="p-3 text-right">
-                                  <div className="inline-flex items-center gap-1.5 justify-end">
-                                    <button
-                                      type="button"
-                                      onClick={() => setContactViewTarget(msg)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                            {filteredContactMessages.map((msg) => {
+                              const senderName = msg.full_name || msg.name || 'Customer';
+                              return (
+                                <tr key={msg.id} className="hover:bg-[#FAF5EE]/50">
+                                  <th scope="row" className="p-3 text-left font-normal">
+                                    <p className="font-semibold text-[#1A3B2B]">{senderName}</p>
+                                    <p className="text-[11px] font-mono text-[#647268]">{msg.email}</p>
+                                    {msg.phone && (
+                                      <p className="text-[10px] text-[#8E9B92]">{msg.phone}</p>
+                                    )}
+                                  </th>
+                                  <td className="p-3 font-medium text-[#1A3B2B]">
+                                    {msg.subject || 'General Inquiry'}
+                                  </td>
+                                  <td className="p-3 text-[#647268] max-w-[240px] truncate">
+                                    {msg.message}
+                                  </td>
+                                  <td className="p-3">
+                                    <select
+                                      aria-label={`Status for message from ${senderName}`}
+                                      value={msg.status || 'new'}
+                                      onChange={(e) =>
+                                        void handleUpdateContactStatus(
+                                          msg.id,
+                                          e.target.value as 'new' | 'read' | 'responded'
+                                        )
+                                      }
+                                      className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2 py-1 text-[#1A3B2B]"
                                     >
-                                      <Eye className="w-3 h-3 text-[#285A3C]" />
-                                      <span>View</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleDeleteContactMessage(msg.id)}
-                                      className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                      aria-label={`Delete message from ${msg.name}`}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                      {MESSAGE_STATUSES.map((st) => (
+                                        <option key={st.value} value={st.value}>
+                                          {st.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </td>
+                                  <td className="p-3 text-[#647268]">
+                                    {new Date(msg.created_at).toLocaleDateString('en-GB')}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <div className="inline-flex items-center gap-1.5 justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={() => setContactViewTarget(msg)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                      >
+                                        <Eye className="w-3 h-3 text-[#285A3C]" />
+                                        <span>View</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => void handleDeleteContactMessage(msg.id)}
+                                        className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                        aria-label={`Delete message from ${senderName}`}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -5824,6 +5859,715 @@ export const AdminDashboardPage: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-60"
             >
               {deletingBanner ? 'Deleting...' : 'Delete Banner'}
+            </button>
+          </div>
+        </div>
+      </ModalDialog>
+
+      {/* ==================== MODAL: ORDER DETAILS ==================== */}
+      <ModalDialog
+        open={Boolean(orderDetailsTarget)}
+        onClose={() => setOrderDetailsTarget(null)}
+        labelledBy="order-details-title"
+        maxWidthClass="max-w-2xl"
+      >
+        {orderDetailsTarget && (() => {
+          const ord = orderDetailsTarget;
+          const addr =
+            typeof ord.shipping_address === 'object' && ord.shipping_address !== null
+              ? ord.shipping_address
+              : null;
+          const itemsList: any[] = Array.isArray(ord.order_items) ? ord.order_items : [];
+          const paymentsList: any[] = Array.isArray(ord.payments)
+            ? ord.payments
+            : ord.payments
+            ? [ord.payments]
+            : [];
+
+          return (
+            <div className="space-y-5 text-xs">
+              <div className="flex items-start justify-between gap-3 border-b border-[#D8C7B5] pb-3">
+                <div>
+                  <h2 id="order-details-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+                    Order #{ord.order_number}
+                  </h2>
+                  <p className="text-[11px] text-[#647268] mt-0.5">
+                    Placed on{' '}
+                    {ord.created_at
+                      ? new Date(ord.created_at).toLocaleString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-autofocus="true"
+                  autoFocus
+                  onClick={() => setOrderDetailsTarget(null)}
+                  aria-label="Close order details dialog"
+                  className="p-1.5 rounded-full hover:bg-[#FAF5EE]"
+                >
+                  <X className="w-5 h-5 text-[#647268]" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3.5 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
+                    Customer & Shipping Address
+                  </span>
+                  <p className="font-bold text-[#1A3B2B]">{ord.customer_name}</p>
+                  <p className="font-mono text-[11px] text-[#4F6355]">{ord.customer_email}</p>
+                  <p className="text-[#4F6355]">{ord.customer_phone}</p>
+                  {addr ? (
+                    <div className="pt-1 text-[11px] text-[#4F6355] leading-relaxed border-t border-[#E8DCCF]/80">
+                      {addr.fullName || addr.full_name ? (
+                        <p className="font-semibold text-[#1A3B2B]">
+                          {addr.fullName || addr.full_name}
+                        </p>
+                      ) : null}
+                      <p>
+                        {[
+                          addr.streetAddress || addr.street_address,
+                          addr.apartment,
+                          addr.landmark ? `Near ${addr.landmark}` : '',
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      <p>
+                        {[addr.city, addr.state, addr.pincode].filter(Boolean).join(' - ')}
+                      </p>
+                    </div>
+                  ) : ord.shipping_address ? (
+                    <p className="pt-1 text-[11px] text-[#4F6355] border-t border-[#E8DCCF]/80">
+                      {String(ord.shipping_address)}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
+                    Fulfillment & Payment Summary
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#647268]">Order Status:</span>
+                    <span className="font-bold uppercase text-[#1A3B2B]">
+                      {String(ord.order_status || 'confirmed').replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#647268]">Delivery Tier:</span>
+                    <span className="font-semibold capitalize text-[#1A3B2B]">
+                      {ord.delivery_option || 'standard'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#647268]">Payment:</span>
+                    <span className="font-semibold uppercase text-[#1A3B2B]">
+                      {ord.payment_method} ({String(ord.payment_status || 'pending').replace(/_/g, ' ')})
+                    </span>
+                  </div>
+                  {(ord.courier_name || ord.tracking_id) && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#647268]">Dispatch:</span>
+                      <span className="font-mono text-[11px] text-[#1A3B2B]">
+                        {[ord.courier_name, ord.tracking_id].filter(Boolean).join(' • ')}
+                      </span>
+                    </div>
+                  )}
+                  {ord.customer_notes && (
+                    <div className="pt-1 border-t border-[#E8DCCF]/80 text-[11px] text-[#4F6355]">
+                      <span className="font-semibold text-[#1A3B2B]">Customer Note: </span>
+                      {ord.customer_notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
+                  Ordered Items ({itemsList.length})
+                </span>
+                {itemsList.length === 0 ? (
+                  <p className="text-[11px] text-[#647268] italic">
+                    No line item records linked to this order.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-[#E8DCCF] border border-[#E8DCCF] rounded-xl overflow-hidden bg-white">
+                    {itemsList.map((item, idx) => {
+                      const variantObj =
+                        typeof item.variant_details === 'object' && item.variant_details !== null
+                          ? item.variant_details
+                          : null;
+                      const variantLabel = variantObj
+                        ? [
+                            variantObj.color_name || variantObj.color,
+                            variantObj.size,
+                            variantObj.variant_name,
+                          ]
+                            .filter(Boolean)
+                            .join(' • ')
+                        : item.variant_color || '';
+
+                      return (
+                        <div key={item.id || idx} className="p-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {item.image_url && (
+                              <img
+                                src={item.image_url}
+                                alt={item.product_title}
+                                className="w-10 h-12 object-cover rounded border border-[#D8C7B5] shrink-0"
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[#1A3B2B] truncate">
+                                {item.product_title}
+                              </p>
+                              <p className="text-[11px] text-[#647268]">
+                                Qty: {item.quantity} × ₹
+                                {Number(item.unit_price_inr || 0).toLocaleString('en-IN')}
+                                {variantLabel ? ` • ${variantLabel}` : ''}
+                                {item.product_sku ? ` • ${item.product_sku}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-bold text-[#1A3B2B] shrink-0">
+                            ₹{Number(item.total_price_inr || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] space-y-1.5">
+                <div className="flex justify-between text-[#4F6355]">
+                  <span>Items Subtotal</span>
+                  <span>₹{Number(ord.subtotal_inr || 0).toLocaleString('en-IN')}</span>
+                </div>
+                {Number(ord.discount_inr || 0) > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-medium">
+                    <span>
+                      Coupon Discount{ord.coupon_code ? ` (${ord.coupon_code})` : ''}
+                    </span>
+                    <span>-₹{Number(ord.discount_inr).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[#4F6355]">
+                  <span>Shipping Fee</span>
+                  <span>
+                    {Number(ord.shipping_fee_inr || 0) === 0
+                      ? 'FREE'
+                      : `₹${Number(ord.shipping_fee_inr).toLocaleString('en-IN')}`}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-[#D8C7B5] font-bold text-sm text-[#1A3B2B]">
+                  <span>Total Charged</span>
+                  <span className="text-[#285A3C]">
+                    ₹{Number(ord.total_inr || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              {paymentsList.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
+                    Payment Transactions ({paymentsList.length})
+                  </span>
+                  <div className="space-y-2">
+                    {paymentsList.map((p, idx) => (
+                      <div
+                        key={p.id || idx}
+                        className="p-2.5 rounded-lg border border-[#E8DCCF] bg-white flex flex-wrap items-center justify-between gap-2 text-[11px]"
+                      >
+                        <div>
+                          <span className="font-bold uppercase text-[#1A3B2B]">{p.provider}</span>
+                          <span className="mx-1.5 text-[#8E9B92]">•</span>
+                          <span className="uppercase font-semibold text-[#285A3C]">{p.status}</span>
+                          {p.provider_payment_id && (
+                            <p className="font-mono text-[10px] text-[#647268]">
+                              Payment ID: {p.provider_payment_id}
+                            </p>
+                          )}
+                          {p.provider_order_id && (
+                            <p className="font-mono text-[10px] text-[#647268]">
+                              Provider Order: {p.provider_order_id}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-bold text-[#1A3B2B]">
+                          ₹{Number(p.amount_inr || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-[#D8C7B5]">
+                <button
+                  type="button"
+                  onClick={() => setOrderDetailsTarget(null)}
+                  className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = ord;
+                    setOrderDetailsTarget(null);
+                    openEditOrderModal(target);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D]"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Edit Fulfillment</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </ModalDialog>
+
+      {/* ==================== MODAL: DELETE ORDER ==================== */}
+      <ModalDialog
+        open={Boolean(deleteOrderTarget)}
+        onClose={() => setDeleteOrderTarget(null)}
+        labelledBy="delete-order-title"
+        maxWidthClass="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 id="delete-order-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+                Delete Order Permanently?
+              </h2>
+              <p className="text-xs text-[#647268] mt-1 leading-relaxed">
+                This will permanently remove order{' '}
+                <strong className="font-mono text-[#1A3B2B]">
+                  #{deleteOrderTarget?.order_number}
+                </strong>{' '}
+                for <strong className="text-[#1A3B2B]">{deleteOrderTarget?.customer_name}</strong>{' '}
+                (₹{Number(deleteOrderTarget?.total_inr || 0).toLocaleString('en-IN')}) along with its
+                linked line items, payment rows, and coupon redemption record. Product stock is not
+                automatically restocked.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-[#E8DCCF] text-xs">
+            <button
+              type="button"
+              data-autofocus="true"
+              autoFocus
+              onClick={() => setDeleteOrderTarget(null)}
+              className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deletingOrder}
+              onClick={() => void handleConfirmDeleteOrder()}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-60"
+            >
+              {deletingOrder ? 'Deleting...' : 'Delete Order'}
+            </button>
+          </div>
+        </div>
+      </ModalDialog>
+
+      {/* ==================== MODAL: CUSTOMER ACTIVITY LOGS ==================== */}
+      <ModalDialog
+        open={Boolean(activityUserTarget)}
+        onClose={() => setActivityUserTarget(null)}
+        labelledBy="activity-logs-title"
+        maxWidthClass="max-w-2xl"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="flex items-start justify-between gap-3 border-b border-[#D8C7B5] pb-3">
+            <div>
+              <h2 id="activity-logs-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+                Customer Activity Logs
+              </h2>
+              <p className="text-[11px] text-[#647268] mt-0.5">
+                {activityUserTarget?.full_name || 'DORASANI Member'} •{' '}
+                <span className="font-mono">{activityUserTarget?.email || '—'}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              data-autofocus="true"
+              autoFocus
+              onClick={() => setActivityUserTarget(null)}
+              aria-label="Close activity logs dialog"
+              className="p-1.5 rounded-full hover:bg-[#FAF5EE]"
+            >
+              <X className="w-5 h-5 text-[#647268]" />
+            </button>
+          </div>
+
+          {loadingActivity ? (
+            <div className="py-10 text-center space-y-2">
+              <div className="w-7 h-7 border-[3px] border-[#285A3C] border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-[#647268]">Loading recorded customer events...</p>
+            </div>
+          ) : activityLogs.length === 0 ? (
+            <p className="py-10 text-center text-[#647268]">
+              No activity events recorded for this account yet.
+            </p>
+          ) : (
+            <div className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
+              {activityLogs.map((log: any) => (
+                <div
+                  key={log.id}
+                  className="p-3 rounded-xl border border-[#E8DCCF] bg-[#FAF5EE] space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-[#D0E9C0] text-[#1A3B2B] text-[10px] font-bold uppercase tracking-wider">
+                      {String(log.activity_type || log.action_type || 'event').replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[11px] text-[#647268]">
+                      {log.created_at
+                        ? new Date(log.created_at).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                  {log.metadata &&
+                    typeof log.metadata === 'object' &&
+                    Object.keys(log.metadata).length > 0 && (
+                      <pre className="text-[10px] font-mono bg-white p-2 rounded border border-[#E8DCCF] overflow-x-auto text-[#4F6355]">
+                        {JSON.stringify(log.metadata, null, 2)}
+                      </pre>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-[#D8C7B5]">
+            <button
+              type="button"
+              onClick={() => setActivityUserTarget(null)}
+              className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </ModalDialog>
+
+      {/* ==================== MODAL: VIEW CONTACT INQUIRY ==================== */}
+      <ModalDialog
+        open={Boolean(contactViewTarget)}
+        onClose={() => setContactViewTarget(null)}
+        labelledBy="contact-view-title"
+        maxWidthClass="max-w-lg"
+      >
+        {contactViewTarget && (
+          <div className="space-y-4 text-xs">
+            <div className="flex items-start justify-between gap-3 border-b border-[#D8C7B5] pb-3">
+              <div>
+                <h2 id="contact-view-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+                  {contactViewTarget.subject || 'Customer Contact Inquiry'}
+                </h2>
+                <p className="text-[11px] text-[#647268] mt-0.5">
+                  Received{' '}
+                  {contactViewTarget.created_at
+                    ? new Date(contactViewTarget.created_at).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '—'}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-autofocus="true"
+                autoFocus
+                onClick={() => setContactViewTarget(null)}
+                aria-label="Close inquiry dialog"
+                className="p-1.5 rounded-full hover:bg-[#FAF5EE]"
+              >
+                <X className="w-5 h-5 text-[#647268]" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] space-y-1">
+              <p className="font-bold text-[#1A3B2B]">
+                {contactViewTarget.full_name || contactViewTarget.name || 'Customer'}
+              </p>
+              <a
+                href={`mailto:${contactViewTarget.email}`}
+                className="font-mono text-[11px] text-[#285A3C] hover:underline block"
+              >
+                {contactViewTarget.email}
+              </a>
+              {contactViewTarget.phone && (
+                <p className="text-[11px] text-[#4F6355]">{contactViewTarget.phone}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-semibold text-[#1A3B2B] block">Message</span>
+              <div className="p-3.5 rounded-xl border border-[#D8C7B5] bg-white text-[#3A443D] leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                {contactViewTarget.message}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#D8C7B5]">
+              <div className="flex items-center gap-2">
+                <label htmlFor="contact-view-status" className="font-semibold text-[#1A3B2B]">
+                  Status:
+                </label>
+                <select
+                  id="contact-view-status"
+                  value={contactViewTarget.status || 'new'}
+                  onChange={(e) =>
+                    void handleUpdateContactStatus(
+                      contactViewTarget.id,
+                      e.target.value as 'new' | 'read' | 'responded'
+                    )
+                  }
+                  className="text-xs font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2.5 py-1.5 text-[#1A3B2B]"
+                >
+                  {MESSAGE_STATUSES.map((st) => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteContactMessage(contactViewTarget.id)}
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 font-semibold hover:bg-rose-100"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContactViewTarget(null)}
+                  className="px-4 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </ModalDialog>
+
+      {/* ==================== MODAL: ADD / EDIT SERVICE BENEFIT ==================== */}
+      <ModalDialog
+        open={benefitModalOpen}
+        onClose={() => setBenefitModalOpen(false)}
+        labelledBy="benefit-modal-title"
+        maxWidthClass="max-w-lg"
+      >
+        <div className="flex items-center justify-between border-b border-[#D8C7B5] pb-3">
+          <h2 id="benefit-modal-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+            {editingBenefitId ? 'Edit Service Benefit' : 'Add Service Benefit'}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setBenefitModalOpen(false)}
+            aria-label="Close service benefit dialog"
+            className="p-1.5 rounded-full hover:bg-[#FAF5EE]"
+          >
+            <X className="w-5 h-5 text-[#647268]" />
+          </button>
+        </div>
+
+        <form method="POST" onSubmit={handleSaveBenefit} className="dorasani-form space-y-4 text-xs">
+          {benefitFormError && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800"
+            >
+              {benefitFormError}
+            </div>
+          )}
+
+          <fieldset className="space-y-1.5">
+            <legend className="font-semibold text-[#1A3B2B]">Display Icon</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {BENEFIT_ICONS.map((ic) => (
+                <label
+                  key={ic.value}
+                  className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${
+                    benefitForm.icon_name === ic.value
+                      ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                      : 'border-[#D8C7B5] bg-white hover:bg-[#FAF5EE]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="benefit_icon"
+                    value={ic.value}
+                    checked={benefitForm.icon_name === ic.value}
+                    onChange={(e) => setBenefitForm({ ...benefitForm, icon_name: e.target.value })}
+                    className="accent-[#285A3C]"
+                  />
+                  <span className="shrink-0">{renderBenefitIcon(ic.value)}</span>
+                  <span>{ic.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <div className="space-y-1">
+            <label htmlFor="benefit-title" className="font-semibold text-[#1A3B2B] block">
+              Title *
+            </label>
+            <input
+              id="benefit-title"
+              name="title"
+              type="text"
+              required
+              data-autofocus="true"
+              autoFocus
+              value={benefitForm.title}
+              onChange={(e) => setBenefitForm({ ...benefitForm, title: e.target.value })}
+              placeholder="e.g. Authentic Silk Mark Certified"
+              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="benefit-desc" className="font-semibold text-[#1A3B2B] block">
+              Description *
+            </label>
+            <textarea
+              id="benefit-desc"
+              name="description"
+              rows={3}
+              required
+              value={benefitForm.description}
+              onChange={(e) => setBenefitForm({ ...benefitForm, description: e.target.value })}
+              placeholder="Short trust promise shown on the storefront..."
+              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div className="space-y-1">
+              <label htmlFor="benefit-order" className="font-semibold text-[#1A3B2B] block">
+                Display Order
+              </label>
+              <input
+                id="benefit-order"
+                name="display_order"
+                type="number"
+                min={0}
+                value={benefitForm.display_order ?? 1}
+                onChange={(e) =>
+                  setBenefitForm({ ...benefitForm, display_order: Number(e.target.value) })
+                }
+                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+              />
+            </div>
+
+            <label className="inline-flex items-center gap-2 cursor-pointer pt-3 sm:pt-5">
+              <input
+                type="checkbox"
+                name="is_active"
+                checked={benefitForm.is_active ?? true}
+                onChange={(e) => setBenefitForm({ ...benefitForm, is_active: e.target.checked })}
+                className="accent-[#285A3C]"
+              />
+              <span className="font-semibold text-[#1A3B2B]">Show on Storefront</span>
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-[#D8C7B5]">
+            <button
+              type="button"
+              onClick={() => setBenefitModalOpen(false)}
+              className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={savingBenefit}
+              className="px-5 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] disabled:opacity-60"
+            >
+              {savingBenefit
+                ? 'Saving...'
+                : editingBenefitId
+                  ? 'Update Benefit'
+                  : 'Create Benefit'}
+            </button>
+          </div>
+        </form>
+      </ModalDialog>
+
+      {/* ==================== MODAL: DELETE SERVICE BENEFIT ==================== */}
+      <ModalDialog
+        open={Boolean(deleteBenefitTarget)}
+        onClose={() => setDeleteBenefitTarget(null)}
+        labelledBy="delete-benefit-title"
+        maxWidthClass="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 id="delete-benefit-title" className="font-golden text-lg font-bold text-[#1A3B2B]">
+                Delete Service Benefit?
+              </h2>
+              <p className="text-xs text-[#647268] mt-1">
+                Delete service benefit{' '}
+                <strong className="text-[#1A3B2B]">{deleteBenefitTarget?.title}</strong> from the
+                storefront?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-[#E8DCCF] text-xs">
+            <button
+              type="button"
+              data-autofocus="true"
+              autoFocus
+              onClick={() => setDeleteBenefitTarget(null)}
+              className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deletingBenefit}
+              onClick={() => void handleConfirmDeleteBenefit()}
+              className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-60"
+            >
+              {deletingBenefit ? 'Deleting...' : 'Delete Benefit'}
             </button>
           </div>
         </div>

@@ -876,10 +876,12 @@ export const adminService = {
 
   async updateSetting(key: string, value: any) {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const safeValue: NonNullable<Json> =
+      value === null || value === undefined ? '' : (value as NonNullable<Json>);
     const { error } = await supabase
       .from('site_settings')
       .upsert(
-        { key, value: value as Json, updated_at: new Date().toISOString() },
+        { key, value: safeValue, updated_at: new Date().toISOString() },
         { onConflict: 'key' }
       );
     if (error) throw error;
@@ -891,7 +893,7 @@ export const adminService = {
     const now = new Date().toISOString();
     const rows = Object.entries(settings).map(([key, value]) => ({
       key,
-      value: value as Json,
+      value: (value === null || value === undefined ? '' : value) as NonNullable<Json>,
       updated_at: now,
     }));
     const { error } = await supabase
