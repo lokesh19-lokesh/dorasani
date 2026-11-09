@@ -46,6 +46,7 @@ import {
 } from '../../services/adminService';
 import { authService } from '../../services/authService';
 import { useStore } from '../../context/StoreContext';
+import { SeoHead } from '../../components/common/SeoHead';
 import {
   DEFAULT_SITE_SETTINGS,
   type SiteSettings,
@@ -1563,6 +1564,12 @@ export const AdminDashboardPage: React.FC = () => {
   if (authLoading || verifyingAdmin) {
     return (
       <div className="min-h-screen bg-[#FAF5EE] flex flex-col items-center justify-center p-6 text-center space-y-3">
+        <SeoHead
+          title="Admin Dashboard | DORASANI"
+          description="DORASANI store administration portal."
+          canonicalPath="/admin"
+          robots="noindex, nofollow"
+        />
         <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin" />
         <p className="text-sm font-medium text-[#1A3B2B]">Verifying administrator privileges...</p>
       </div>
@@ -1573,6 +1580,12 @@ export const AdminDashboardPage: React.FC = () => {
   if (!user || !isAuthorizedAdmin) {
     return (
       <div className="min-h-screen bg-[#FAF5EE] flex items-center justify-center p-4 sm:p-8">
+        <SeoHead
+          title="Administrator Access | DORASANI"
+          description="DORASANI store administration portal."
+          canonicalPath="/admin"
+          robots="noindex, nofollow"
+        />
         <div className="max-w-md w-full bg-white rounded-2xl border border-[#D8C7B5] shadow-lg p-8 text-center space-y-5">
           <div className="w-14 h-14 rounded-full bg-[#D0E9C0]/50 border border-[#BCD8AA] text-[#285A3C] flex items-center justify-center mx-auto">
             <Lock className="w-6 h-6" />
@@ -1681,6 +1694,12 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF5EE] text-[#1A3B2B] font-poppins pb-20">
+      <SeoHead
+        title="Admin Dashboard | DORASANI"
+        description="DORASANI live store administration, inventory, catalog, and order management."
+        canonicalPath="/admin"
+        robots="noindex, nofollow"
+      />
       {/* 1. Header Bar */}
       <header className="bg-white border-b border-[#D8C7B5] px-4 sm:px-8 py-4 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -2232,10 +2251,10 @@ export const AdminDashboardPage: React.FC = () => {
                               <td className="p-3 text-right">
                                 <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                   <Link
-                                    to={`/product/${p.slug}`}
+                                    to={`/products/${p.slug}`}
                                     target="_blank"
+                                    rel="noopener noreferrer"
                                     className="p-1.5 rounded-md hover:bg-[#D0E9C0]/40 text-[#285A3C]"
-                                    title="View on store"
                                     aria-label={`View ${p.title} on store`}
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
@@ -3639,8 +3658,9 @@ export const AdminDashboardPage: React.FC = () => {
                                 <th scope="row" className="p-3 text-left font-semibold text-[#1A3B2B]">
                                   {rev.products?.slug ? (
                                     <Link
-                                      to={`/product/${rev.products.slug}`}
+                                      to={`/products/${rev.products.slug}`}
                                       target="_blank"
+                                      rel="noopener noreferrer"
                                       className="hover:text-[#285A3C] hover:underline"
                                     >
                                       {rev.products?.title || 'Product'}

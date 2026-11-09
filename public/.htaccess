@@ -1,0 +1,176 @@
+# ==============================================================================
+# DORASANI Heritage Handlooms — Production Apache Configuration (.htaccess)
+# Domain: https://dorasanicollections.com
+# Stack:  Vite + React 19 SPA + Supabase + Razorpay Checkout
+# ==============================================================================
+
+Options -Indexes -MultiViews
+DirectorySlash Off
+AddDefaultCharset UTF-8
+
+# ------------------------------------------------------------------------------
+# 1. Explicit MIME Types & UTF-8 Encoding (Supports X-Content-Type-Options: nosniff)
+# ------------------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddCharset UTF-8 .html .css .js .mjs .json .xml .svg .txt .webmanifest
+  AddType text/html .html
+  AddType application/javascript .js .mjs
+  AddType application/json .json .webmanifest
+  AddType application/xml .xml
+  AddType text/plain .txt
+  AddType image/svg+xml .svg
+  AddType image/webp .webp
+  AddType image/avif .avif
+  AddType image/x-icon .ico
+  AddType font/woff2 .woff2
+  AddType font/woff .woff
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 2. Protect Hidden Files & Build/Env Artifacts (Allow .well-known for ACME/TLS)
+# ------------------------------------------------------------------------------
+<FilesMatch "^\.(env|git|htaccess|htpasswd|DS_Store|npmrc|eslint.*|prettier.*)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "^(package(-lock)?\.json|tsconfig(\..*)?\.json|vite\.config\..*)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# ------------------------------------------------------------------------------
+# 3. Canonical HTTPS & Apex Domain Enforcement + SPA Routing
+# ------------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Flag HTTPS connections (direct TLS or reverse-proxy terminated) for HSTS
+  RewriteCond %{HTTPS} =on [OR]
+  RewriteCond %{HTTP:X-Forwarded-Proto} =https [NC]
+  RewriteRule ^ - [E=DORASANI_HTTPS:1]
+
+  # Block hidden dotfiles/directories except .well-known/
+  RewriteCond %{REQUEST_URI} !^/\.well-known/ [NC]
+  RewriteRule (^|/)\. - [F,L]
+
+  # Force single-hop 301 HTTP -> https://dorasanicollections.com/ (skip loopback & ACME)
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$ [NC]
+  RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/ [NC]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+  RewriteRule ^(.*)$ https://dorasanicollections.com/$1 [R=301,L,NE]
+
+  # Force single-hop 301 www.dorasanicollections.com -> https://dorasanicollections.com/
+  RewriteCond %{HTTP_HOST} ^www\.dorasanicollections\.com$ [NC]
+  RewriteRule ^(.*)$ https://dorasanicollections.com/$1 [R=301,L,NE]
+
+  # Canonicalize trailing slashes on virtual routes & non-directory URLs (avoid /shop vs /shop/)
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$ [NC]
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} ^/(.+)/+$
+  RewriteRule ^ https://dorasanicollections.com/%1 [R=301,L,NE]
+
+  # Serve existing physical files (assets, sitemap.xml, robots.txt, llms.txt, llms-full.txt)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Return a true HTTP 404 for missing static asset/machine extensions (never soft-404 index.html)
+  RewriteCond %{REQUEST_URI} \.(css|js|mjs|map|json|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|eot|otf|xml|txt|pdf|mp4|webm)$ [NC]
+  RewriteRule ^ - [R=404,L]
+
+  # SPA Fallback: Route all valid storefront paths to /index.html
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 4. Security & Payment/Iframe Isolation Headers
+# ------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Clickjacking & MIME-sniffing protection
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # COOP allows Razorpay Checkout popups/overlays initiated by checkout without exposing opener to third parties
+  Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+
+  # Disable unused powerful browser APIs
+  Header always set Permissions-Policy "camera=(), geolocation=(), microphone=(), focus-without-user-activation=()"
+
+  # HSTS (active only when served over HTTPS; adjust max-age to 300 first during initial TLS smoke tests if needed)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=DORASANI_HTTPS
+
+  # Content Security Policy tuned for React 19 SPA, Supabase Auth/DB/Storage, Google Fonts, and Razorpay Checkout
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://*.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.razorpay.com https://lumberjack.razorpay.com; frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self' https://*.razorpay.com;"
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 5. Performance & Caching Strategy (Preserves Back-Forward Cache / bfcache)
+# ------------------------------------------------------------------------------
+FileETag MTime Size
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 hour"
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/xml "access plus 1 hour"
+  ExpiresByType text/xml "access plus 1 hour"
+  ExpiresByType text/plain "access plus 1 hour"
+  ExpiresByType application/json "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/avif "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType image/x-icon "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # HTML documents: use no-cache, must-revalidate (NEVER no-store) so browsers preserve bfcache
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Vite content-hashed production bundles under /assets/
+  <FilesMatch "-[A-Za-z0-9_-]{8,}\.(js|mjs|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Product/category/hero media & fonts
+  <FilesMatch "\.(avif|webp|jpe?g|png|gif|svg|ico|woff2?|ttf)$">
+    Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+  </FilesMatch>
+
+  # Crawlers & AI discovery files (sitemap.xml, robots.txt, llms.txt, llms-full.txt)
+  <FilesMatch "^(sitemap\.xml|robots\.txt|llms(-full)?\.txt)$">
+    Header set Cache-Control "public, max-age=3600, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 6. Compression (Brotli preferred, Gzip fallback)
+# ------------------------------------------------------------------------------
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css application/javascript application/json application/xml text/xml image/svg+xml
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json application/xml text/xml image/svg+xml
+</IfModule>

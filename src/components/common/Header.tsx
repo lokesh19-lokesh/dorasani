@@ -35,11 +35,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
             {/* Left: Mobile Hamburger & DORASANI Brand Logo */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
+                type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden p-1.5 -ml-1 text-[#113520] hover:text-[#06180c] transition-colors"
-                aria-label="Open Navigation Menu"
+                aria-label="Open menu"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="w-6 h-6" aria-hidden="true" />
               </button>
 
               <Link
@@ -48,7 +49,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
               >
                 <img
                   src="/assets/logo.png"
-                  alt="DORASANI - A Symbol of Tradition"
+                  alt="DORASANI — A Symbol of Tradition"
+                  width={1842}
+                  height={854}
                   className="h-11 sm:h-13 md:h-14 lg:h-15 xl:h-16 w-auto object-contain"
                 />
               </Link>
@@ -56,30 +59,38 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
             {/* Center: Desktop Search Bar (Generous width, perfectly centered) */}
             <div className="hidden lg:flex flex-1 max-w-md xl:max-w-lg mx-auto">
-              <form
-                onSubmit={handleSearchSubmit}
-                className="relative w-full flex items-center"
-              >
-                <input
-                  type="text"
-                  placeholder="Search sarees, lehengas, kurtis, silks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/95 hover:bg-white focus:bg-white border border-[#8ec893] rounded-full py-2 pl-9 pr-4 text-xs text-[#113520] placeholder:text-[#3f654b] focus:outline-none focus:border-[#113520] focus:ring-1 focus:ring-[#113520] transition-all shadow-xs backdrop-blur-xs font-medium"
-                />
-                <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3.5 pointer-events-none" />
-              </form>
+              <search className="w-full">
+                <form
+                  onSubmit={handleSearchSubmit}
+                  className="relative w-full flex items-center"
+                >
+                  <label htmlFor="desktop-catalog-search" className="sr-only">
+                    Search sarees, lehengas, kurthis, and silks
+                  </label>
+                  <input
+                    id="desktop-catalog-search"
+                    type="search"
+                    placeholder="Search sarees, lehengas, kurtis, silks..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-white/95 hover:bg-white focus:bg-white border border-[#8ec893] rounded-full py-2 pl-9 pr-4 text-xs text-[#113520] placeholder:text-[#3f654b] focus:outline-none focus:border-[#113520] focus:ring-1 focus:ring-[#113520] transition-all shadow-xs backdrop-blur-xs font-medium"
+                  />
+                  <Search className="w-3.5 h-3.5 text-[#18482C] absolute left-3.5 pointer-events-none" aria-hidden="true" />
+                </form>
+              </search>
             </div>
 
             {/* Right: Search Toggle (Mobile) and Account, Wishlist, Bag Action Group */}
             <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 justify-end">
               {/* Mobile Search Icon Toggle */}
               <button
+                type="button"
                 onClick={() => setIsSearchExpandedMobile(!isSearchExpandedMobile)}
                 className="lg:hidden p-1.5 text-[#113520] hover:text-[#06180c] transition-colors"
                 aria-label="Toggle Search"
+                aria-expanded={isSearchExpandedMobile}
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-5 h-5" aria-hidden="true" />
               </button>
 
               {/* Desktop & Tablet Account, Wishlist, Bag Action Group */}
@@ -135,9 +146,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
 
                 {/* Bag (Cart) Button */}
                 <button
+                  type="button"
                   onClick={onOpenCart}
                   className="flex items-center gap-1.5 px-2 py-0.5 text-[#18482C] hover:text-[#0D2818] transition-colors rounded-full hover:bg-white/70 relative"
-                  title="View Shopping Bag"
+                  aria-label="View Shopping Bag"
                 >
                   <div className="relative">
                     <ShoppingBag className="w-4 h-4 stroke-[2]" />
@@ -168,9 +180,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                   )}
                 </Link>
                 <button
+                  type="button"
                   onClick={onOpenCart}
                   className="p-1.5 text-[#18482C] relative"
-                  title="View Shopping Bag"
+                  aria-label="View Shopping Bag"
                 >
                   <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
                   {cartCount > 0 && (
@@ -186,24 +199,31 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
           {/* Mobile Expandable Search Bar */}
           {isSearchExpandedMobile && (
             <div className="lg:hidden mt-2.5 pt-2.5 border-t border-[#E8DCCF]">
-              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="Search for sarees, lehengas, silk..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                  className="w-full bg-white border border-[#D8C7B5] rounded-full py-2 pl-9 pr-10 text-sm text-[#18482C] focus:outline-none focus:border-[#18482C]"
-                />
-                <Search className="w-4 h-4 text-[#647268] absolute left-3.5" />
-                <button
-                  type="button"
-                  onClick={() => setIsSearchExpandedMobile(false)}
-                  className="absolute right-3 p-1 text-[#647268]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </form>
+              <search>
+                <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+                  <label htmlFor="mobile-catalog-search" className="sr-only">
+                    Search for sarees, lehengas, and silks
+                  </label>
+                  <input
+                    id="mobile-catalog-search"
+                    type="search"
+                    placeholder="Search for sarees, lehengas, silk..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                    className="w-full bg-white border border-[#D8C7B5] rounded-full py-2 pl-9 pr-10 text-sm text-[#18482C] focus:outline-none focus:border-[#18482C]"
+                  />
+                  <Search className="w-4 h-4 text-[#647268] absolute left-3.5" aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchExpandedMobile(false)}
+                    aria-label="Close search"
+                    className="absolute right-3 p-1 text-[#647268]"
+                  >
+                    <X className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </form>
+              </search>
             </div>
           )}
         </div>

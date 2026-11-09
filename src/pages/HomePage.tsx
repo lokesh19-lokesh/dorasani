@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones } from 'lucide-react';
+import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronDown } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
+import { SeoHead } from '../components/common/SeoHead';
+import { useStore } from '../context/StoreContext';
 import { productService } from '../services/productService';
+import { SITE_ORIGIN, buildCanonicalUrl } from '../utils/seo';
 import type { Product, Category, ServiceBenefit, ProductReview } from '../types';
 
 interface HeroSlide {
@@ -26,6 +29,7 @@ const BENEFIT_ICON_MAP: Record<string, React.ComponentType<{ className?: string 
 };
 
 export const HomePage: React.FC = () => {
+  const { siteSettings } = useStore();
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -168,8 +172,96 @@ export const HomePage: React.FC = () => {
         ctaLabel: 'Our Story',
       };
 
+  const homeFaqs = useMemo(
+    () => [
+      {
+        question: 'Are DORASANI Kanchipuram and Banarasi sarees authentic handlooms?',
+        answer:
+          'Yes. Every DORASANI Kanchipuram, Banarasi, Chanderi, Tussar, and organza saree is sourced from generational artisan clusters across South India and Varanasi and undergoes stringent quality checks for silk purity, zari integrity, and loom weave finishing.',
+      },
+      {
+        question: 'What is the shipping fee and delivery timeline across India?',
+        answer: `DORASANI offers free standard pan-India shipping on orders of ₹${siteSettings.freeShippingThreshold.toLocaleString(
+          'en-IN'
+        )} or above. Orders below this threshold carry ₹${siteSettings.standardShippingFee} standard shipping or ₹${siteSettings.expressShippingFee} express priority dispatch, typically arriving in 3–5 business days in metro cities.`,
+      },
+      {
+        question: 'Can I return or exchange a saree or bridal lehenga from DORASANI?',
+        answer:
+          'Yes. Eligible unworn items with original tags intact may be returned or exchanged within 7 days of delivery with complimentary reverse pickup and full refund or store credit.',
+      },
+      {
+        question: 'How should pure silk sarees with gold zari be cared for?',
+        answer:
+          'Dry clean pure silk sarees only, wrap them individually in breathable unbleached muslin or cotton cloth in a cool dark wardrobe, refold along alternate creases every few months, and steam or press on low heat on the reverse side away from zari threads.',
+      },
+    ],
+    [
+      siteSettings.freeShippingThreshold,
+      siteSettings.standardShippingFee,
+      siteSettings.expressShippingFee,
+    ]
+  );
+
+  const homeJsonLd = useMemo(() => {
+    const graph: Record<string, unknown>[] = [
+      {
+        '@type': 'WebPage',
+        '@id': `${SITE_ORIGIN}/#webpage`,
+        url: `${SITE_ORIGIN}/`,
+        name: 'DORASANI — Where Heritage Meets Divine Elegance | Luxury South Indian Handloom Sarees',
+        description:
+          'Discover Silk Mark authentic Kanchipuram sarees, Banarasi silks, Chanderi cottons, bridal lehengas, kurthis, and kids pattu pavadai crafted across heritage looms in India.',
+        isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+        about: { '@id': `${SITE_ORIGIN}/#organization` },
+        inLanguage: 'en-IN',
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${SITE_ORIGIN}/#home-faq`,
+        mainEntity: homeFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      },
+    ];
+
+    if (newArrivals.length > 0) {
+      graph.push({
+        '@type': 'ItemList',
+        name: 'DORASANI New Arrivals',
+        itemListOrder: 'https://schema.org/ItemListOrderDescending',
+        numberOfItems: newArrivals.length,
+        itemListElement: newArrivals.map((p, idx) => ({
+          '@type': 'ListItem',
+          position: idx + 1,
+          url: buildCanonicalUrl(`/products/${p.slug}`),
+          name: p.title,
+        })),
+      });
+    }
+
+    return {
+      '@context': 'https://schema.org',
+      '@graph': graph,
+    };
+  }, [homeFaqs, newArrivals]);
+
   return (
     <div className="space-y-10 sm:space-y-14 lg:space-y-0 bg-[#FAF5EE]">
+      <SeoHead
+        title="DORASANI — Where Heritage Meets Divine Elegance | Luxury South Indian Handloom Sarees"
+        description="Shop Silk Mark authentic Kanchipuram pure silk sarees, Banarasi brocades, Chanderi cottons, Tussar weaves, bridal lehengas, kurthis, and kids pattu pavadai crafted across India."
+        canonicalPath="/"
+        keywords="DORASANI, dorasanicollections, Kanchipuram silk saree, Banarasi silk saree, Chanderi cotton saree, Tussar silk saree, bridal lehenga, pattu pavadai, Hyderabad handloom sarees"
+        ogImage="/assets/products/kanjivaram_silk_saree.jpg"
+        ogImageAlt="DORASANI Kanchipuram pure silk saree with intricate gold zari weave"
+        jsonLd={homeJsonLd}
+      />
       {/* 1. HERO SECTION */}
       <section className="relative w-full overflow-hidden bg-[#FAF5EE] border-b border-[#E8DCCF] lg:border-b-0">
         {heroLoading ? (
@@ -193,6 +285,10 @@ export const HomePage: React.FC = () => {
                   <img
                     src={slide.desktopImage}
                     alt={`${slide.titleLine1} ${slide.titleLine2}`.trim()}
+                    width={2170}
+                    height={725}
+                    fetchPriority={idx === 0 ? 'high' : 'low'}
+                    loading={idx === 0 ? 'eager' : 'lazy'}
                     className="w-full h-full object-cover object-top sm:object-cover sm:object-center"
                   />
                 </picture>
@@ -339,6 +435,9 @@ export const HomePage: React.FC = () => {
                 <img
                   src={celebrationBanner.image}
                   alt={`${celebrationBanner.title1} ${celebrationBanner.title2}`.trim()}
+                  width={1922}
+                  height={818}
+                  loading="lazy"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-y-0 left-0 w-[72%] sm:w-[65%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
@@ -426,6 +525,9 @@ export const HomePage: React.FC = () => {
                 <img
                   src={legacyBanner.image}
                   alt={`${legacyBanner.title1} ${legacyBanner.title2}`.trim()}
+                  width={2097}
+                  height={750}
+                  loading="lazy"
                   className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-y-0 right-0 w-[72%] sm:w-[65%] bg-gradient-to-l from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
@@ -462,18 +564,19 @@ export const HomePage: React.FC = () => {
         {/* 4. DYNAMIC SERVICE BENEFITS STRIP */}
         <section className="relative overflow-hidden bg-[#D0E9C0] lg:bg-transparent border-y border-[#BCD8AA] lg:border-y-0 py-6 sm:py-8 lg:py-5 lg:pb-6 mt-12 lg:mt-6">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <h2 className="sr-only">The DORASANI Guarantee</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-[#1A3B2B]">
               {benefits.map((b) => {
                 const IconComp = BENEFIT_ICON_MAP[b.iconName] || Sparkles;
                 return (
                   <div key={b.id} className="flex items-center gap-3 sm:gap-4 justify-center sm:justify-start">
                     <div className="w-12 h-12 rounded-full border-2 border-[#1A3B2B] flex items-center justify-center shrink-0 bg-[#D0E9C0] lg:bg-transparent">
-                      <IconComp className="w-6 h-6 text-[#1A3B2B]" />
+                      <IconComp className="w-6 h-6 text-[#1A3B2B]" aria-hidden="true" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
+                      <h3 className="font-bold text-xs sm:text-sm text-[#1A3B2B] leading-tight">
                         {b.title}
-                      </h4>
+                      </h3>
                       <p className="text-[10px] sm:text-[11px] text-[#2C4A37] mt-0.5">
                         {b.description}
                       </p>
@@ -512,7 +615,7 @@ export const HomePage: React.FC = () => {
                     ))}
                   </div>
                   {rev.title && (
-                    <h4 className="font-bold text-sm text-[#1A3B2B]">{rev.title}</h4>
+                    <h3 className="font-bold text-sm text-[#1A3B2B]">{rev.title}</h3>
                   )}
                   {rev.content && (
                     <p className="font-serif-royal italic text-sm sm:text-base text-[#1A3B2B] leading-relaxed">
@@ -520,7 +623,7 @@ export const HomePage: React.FC = () => {
                     </p>
                   )}
                   <div>
-                    <h4 className="font-semibold text-xs text-[#285A3C]">{rev.reviewerName}</h4>
+                    <p className="font-semibold text-xs text-[#285A3C]">{rev.reviewerName}</p>
                     <p className="text-[11px] text-[#647268]">
                       {rev.verifiedPurchase ? 'Verified Buyer' : 'DORASANI Patron'}
                     </p>
@@ -534,11 +637,14 @@ export const HomePage: React.FC = () => {
             <img
               src="/assets/categories/cat_sarees_arch.jpg"
               alt="DORASANI Handloom Craftsmanship"
+              width={896}
+              height={1200}
+              loading="lazy"
               className="w-24 h-28 sm:w-28 sm:h-32 object-cover object-top rounded-xl border border-[#D8C7B5] shadow-xs shrink-0"
             />
             <div className="space-y-3">
               <div className="flex items-center gap-1 text-[#C29336]">
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4" aria-hidden="true" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#285A3C]">
                   Silk Mark &amp; Artisan Certified
                 </span>
@@ -552,12 +658,52 @@ export const HomePage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#285A3C] hover:underline"
                 >
                   <span>Explore the Collection</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </Link>
               </div>
             </div>
           </div>
         )}
+      </section>
+
+      {/* 6. AEO HERITAGE & HANDLOOM QUICK ANSWERS */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-8 pb-12 sm:pb-16">
+        <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-[#E8DCCF] pb-4">
+            <div>
+              <span className="text-[11px] font-bold tracking-[0.22em] text-[#285A3C] uppercase">
+                ✦ Handloom &amp; Boutique Guide ✦
+              </span>
+              <h2 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B] mt-1">
+                Quick Questions About DORASANI
+              </h2>
+            </div>
+            <Link
+              to="/faq"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#285A3C] hover:underline shrink-0"
+            >
+              <span>View All FAQs</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="divide-y divide-[#E8DCCF]">
+            {homeFaqs.map((faq) => (
+              <details key={faq.question} name="home-aeo" className="group py-3.5">
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-semibold text-xs sm:text-sm text-[#1A3B2B] hover:text-[#285A3C]">
+                  <span>{faq.question}</span>
+                  <ChevronDown
+                    className="w-4 h-4 text-[#285A3C] shrink-0 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <p className="mt-2.5 text-xs sm:text-sm text-[#4F6355] leading-relaxed pr-6">
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
       </section>
     </div>
   );

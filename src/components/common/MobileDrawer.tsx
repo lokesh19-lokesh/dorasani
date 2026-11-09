@@ -46,15 +46,18 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
             <img
               src="/assets/logo.png"
               alt="DORASANI"
+              width={1842}
+              height={854}
               className="h-9 sm:h-10 w-auto object-contain"
             />
           </Link>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 text-[#4F6355] hover:text-[#285A3C]"
             aria-label="Close menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -114,7 +117,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-1 py-2">
+        <nav aria-label="Mobile" className="flex-1 py-2">
           {MENU_SECTIONS.map((item) => (
             <NavLink
               key={item.path}
@@ -129,10 +132,10 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
               }
             >
               <span>{item.name}</span>
-              <ChevronRight className="w-4 h-4 opacity-50" />
+              <ChevronRight className="w-4 h-4 opacity-50" aria-hidden="true" />
             </NavLink>
           ))}
-        </div>
+        </nav>
 
         {/* Quick Utility Section */}
         <div className="p-4 bg-[#F5EFE6] border-t border-[#D8C7B5] space-y-2 text-xs">

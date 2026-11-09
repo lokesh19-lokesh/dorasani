@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Clock } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Mail, Phone, MapPin, Send, Clock, ChevronRight } from 'lucide-react';
+import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
 export const ContactPage: React.FC = () => {
   const { showToast, siteSettings } = useStore();
@@ -37,11 +40,54 @@ export const ContactPage: React.FC = () => {
     }
   };
 
+  const contactJsonLd = useMemo(() => {
+    const canonicalUrl = buildCanonicalUrl('/contact');
+    return {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'ContactPage',
+          '@id': `${canonicalUrl}#webpage`,
+          url: canonicalUrl,
+          name: 'Contact DORASANI | Bridal Styling & Flagship Studio in Hyderabad',
+          description: `Reach DORASANI Flagship Handloom Studio at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}. Studio hours: ${siteSettings.studioHours}. Email: ${siteSettings.supportEmail}.`,
+          isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+          mainEntity: { '@id': `${SITE_ORIGIN}/#organization` },
+          breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+          inLanguage: 'en-IN',
+        },
+        buildBreadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Contact' }], canonicalUrl),
+      ],
+    };
+  }, [siteSettings]);
+
   return (
     <div className="space-y-12 pb-16">
+      <SeoHead
+        title="Contact Us | Bridal Styling & Flagship Studio in Banjara Hills, Hyderabad | DORASANI"
+        description={`Contact DORASANI at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin} or email ${siteSettings.supportEmail} for custom bridal saree orders, styling appointments, and support.`}
+        canonicalPath="/contact"
+        keywords="contact DORASANI, DORASANI Hyderabad studio, Banjara Hills handloom saree boutique, bridal saree styling appointment"
+        jsonLd={contactJsonLd}
+      />
       {/* Header */}
       <div className="bg-[#D0E9C0]/40 border-b border-[#BCD8AA] py-10 sm:py-16 px-4 sm:px-8 text-center">
         <div className="max-w-2xl mx-auto space-y-2">
+          <nav aria-label="Breadcrumb" className="flex justify-center mb-3">
+            <ol className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
+              <li>
+                <Link to="/" className="hover:text-[#285A3C]">
+                  Home
+                </Link>
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />
+                <span aria-current="page" className="font-semibold text-[#285A3C]">
+                  Contact
+                </span>
+              </li>
+            </ol>
+          </nav>
           <span className="text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
             ✦ REACH OUT TO US ✦
           </span>
@@ -59,9 +105,9 @@ export const ContactPage: React.FC = () => {
           {/* Contact Info */}
           <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 space-y-6 shadow-xs">
             <div>
-              <h3 className="font-cinzel-royal font-bold text-lg text-[#1A3B2B]">
+              <h2 className="font-cinzel-royal font-bold text-lg text-[#1A3B2B]">
                 Flagship Studio
-              </h3>
+              </h2>
               <p className="text-xs text-[#4F6355] mt-1">
                 Experience our curated silks in person.
               </p>
@@ -122,9 +168,9 @@ export const ContactPage: React.FC = () => {
 
           {/* Form */}
           <div className="lg:col-span-7 bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs">
-            <h3 className="font-cinzel-royal font-bold text-lg text-[#1A3B2B] mb-4">
+            <h2 className="font-cinzel-royal font-bold text-lg text-[#1A3B2B] mb-4">
               Send Us a Message
-            </h3>
+            </h2>
 
             <form onSubmit={handleSubmit} method="POST" className="space-y-4 text-xs dorasani-form">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

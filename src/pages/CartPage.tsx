@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Tag, ShieldCheck, ArrowRight, Check, ShoppingBag } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { SeoHead } from '../components/common/SeoHead';
 
 export const CartPage: React.FC = () => {
   const {
@@ -52,6 +53,12 @@ export const CartPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      <SeoHead
+        title="Shopping Cart | DORASANI"
+        description="Review your selected DORASANI handloom sarees and ethnic ensembles before checkout."
+        canonicalPath="/cart"
+        robots="noindex, nofollow"
+      />
       {/* 1. Header Banner */}
       <div className="bg-[#FAF2EB] border-b border-[#EEDCD1] py-8 sm:py-12 px-4 sm:px-8 text-center sm:text-left">
         <div className="max-w-7xl mx-auto space-y-2">
@@ -68,10 +75,10 @@ export const CartPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         {cart.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8 max-w-md mx-auto">
-            <ShoppingBag className="w-12 h-12 text-[#BCD8AA] mx-auto mb-3" />
-            <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
+            <ShoppingBag className="w-12 h-12 text-[#BCD8AA] mx-auto mb-3" aria-hidden="true" />
+            <h2 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
               Your cart is empty
-            </h3>
+            </h2>
             <p className="text-xs text-[#4F6355] mt-1">
               Add your cherished handloom sarees and lehengas to proceed.
             </p>
@@ -123,6 +130,8 @@ export const CartPage: React.FC = () => {
                         <img
                           src={item.product.primaryImage}
                           alt={item.product.title}
+                          width={800}
+                          height={1000}
                           className="w-16 h-20 sm:w-20 sm:h-24 object-cover object-top rounded-md border border-[#BCD8AA] bg-[#FAF5EE] shrink-0"
                         />
 
@@ -184,10 +193,9 @@ export const CartPage: React.FC = () => {
                           type="button"
                           onClick={() => removeFromCart(item.id)}
                           className="text-[#8E9B92] hover:text-[#285A3C] p-1.5"
-                          title="Remove"
-                          aria-label={`Remove ${item.product.title}`}
+                          aria-label={`Remove ${item.product.title} from cart`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -271,9 +279,9 @@ export const CartPage: React.FC = () => {
               </div>
 
               <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider border-b border-[#D8C7B5] pb-3">
+                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider border-b border-[#D8C7B5] pb-3">
                   Order Summary
-                </h3>
+                </h2>
 
                 <div className="space-y-2 text-xs text-[#4F6355]">
                   <div className="flex justify-between">

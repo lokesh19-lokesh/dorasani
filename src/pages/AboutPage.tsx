@@ -12,10 +12,41 @@ import {
   Crown,
   ChevronRight
 } from 'lucide-react';
+import { SeoHead } from '../components/common/SeoHead';
+import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
 export const AboutPage: React.FC = () => {
+  const canonicalUrl = buildCanonicalUrl('/about');
+  const aboutJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        '@id': `${canonicalUrl}#webpage`,
+        url: canonicalUrl,
+        name: 'Our Story & Heritage | DORASANI — A Symbol of Tradition',
+        description:
+          'Learn the story behind DORASANI — a South Indian handloom boutique honoring master silk weavers across Kanchipuram, Banaras, and Telangana with pure fabrics and fair pricing.',
+        isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+        mainEntity: { '@id': `${SITE_ORIGIN}/#organization` },
+        breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+        inLanguage: 'en-IN',
+      },
+      buildBreadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'About Us' }], canonicalUrl),
+    ],
+  };
+
   return (
     <div className="font-poppins space-y-12 sm:space-y-16 pb-16">
+      <SeoHead
+        title="About Us — A Symbol of Tradition | Our Story & Weavers | DORASANI"
+        description="Discover the heritage story of DORASANI — curating Silk Mark authentic Kanchipuram sarees, bridal lehengas, kids wear, and handloom textiles with personal care in Hyderabad."
+        canonicalPath="/about"
+        keywords="About DORASANI, Dorasani Sarees Hyderabad, South Indian handloom boutique, temple silk heritage, Kanchipuram weavers"
+        ogImage="/assets/banners/legacy_beauty_banner.jpg"
+        ogImageAlt="DORASANI Sarees Heritage & Craftsmanship"
+        jsonLd={aboutJsonLd}
+      />
       {/* 1. Breadcrumbs */}
       <nav
         aria-label="Breadcrumb"
@@ -83,6 +114,9 @@ export const AboutPage: React.FC = () => {
               <img
                 src="/assets/banners/legacy_beauty_banner.jpg"
                 alt="Dorasani Sarees Heritage & Craftsmanship"
+                width={330}
+                height={218}
+                loading="lazy"
                 className="w-full h-[380px] sm:h-[460px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1A3B2B]/90 via-[#1A3B2B]/25 to-transparent flex flex-col justify-end p-6 text-white space-y-1">
@@ -272,9 +306,9 @@ export const AboutPage: React.FC = () => {
                 <Store className="w-3.5 h-3.5" />
                 <span>The Dorasani Family Experience</span>
               </div>
-              <h3 className="font-golden text-2xl sm:text-3xl font-bold text-[#1A3B2B] tracking-tight">
+              <h2 className="font-golden text-2xl sm:text-3xl font-bold text-[#1A3B2B] tracking-tight">
                 Experience Our Heritage In Store & Online
-              </h3>
+              </h2>
               <p className="font-roboto-slab text-xs sm:text-sm text-[#4F6355] leading-relaxed">
                 Whether you are picking an heirloom silk saree for a wedding, styling festive lehengas for your bridal party, choosing sweet frocks for your little ones, or sourcing dependable lining fabrics, we are here with dedicated personal guidance at every step.
               </p>
@@ -297,9 +331,9 @@ export const AboutPage: React.FC = () => {
             </div>
 
             <div className="border-t md:border-t-0 md:border-l border-[#D8C7B5] pt-6 md:pt-0 md:pl-8 space-y-4">
-              <h4 className="font-golden text-lg font-bold text-[#1A3B2B]">
+              <h3 className="font-golden text-lg font-bold text-[#1A3B2B]">
                 A Complete Destination for Every Celebration
-              </h4>
+              </h3>
               <ul className="space-y-3 text-xs sm:text-sm text-[#4F6355] font-poppins">
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" />

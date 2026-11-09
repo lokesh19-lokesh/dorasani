@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
+import { SeoHead } from '../components/common/SeoHead';
 
 type AuthMode = 'password' | 'magic' | 'forgot';
 
@@ -141,6 +142,13 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-10 px-4 sm:px-8 bg-[#FAF5EE]">
+      <SeoHead
+        title="Sign In | DORASANI"
+        description="Sign in to your DORASANI account to track orders, manage saved addresses, and view your wishlist."
+        canonicalPath="/login"
+        robots="noindex, nofollow"
+      />
+      <h1 className="sr-only">Sign In to Your DORASANI Account</h1>
       <div className="max-w-4xl w-full bg-white rounded-2xl border border-[#D8C7B5] shadow-lg overflow-hidden grid grid-cols-1 md:grid-cols-12">
         {/* Left Side: Brand Story & Model Photo */}
         <div

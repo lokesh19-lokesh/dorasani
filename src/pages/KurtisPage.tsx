@@ -15,6 +15,15 @@ export const KurtisPage: React.FC = () => {
       ]}
       highlights={['Fine Zari Detailing', 'Pure Chanderi & Raw Silk', 'Modern Festive Drapes']}
       categorySlug="kurtis"
+      seo={{
+        title: 'Handloom Silk & Chanderi Kurthis Online | Designer Tunics | DORASANI',
+        description:
+          'Shop royal silk and Chanderi kurthis with delicate zari detailing by DORASANI — crafted for contemporary South Indian festive grace and effortless poise.',
+        canonicalPath: '/collections/kurtis',
+        keywords:
+          'silk kurthis online, Chanderi kurti sets, royal silk kurti, festive designer tunics India, DORASANI kurthis',
+        ogImage: '/assets/hero/subpageshero/ethnic-weardesktop.png',
+      }}
     />
   );
 };

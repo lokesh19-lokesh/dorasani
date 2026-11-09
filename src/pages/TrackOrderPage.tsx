@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
+import { SeoHead } from '../components/common/SeoHead';
 import type { Order } from '../types';
 
 export const TrackOrderPage: React.FC = () => {
@@ -125,21 +126,39 @@ export const TrackOrderPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      <SeoHead
+        title={currentOrder ? `Track Order #${currentOrder.orderNumber} | DORASANI` : 'Track Order | DORASANI'}
+        description="Track your DORASANI handloom saree or ethnic wear delivery in real time using your order number or courier tracking ID."
+        canonicalPath="/track-order"
+        robots="noindex, nofollow"
+      />
       {/* 1. Breadcrumbs */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex items-center space-x-1.5 text-xs text-[#4F6355]">
-          <Link to="/" className="hover:text-[#285A3C]">
-            Home
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <Link to="/account" className="hover:text-[#285A3C]">
-            My Orders
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <span className="font-semibold text-[#285A3C]">
-            {currentOrder ? `Track Order #${currentOrder.orderNumber}` : 'Track Order'}
-          </span>
-        </div>
+        <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto">
+          <ol className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
+            <li>
+              <Link to="/" className="hover:text-[#285A3C]">
+                Home
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
+            </li>
+            <li>
+              <Link to="/account" className="hover:text-[#285A3C]">
+                My Orders
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
+            </li>
+            <li>
+              <span aria-current="page" className="font-semibold text-[#285A3C]">
+                {currentOrder ? `Track Order #${currentOrder.orderNumber}` : 'Track Order'}
+              </span>
+            </li>
+          </ol>
+        </nav>
       </div>
 
       {/* 2. Banner with Order Lookup */}
@@ -318,7 +337,7 @@ export const TrackOrderPage: React.FC = () => {
                       >
                         {step.completed ? '✓' : idx + 1}
                       </div>
-                      <h4
+                      <h2
                         className={`font-bold text-xs ${
                           step.current
                             ? 'text-[#285A3C]'
@@ -328,7 +347,7 @@ export const TrackOrderPage: React.FC = () => {
                         }`}
                       >
                         {step.title}
-                      </h4>
+                      </h2>
                       <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
                     </div>
                   ))}
@@ -342,9 +361,9 @@ export const TrackOrderPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left: Items in Order */}
               <div className="lg:col-span-4 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5]">
+                <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5]">
                   Items in this Order ({currentOrder.items.length})
-                </h3>
+                </h2>
                 <div className="space-y-3">
                   {currentOrder.items.map((item, idx) => (
                     <div key={`${item.productId}-${idx}`} className="flex items-center gap-3 text-xs">
@@ -369,10 +388,10 @@ export const TrackOrderPage: React.FC = () => {
 
               {/* Center: Live Tracking Milestones */}
               <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
+                <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#285A3C]" />
                   <span>Tracking Details</span>
-                </h3>
+                </h2>
 
                 <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#285A3C]/30 text-xs">
                   {reversedTimeline.map((step) => (
@@ -386,7 +405,7 @@ export const TrackOrderPage: React.FC = () => {
                             : 'w-3 h-3 bg-[#FAF5EE] border border-[#BCD8AA]'
                         }`}
                       />
-                      <h4
+                      <h3
                         className={`font-semibold ${
                           step.current
                             ? 'font-bold text-[#285A3C]'
@@ -396,7 +415,7 @@ export const TrackOrderPage: React.FC = () => {
                         }`}
                       >
                         {step.title}
-                      </h4>
+                      </h3>
                       <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
                       <p className="text-xs text-[#4F6355] mt-0.5">{step.description}</p>
                     </div>
@@ -407,10 +426,10 @@ export const TrackOrderPage: React.FC = () => {
               {/* Right: Delivery Address, Courier Partner & Help */}
               <div className="lg:col-span-3 space-y-4">
                 <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-2">
-                  <h3 className="font-bold uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-1.5">
+                  <h2 className="font-bold uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#285A3C]" />
                     <span>Delivery Address</span>
-                  </h3>
+                  </h2>
                   <p className="font-bold text-[#1A3B2B]">
                     {currentOrder.shippingAddress.fullName}
                   </p>
@@ -423,10 +442,10 @@ export const TrackOrderPage: React.FC = () => {
                 </div>
 
                 <div className="bg-[#FAF5EE] rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-3">
-                  <h3 className="font-bold uppercase tracking-wider text-[#1A3B2B] flex items-center gap-1.5">
+                  <h2 className="font-bold uppercase tracking-wider text-[#1A3B2B] flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-[#285A3C]" />
                     <span>Shipping Partner</span>
-                  </h3>
+                  </h2>
 
                   {currentOrder.courierPartner || currentOrder.trackingId ? (
                     <>
@@ -469,7 +488,7 @@ export const TrackOrderPage: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-2 text-center">
                   <HelpCircle className="w-5 h-5 text-[#285A3C] mx-auto" />
-                  <h4 className="font-bold text-[#1A3B2B]">Need Help With Your Order?</h4>
+                  <h2 className="font-bold text-[#1A3B2B]">Need Help With Your Order?</h2>
                   <p className="text-[#4F6355] text-[11px]">
                     Facing any delays or require assistance? Reach out to DORASANI Customer Support.
                   </p>

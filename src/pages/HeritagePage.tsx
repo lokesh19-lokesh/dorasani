@@ -2,8 +2,32 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Landmark, Users, HeartHandshake } from 'lucide-react';
 import { SubpageHero } from '../components/common/SubpageHero';
+import { SeoHead } from '../components/common/SeoHead';
+import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
 export const HeritagePage: React.FC = () => {
+  const canonicalUrl = buildCanonicalUrl('/heritage');
+  const heritageJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${canonicalUrl}#webpage`,
+        url: canonicalUrl,
+        name: 'Mythology & Temple Heritage Craft | DORASANI',
+        description:
+          'Explore how Dravidian temple architecture, classical Bharatanatyam motifs, and hereditary handloom weaving clusters in Kanchipuram, Banaras, Chanderi, and Pochampally inspire every DORASANI weave.',
+        isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+        about: { '@id': `${SITE_ORIGIN}/#organization` },
+        breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+        inLanguage: 'en-IN',
+      },
+      buildBreadcrumbSchema(
+        [{ name: 'Home', path: '/' }, { name: 'Mythology & Heritage' }],
+        canonicalUrl
+      ),
+    ],
+  };
   const stories = [
     {
       title: 'Goddesses of Grace',
@@ -56,6 +80,15 @@ export const HeritagePage: React.FC = () => {
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">
+      <SeoHead
+        title="Mythology, Temple Craft & Indian Handloom Heritage | DORASANI"
+        description="Explore the South Indian temple motifs, Dravidian gopuram artistry, classical arts, and master handloom weaving clusters in Kanchipuram, Banaras, and Pochampally behind DORASANI."
+        canonicalPath="/heritage"
+        keywords="South Indian temple motif saree, Kanchipuram weave heritage, Indian mythology sarees, Pochampally handloom, DORASANI heritage"
+        ogImage="/assets/hero/subpageshero/heritagedesktop.png"
+        ogImageAlt="DORASANI Mythology and Temple Heritage"
+        jsonLd={heritageJsonLd}
+      />
       {/* 1. Hero Banner */}
       <SubpageHero
         desktopImage="/assets/hero/subpageshero/heritagedesktop.png"
@@ -84,11 +117,11 @@ export const HeritagePage: React.FC = () => {
                 className="bg-white p-5 rounded-xl border border-[#D8C7B5] text-center shadow-xs flex flex-col items-center hover:border-[#BCD8AA] transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center mb-3">
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5" aria-hidden="true" />
                 </div>
-                <h3 className="font-semibold text-xs sm:text-sm text-[#1A3B2B]">
+                <h2 className="font-semibold text-xs sm:text-sm text-[#1A3B2B]">
                   {p.title}
-                </h3>
+                </h2>
                 <p className="text-[11px] text-[#4F6355] mt-1">
                   {p.desc}
                 </p>
@@ -105,6 +138,9 @@ export const HeritagePage: React.FC = () => {
           <img
             src="/assets/hero/heritagebannersection2.png"
             alt="DORASANI Heritage - Land of Temples and Textiles"
+            width={2170}
+            height={725}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover object-[18%_center] sm:object-left lg:object-center"
           />
 
@@ -197,6 +233,7 @@ export const HeritagePage: React.FC = () => {
                       <img
                         src={s.image}
                         alt={s.title}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     </div>

@@ -16,6 +16,15 @@ export const FestivePage: React.FC = () => {
       highlights={['Auspicious Temple Colors', 'Handloom Pure Zari', 'Limited Festive Drops']}
       categorySlug="festive"
       isFestive={true}
+      seo={{
+        title: 'Festive Handloom Collection | Wedding, Diwali & Pongal Silks | DORASANI',
+        description:
+          'Celebrate Diwali, Pongal, Ugadi, and weddings in DORASANI’s Festive Collection — pure temple zari silks, bridal lehengas, and embroidered Anarkalis.',
+        canonicalPath: '/collections/festive',
+        keywords:
+          'festive silk sarees India, Diwali sarees, Pongal traditional wear, wedding silk couture, DORASANI festive collection',
+        ogImage: '/assets/hero/subpageshero/festivedesktop.png',
+      }}
     />
   );
 };

@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://dorasanicollections.com/</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/hero/desktop/h1.png</image:loc>
+      <image:title>DORASANI — Bridal Kanjivaram Silk Sarees &amp; South Indian Handlooms</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/kanjivaram_silk_saree.jpg</image:loc>
+      <image:title>DORASANI Kanchipuram Pure Silk Saree</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/shop</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/hero/subpageshero/ShopAllhero.png</image:loc>
+      <image:title>Shop All DORASANI Handloom Collections</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/sarees</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_sarees_arch.jpg</image:loc>
+      <image:title>Pure Silk &amp; Handloom Sarees | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/lehengas</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_lehengas_arch.jpg</image:loc>
+      <image:title>Bridal &amp; Festive Lehengas | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/ethnic-wear</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_ethnic_wear_arch.jpg</image:loc>
+      <image:title>Ethnic Wear — Anarkalis, Shararas &amp; Salwar Suits | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/kurtis</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_kurtis_arch.jpg</image:loc>
+      <image:title>Handcrafted Kurthis &amp; Tunics | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/kids-wear</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_kids_wear_arch.jpg</image:loc>
+      <image:title>Kids Heritage Wear &amp; Pattu Pavadai | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/festive</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_festive_arch.jpg</image:loc>
+      <image:title>Festive &amp; Temple-Wear Edit | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/new-arrivals</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_new_arrivals_arch.jpg</image:loc>
+      <image:title>New Arrivals — Latest Loom Editions | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/collections/bestsellers</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_bestsellers_arch.jpg</image:loc>
+      <image:title>Signature Bestsellers | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/heritage</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/hero/subpageshero/heritagedesktop.png</image:loc>
+      <image:title>Mythology &amp; Temple Heritage Craft | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/about</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/banners/legacy_beauty_banner.jpg</image:loc>
+      <image:title>About DORASANI — A Symbol of Tradition | DORASANI</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/faq</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/contact</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/shipping-policy</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/returns-policy</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/privacy-policy</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/terms</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/organza-floral-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/organza_floral_saree.jpg</image:loc>
+      <image:title>Organza Floral Saree</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/thumb_2.jpg</image:loc>
+      <image:title>Organza Floral Saree — View 2</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/banarasi-silk-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/banarasi_silk_saree.jpg</image:loc>
+      <image:title>Banarasi Silk Saree</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/thumb_3.jpg</image:loc>
+      <image:title>Banarasi Silk Saree — View 2</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/chanderi-cotton-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/prod_chanderi_cotton_photo.jpg</image:loc>
+      <image:title>Chanderi Cotton Saree</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/chanderi_cotton_saree.jpg</image:loc>
+      <image:title>Chanderi Cotton Saree — View 2</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/tussar-silk-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/tussar_silk_saree.jpg</image:loc>
+      <image:title>Tussar Silk Saree</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/organza-tissue-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/organza_tissue_saree.jpg</image:loc>
+      <image:title>Organza Tissue Saree</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/kanchipuram-bridal-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/kanchipuram_bridal_saree.jpg</image:loc>
+      <image:title>Kanchipuram Bridal Saree</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/linen-silk-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/linen_silk_saree.jpg</image:loc>
+      <image:title>Linen Silk Saree</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/bridal-silk-lehenga</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/bridal_silk_lehenga.jpg</image:loc>
+      <image:title>Bridal Silk Lehenga</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/wedding-lehenga-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/wedding_lehenga_set.jpg</image:loc>
+      <image:title>Wedding Lehenga Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/designer-lehenga</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/designer_lehenga.jpg</image:loc>
+      <image:title>Designer Lehenga</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/pastel-organza-lehenga</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/pastel_organza_lehenga.jpg</image:loc>
+      <image:title>Pastel Organza Lehenga</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/velvet-lehenga-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/velvet_lehenga_set.jpg</image:loc>
+      <image:title>Velvet Lehenga Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/embroidered-anarkali-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/embroidered_anarkali.jpg</image:loc>
+      <image:title>Embroidered Anarkali Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/chanderi-kurti-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/chanderi_kurti_set.jpg</image:loc>
+      <image:title>Chanderi Kurti Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/organza-sharara-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/organza_sharara_set.jpg</image:loc>
+      <image:title>Organza Sharara Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/silk-salwar-suit-set</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/silk_salwar_suit.jpg</image:loc>
+      <image:title>Silk Salwar Suit Set</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/embroidered-royal-silk-kurti</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_kurtis_arch.jpg</image:loc>
+      <image:title>Embroidered Royal Silk Kurti</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/traditional-kids-pattu-pavadai</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_kids_wear_arch.jpg</image:loc>
+      <image:title>Traditional Silk Pattu Pavadai</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://dorasanicollections.com/products/kanjivaram-silk-saree</loc>
+    <lastmod>2026-11-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/kanjivaram_silk_saree.jpg</image:loc>
+      <image:title>Kanjivaram Silk Saree</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/categories/cat_sarees_arch.jpg</image:loc>
+      <image:title>Kanjivaram Silk Saree — View 2</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/product_main_large.jpg</image:loc>
+      <image:title>Kanjivaram Silk Saree — View 3</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/thumb_1.jpg</image:loc>
+      <image:title>Kanjivaram Silk Saree — View 4</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://dorasanicollections.com/assets/products/thumb_2.jpg</image:loc>
+      <image:title>Kanjivaram Silk Saree — View 5</image:title>
+    </image:image>
+  </url>
+</urlset>

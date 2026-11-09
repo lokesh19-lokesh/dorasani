@@ -8,9 +8,12 @@ import { MobileBottomBar } from '../components/common/MobileBottomBar';
 import { CartDrawer } from '../components/cart/CartDrawer';
 import { ToastContainer } from '../components/common/ToastContainer';
 import { Preloader } from '../components/common/Preloader';
+import { BaseStoreSchema } from '../components/common/SeoHead';
+import { useStore } from '../context/StoreContext';
 
 export const RootLayout: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const { siteSettings } = useStore();
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
@@ -58,6 +61,14 @@ export const RootLayout: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
+      <BaseStoreSchema settings={siteSettings} />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-[#18482C] focus:text-white focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:text-xs focus:font-semibold"
+      >
+        Skip to main content
+      </a>
+
       {showPreloader && isHomePage && (
         <Preloader onComplete={handlePreloaderComplete} />
       )}
@@ -79,7 +90,7 @@ export const RootLayout: React.FC = () => {
         <Navbar />
       </div>
 
-      <main className="flex-1 pb-16 lg:pb-0">
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16 lg:pb-0 focus:outline-none">
         <Outlet />
       </main>
 

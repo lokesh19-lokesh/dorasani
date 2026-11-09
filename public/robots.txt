@@ -1,0 +1,78 @@
+# DORASANI Heritage Handlooms — Crawler & AI Search Policy
+# Canonical Domain: https://dorasanicollections.com
+
+User-agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /sitemap.xml
+Disallow: /admin
+Disallow: /account
+Disallow: /cart
+Disallow: /bag
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /wishlist
+Disallow: /order-confirmation
+Disallow: /track-order
+Disallow: /search
+
+# Traditional Search Engines
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /cart
+Disallow: /bag
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /wishlist
+Disallow: /order-confirmation
+Disallow: /track-order
+Disallow: /search
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /cart
+Disallow: /bag
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /wishlist
+Disallow: /order-confirmation
+Disallow: /track-order
+Disallow: /search
+
+# AI Answer Engines & LLM Retrievers (AEO / GEO Robustness)
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Discovery Sitemaps & LLM Context Files
+Sitemap: https://dorasanicollections.com/sitemap.xml
+# llms.txt: https://dorasanicollections.com/llms.txt
+# llms-full.txt: https://dorasanicollections.com/llms-full.txt

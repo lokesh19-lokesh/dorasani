@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
+import { SeoHead } from '../components/common/SeoHead';
 import { productService } from '../services/productService';
 import type { Product } from '../types';
 
@@ -51,31 +52,39 @@ export const SearchResultsPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      <SeoHead
+        title={query ? `Search Results for "${query}" | DORASANI` : 'Search Catalog | DORASANI'}
+        description="Search DORASANI handloom sarees, bridal lehengas, kurthis, ethnic dresses, and kids wear collections."
+        canonicalPath="/search"
+        robots="noindex, follow"
+      />
       {/* 1. Search Header Banner */}
       <div className="bg-[#D0E9C0]/40 border-b border-[#BCD8AA] py-8 sm:py-12 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-4">
           <div className="max-w-xl mx-auto">
-            <form onSubmit={handleSearch} className="relative flex items-center">
-              <input
-                type="search"
-                aria-label="Search products"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search for sarees, lehengas, silk..."
-                className="w-full bg-white border border-[#D8C7B5] rounded-full py-2.5 pl-10 pr-10 text-sm text-[#1A3B2B] focus:outline-none focus:border-[#285A3C] shadow-xs"
-              />
-              <Search className="w-4 h-4 text-[#4F6355] absolute left-3.5" />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                  className="absolute right-3.5 p-1 text-[#4F6355] hover:text-[#285A3C]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </form>
+            <search>
+              <form onSubmit={handleSearch} className="relative flex items-center">
+                <input
+                  type="search"
+                  aria-label="Search products"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder="Search for sarees, lehengas, silk..."
+                  className="w-full bg-white border border-[#D8C7B5] rounded-full py-2.5 pl-10 pr-10 text-sm text-[#1A3B2B] focus:outline-none focus:border-[#285A3C] shadow-xs"
+                />
+                <Search className="w-4 h-4 text-[#4F6355] absolute left-3.5" aria-hidden="true" />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Clear search"
+                    className="absolute right-3.5 p-1 text-[#4F6355] hover:text-[#285A3C]"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </form>
+            </search>
           </div>
 
           <div className="text-center pt-2">
@@ -111,9 +120,9 @@ export const SearchResultsPage: React.FC = () => {
         ) : results.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8 max-w-lg mx-auto">
             <Search className="w-12 h-12 text-[#D8C7B5] mx-auto mb-3" />
-            <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
+            <h2 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
               No products found for "{query}"
-            </h3>
+            </h2>
             <p className="text-xs text-[#4F6355] mt-1">
               Try searching for terms like "silk", "organza", "kanchipuram", or "lehenga".
             </p>

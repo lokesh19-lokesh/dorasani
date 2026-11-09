@@ -115,16 +115,21 @@ export const Footer: React.FC = () => {
           <span className="font-cinzel-royal text-xs tracking-[0.25em] text-[#143D24] uppercase font-bold">
             ✦ Be Part of Our Legacy ✦
           </span>
-          <h3 className="font-serif-royal text-2xl sm:text-3xl font-bold text-[#0A2414] mt-2 mb-2">
+          <h2 className="font-serif-royal text-2xl sm:text-3xl font-bold text-[#0A2414] mt-2 mb-2">
             Join the DORASANI Family
-          </h3>
+          </h2>
           <p className="text-xs sm:text-sm text-[#143D24] font-medium max-w-lg mx-auto mb-6">
             Be the first to know about new arrivals, exclusive festive collections, and special privileged offers.
           </p>
 
           <form onSubmit={handleSubscribe} className="flex max-w-md mx-auto shadow-sm">
+            <label htmlFor="footer-newsletter-email" className="sr-only">
+              Email address for DORASANI newsletter
+            </label>
             <input
+              id="footer-newsletter-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
@@ -137,7 +142,7 @@ export const Footer: React.FC = () => {
               className="bg-[#18482C] hover:bg-[#0E2C1A] disabled:opacity-60 text-white px-5 rounded-r-md transition-colors flex items-center justify-center shadow-xs"
               aria-label="Subscribe"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4" aria-hidden="true" />
             </button>
           </form>
         </div>
@@ -151,6 +156,9 @@ export const Footer: React.FC = () => {
             <img
               src="/assets/logo.png"
               alt="DORASANI - Where Heritage Meets Divine Elegance"
+              width={1842}
+              height={854}
+              loading="lazy"
               className="h-16 sm:h-18 md:h-20 lg:h-22 w-auto object-contain mx-auto"
             />
           </Link>
@@ -161,11 +169,11 @@ export const Footer: React.FC = () => {
               <a
                 href={siteSettings.instagramUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-[#18482C] text-[#abd9af] hover:bg-[#0E2C1A] hover:text-white transition-all shadow-xs"
                 aria-label="Instagram"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                 </svg>
               </a>
@@ -174,11 +182,11 @@ export const Footer: React.FC = () => {
               <a
                 href={siteSettings.facebookUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-[#18482C] text-[#abd9af] hover:bg-[#0E2C1A] hover:text-white transition-all shadow-xs"
                 aria-label="Facebook"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
               </a>
@@ -187,11 +195,11 @@ export const Footer: React.FC = () => {
               <a
                 href={siteSettings.youtubeUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-[#18482C] text-[#abd9af] hover:bg-[#0E2C1A] hover:text-white transition-all shadow-xs"
                 aria-label="YouTube"
               >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                 </svg>
               </a>
@@ -203,9 +211,9 @@ export const Footer: React.FC = () => {
         <div className="hidden md:grid grid-cols-5 gap-8 text-xs pt-4 border-t border-[#8EC493]">
           {/* Column 1: Shop */}
           <div>
-            <h4 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
+            <h3 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
               Shop
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-[#143D24]">
               <li><Link to="/collections/sarees" className="hover:text-[#000000] font-medium transition-colors">Sarees Collection</Link></li>
               <li><Link to="/collections/kurtis" className="hover:text-[#000000] font-medium transition-colors">Kurthis & Tunics</Link></li>
@@ -220,9 +228,9 @@ export const Footer: React.FC = () => {
 
           {/* Column 2: About DORASANI */}
           <div>
-            <h4 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
+            <h3 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
               About DORASANI
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-[#143D24]">
               <li><Link to="/about" className="hover:text-[#000000] font-medium transition-colors">Our Story</Link></li>
               <li><Link to="/heritage" className="hover:text-[#000000] font-medium transition-colors">Mythology & Heritage</Link></li>
@@ -234,13 +242,13 @@ export const Footer: React.FC = () => {
 
           {/* Column 3: Customer Care */}
           <div>
-            <h4 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
+            <h3 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
               Customer Care
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-[#143D24]">
               <li><Link to="/track-order" className="hover:text-[#000000] font-medium transition-colors">Track Your Order</Link></li>
-              <li><Link to="/shipping" className="hover:text-[#000000] font-medium transition-colors">Shipping Information</Link></li>
-              <li><Link to="/returns" className="hover:text-[#000000] font-medium transition-colors">Easy Returns & Exchanges</Link></li>
+              <li><Link to="/shipping-policy" className="hover:text-[#000000] font-medium transition-colors">Shipping Information</Link></li>
+              <li><Link to="/returns-policy" className="hover:text-[#000000] font-medium transition-colors">Easy Returns & Exchanges</Link></li>
               <li><Link to="/faq" className="hover:text-[#000000] font-medium transition-colors">Frequently Asked Questions</Link></li>
               <li><Link to="/contact" className="hover:text-[#000000] font-medium transition-colors">Contact Support</Link></li>
             </ul>
@@ -248,23 +256,23 @@ export const Footer: React.FC = () => {
 
           {/* Column 4: Policies */}
           <div>
-            <h4 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
+            <h3 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
               Policies
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-[#143D24]">
               <li><Link to="/terms" className="hover:text-[#000000] font-medium transition-colors">Terms & Conditions</Link></li>
-              <li><Link to="/privacy" className="hover:text-[#000000] font-medium transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/shipping" className="hover:text-[#000000] font-medium transition-colors">Shipping Policy</Link></li>
-              <li><Link to="/returns" className="hover:text-[#000000] font-medium transition-colors">Cancellation Policy</Link></li>
+              <li><Link to="/privacy-policy" className="hover:text-[#000000] font-medium transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/shipping-policy" className="hover:text-[#000000] font-medium transition-colors">Shipping Policy</Link></li>
+              <li><Link to="/returns-policy" className="hover:text-[#000000] font-medium transition-colors">Cancellation Policy</Link></li>
               <li><Link to="/about" className="hover:text-[#000000] font-medium transition-colors">Handloom Certification</Link></li>
             </ul>
           </div>
 
           {/* Column 5: Contact Us */}
           <div>
-            <h4 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
+            <h3 className="font-cinzel-royal font-bold text-sm text-[#0A2414] tracking-wider mb-4 uppercase">
               Contact Us
-            </h4>
+            </h3>
             <ul className="space-y-2.5 text-[#143D24]">
               <li className="text-[#0A2414] font-bold">{siteSettings.storeName}</li>
               <li>{siteSettings.storeAddress}</li>
@@ -282,11 +290,13 @@ export const Footer: React.FC = () => {
           {/* Accordion 1: Shop */}
           <div className="py-3">
             <button
+              type="button"
+              aria-expanded={Boolean(openSections['shop'])}
               onClick={() => toggleSection('shop')}
               className="flex items-center justify-between w-full font-bold text-xs text-[#0A2414] tracking-wider uppercase text-left"
             >
               <span>Shop</span>
-              {openSections['shop'] ? <Minus className="w-4 h-4 text-[#0A2414]" /> : <Plus className="w-4 h-4 text-[#143D24]" />}
+              {openSections['shop'] ? <Minus className="w-4 h-4 text-[#0A2414]" aria-hidden="true" /> : <Plus className="w-4 h-4 text-[#143D24]" aria-hidden="true" />}
             </button>
             {openSections['shop'] && (
               <ul className="mt-3 space-y-2 text-xs text-[#143D24] pl-2 font-medium">
@@ -303,11 +313,13 @@ export const Footer: React.FC = () => {
           {/* Accordion 2: About DORASANI */}
           <div className="py-3">
             <button
+              type="button"
+              aria-expanded={Boolean(openSections['about'])}
               onClick={() => toggleSection('about')}
               className="flex items-center justify-between w-full font-bold text-xs text-[#0A2414] tracking-wider uppercase text-left"
             >
               <span>About DORASANI</span>
-              {openSections['about'] ? <Minus className="w-4 h-4 text-[#0A2414]" /> : <Plus className="w-4 h-4 text-[#143D24]" />}
+              {openSections['about'] ? <Minus className="w-4 h-4 text-[#0A2414]" aria-hidden="true" /> : <Plus className="w-4 h-4 text-[#143D24]" aria-hidden="true" />}
             </button>
             {openSections['about'] && (
               <ul className="mt-3 space-y-2 text-xs text-[#143D24] pl-2 font-medium">
@@ -321,17 +333,19 @@ export const Footer: React.FC = () => {
           {/* Accordion 3: Customer Care */}
           <div className="py-3">
             <button
+              type="button"
+              aria-expanded={Boolean(openSections['care'])}
               onClick={() => toggleSection('care')}
               className="flex items-center justify-between w-full font-bold text-xs text-[#0A2414] tracking-wider uppercase text-left"
             >
               <span>Customer Care</span>
-              {openSections['care'] ? <Minus className="w-4 h-4 text-[#0A2414]" /> : <Plus className="w-4 h-4 text-[#143D24]" />}
+              {openSections['care'] ? <Minus className="w-4 h-4 text-[#0A2414]" aria-hidden="true" /> : <Plus className="w-4 h-4 text-[#143D24]" aria-hidden="true" />}
             </button>
             {openSections['care'] && (
               <ul className="mt-3 space-y-2 text-xs text-[#143D24] pl-2 font-medium">
                 <li><Link to="/track-order">Track Order</Link></li>
-                <li><Link to="/shipping">Shipping Policy</Link></li>
-                <li><Link to="/returns">Returns & Exchange</Link></li>
+                <li><Link to="/shipping-policy">Shipping Policy</Link></li>
+                <li><Link to="/returns-policy">Returns & Exchange</Link></li>
                 <li><Link to="/faq">FAQs</Link></li>
               </ul>
             )}
@@ -340,16 +354,18 @@ export const Footer: React.FC = () => {
           {/* Accordion 4: Policies */}
           <div className="py-3">
             <button
+              type="button"
+              aria-expanded={Boolean(openSections['policies'])}
               onClick={() => toggleSection('policies')}
               className="flex items-center justify-between w-full font-bold text-xs text-[#0A2414] tracking-wider uppercase text-left"
             >
               <span>Policies</span>
-              {openSections['policies'] ? <Minus className="w-4 h-4 text-[#0A2414]" /> : <Plus className="w-4 h-4 text-[#143D24]" />}
+              {openSections['policies'] ? <Minus className="w-4 h-4 text-[#0A2414]" aria-hidden="true" /> : <Plus className="w-4 h-4 text-[#143D24]" aria-hidden="true" />}
             </button>
             {openSections['policies'] && (
               <ul className="mt-3 space-y-2 text-xs text-[#143D24] pl-2 font-medium">
                 <li><Link to="/terms">Terms & Conditions</Link></li>
-                <li><Link to="/privacy">Privacy Policy</Link></li>
+                <li><Link to="/privacy-policy">Privacy Policy</Link></li>
               </ul>
             )}
           </div>
@@ -357,11 +373,13 @@ export const Footer: React.FC = () => {
           {/* Accordion 5: Contact Us */}
           <div className="py-3">
             <button
+              type="button"
+              aria-expanded={Boolean(openSections['contact'])}
               onClick={() => toggleSection('contact')}
               className="flex items-center justify-between w-full font-bold text-xs text-[#0A2414] tracking-wider uppercase text-left"
             >
               <span>Contact Us</span>
-              {openSections['contact'] ? <Minus className="w-4 h-4 text-[#0A2414]" /> : <Plus className="w-4 h-4 text-[#143D24]" />}
+              {openSections['contact'] ? <Minus className="w-4 h-4 text-[#0A2414]" aria-hidden="true" /> : <Plus className="w-4 h-4 text-[#143D24]" aria-hidden="true" />}
             </button>
             {openSections['contact'] && (
               <div className="mt-3 text-xs text-[#143D24] pl-2 space-y-1 font-medium">

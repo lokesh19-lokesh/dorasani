@@ -15,6 +15,15 @@ export const LehengasPage: React.FC = () => {
       ]}
       highlights={['Voluminous Flares', 'Intricate Zardozi Work', 'Heirloom Keepsakes']}
       categorySlug="lehengas"
+      seo={{
+        title: 'Bridal & Festive Silk Lehengas Online | Zardozi & Organza Sets | DORASANI',
+        description:
+          'Shop South Indian bridal silk lehengas, zardozi velvet sets, and pastel organza lehengas tailored for weddings, sangeet ceremonies, and grand celebrations.',
+        canonicalPath: '/collections/lehengas',
+        keywords:
+          'bridal silk lehenga, South Indian wedding lehenga, zardozi velvet lehenga, pastel organza lehenga, DORASANI lehengas',
+        ogImage: '/assets/hero/subpageshero/lehengasdesktop.png',
+      }}
     />
   );
 };

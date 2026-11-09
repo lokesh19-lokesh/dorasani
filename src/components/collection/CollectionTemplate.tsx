@@ -4,12 +4,23 @@ import { SlidersHorizontal, ChevronDown, X, ChevronRight, ChevronLeft } from 'lu
 import type { Product, SortOption } from '../../types';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
+import { SeoHead } from '../common/SeoHead';
+import { buildCollectionPageGraph } from '../../utils/seo';
 import { productService } from '../../services/productService';
 
 interface SubCategory {
   name: string;
   slug: string;
   imageUrl?: string;
+}
+
+export interface CollectionSeoMeta {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  keywords?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
 }
 
 interface CollectionTemplateProps {
@@ -28,6 +39,7 @@ interface CollectionTemplateProps {
   textPosition?: 'left' | 'right' | 'center';
   highlights?: string[];
   bannerImage?: string;
+  seo?: CollectionSeoMeta;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -48,6 +60,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   textPosition = 'left',
   highlights,
   bannerImage,
+  seo,
 }) => {
   const [liveProducts, setLiveProducts] = useState<Product[]>(products);
   const [liveSubCategories, setLiveSubCategories] = useState<SubCategory[] | undefined>(
@@ -212,8 +225,31 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     selectedOccasion.length +
     (maxPrice < ceilingPrice ? 1 : 0);
 
+  const collectionJsonLd = useMemo(() => {
+    if (!seo) return undefined;
+    return buildCollectionPageGraph({
+      canonicalPath: seo.canonicalPath,
+      name: title,
+      description: seo.description,
+      image: seo.ogImage || desktopBanner || bannerImage,
+      breadcrumbs,
+      products: sortedProducts,
+    });
+  }, [seo, title, desktopBanner, bannerImage, breadcrumbs, sortedProducts]);
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
+      {seo && (
+        <SeoHead
+          title={seo.title}
+          description={seo.description}
+          canonicalPath={seo.canonicalPath}
+          keywords={seo.keywords}
+          ogImage={seo.ogImage || desktopBanner || bannerImage}
+          ogImageAlt={seo.ogImageAlt || title}
+          jsonLd={collectionJsonLd}
+        />
+      )}
       {/* 1. Hero Banner */}
       {desktopBanner || mobileBanner || bannerImage ? (
         <SubpageHero
@@ -229,19 +265,23 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       ) : (
         <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] pt-4 pb-8 sm:pb-12 px-4 sm:px-8">
           <div className="max-w-7xl mx-auto space-y-4">
-            <nav className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
-              {breadcrumbs.map((crumb, idx) => (
-                <React.Fragment key={crumb.name}>
-                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />}
-                  {crumb.path ? (
-                    <Link to={crumb.path} className="hover:text-[#285A3C]">
-                      {crumb.name}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-[#285A3C]">{crumb.name}</span>
-                  )}
-                </React.Fragment>
-              ))}
+            <nav aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
+                {breadcrumbs.map((crumb, idx) => (
+                  <li key={crumb.name} className="inline-flex items-center gap-1.5">
+                    {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />}
+                    {crumb.path ? (
+                      <Link to={crumb.path} className="hover:text-[#285A3C]">
+                        {crumb.name}
+                      </Link>
+                    ) : (
+                      <span aria-current="page" className="font-semibold text-[#285A3C]">
+                        {crumb.name}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
             </nav>
 
             <div className="max-w-2xl">
@@ -289,6 +329,9 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                         <img
                           src={sub.imageUrl}
                           alt={sub.name}
+                          loading="lazy"
+                          width={120}
+                          height={120}
                           className="w-full h-full object-cover transition-transform group-hover:scale-110"
                         />
                       ) : (
@@ -353,11 +396,14 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Desktop Filter Sidebar */}
-          <aside className="hidden lg:block lg:col-span-3 bg-white p-5 rounded-xl border border-[#D8C7B5] shadow-xs space-y-6 sticky top-24">
+          <aside
+            aria-label="Collection filters"
+            className="hidden lg:block lg:col-span-3 bg-white p-5 rounded-xl border border-[#D8C7B5] shadow-xs space-y-6 sticky top-24"
+          >
             <div className="flex items-center justify-between border-b border-[#E8DCCF] pb-3">
-              <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] tracking-wider uppercase">
+              <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] tracking-wider uppercase">
                 Filters
-              </h3>
+              </h2>
               {activeFilterCount > 0 && (
                 <button
                   type="button"
@@ -464,7 +510,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           </aside>
 
           {/* Products Grid Area */}
-          <main className="lg:col-span-9 space-y-6">
+          <div className="lg:col-span-9 space-y-6">
             {/* Top Bar (Showing count & Sort dropdown) */}
             <div className="hidden lg:flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
               <div className="flex items-center gap-3 text-xs text-[#4F6355] font-medium">
@@ -527,9 +573,9 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
               </div>
             ) : sortedProducts.length === 0 ? (
               <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8">
-                <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
+                <h2 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
                   No products found
-                </h3>
+                </h2>
                 <p className="text-xs text-[#4F6355] mt-1">
                   {activeFilterCount > 0
                     ? 'Try adjusting your category, fabric, or price filters.'
@@ -590,7 +636,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                 </button>
               </div>
             )}
-          </main>
+          </div>
         </div>
       </div>
 
@@ -603,7 +649,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           />
           <div className="relative w-4/5 max-w-xs bg-white h-full ml-auto shadow-xl flex flex-col p-5 overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
-              <h3 className="font-bold text-sm text-[#1A3B2B]">Filters</h3>
+              <h2 className="font-bold text-sm text-[#1A3B2B]">Filters</h2>
               <button
                 type="button"
                 aria-label="Close filters"

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
+import { SeoHead } from '../components/common/SeoHead';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -90,6 +91,13 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-10 px-4 sm:px-8 bg-[#FAF5EE]">
+      <SeoHead
+        title="Create Account | DORASANI"
+        description="Join DORASANI for faster checkout, saved delivery addresses, wishlist sync, and early handloom drops."
+        canonicalPath="/register"
+        robots="noindex, nofollow"
+      />
+      <h1 className="sr-only">Create a DORASANI Account</h1>
       <div className="max-w-4xl w-full bg-white rounded-2xl border border-[#D8C7B5] shadow-lg overflow-hidden grid grid-cols-1 md:grid-cols-12">
         {/* Left Side: Brand Benefits */}
         <div className="hidden md:flex md:col-span-5 bg-[#D0E9C0]/35 p-8 flex-col justify-between text-[#1A3B2B] border-r border-[#BCD8AA]">
@@ -111,7 +119,7 @@ export const RegisterPage: React.FC = () => {
                   <Gift className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1A3B2B]">Exclusive Offers</h4>
+                  <h3 className="font-bold text-[#1A3B2B]">Exclusive Offers</h3>
                   <p className="text-[11px] text-[#4F6355]">Get early access to new collections and festive discounts.</p>
                 </div>
               </div>
@@ -121,7 +129,7 @@ export const RegisterPage: React.FC = () => {
                   <Heart className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1A3B2B]">Wishlist Anytime</h4>
+                  <h3 className="font-bold text-[#1A3B2B]">Wishlist Anytime</h3>
                   <p className="text-[11px] text-[#4F6355]">Save your favourite styles and access across any device.</p>
                 </div>
               </div>
@@ -131,7 +139,7 @@ export const RegisterPage: React.FC = () => {
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1A3B2B]">Faster Checkout</h4>
+                  <h3 className="font-bold text-[#1A3B2B]">Faster Checkout</h3>
                   <p className="text-[11px] text-[#4F6355]">Enjoy a seamless, saved-address shopping experience.</p>
                 </div>
               </div>
@@ -141,7 +149,7 @@ export const RegisterPage: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#1A3B2B]">Personalized Recommendations</h4>
+                  <h3 className="font-bold text-[#1A3B2B]">Personalized Recommendations</h3>
                   <p className="text-[11px] text-[#4F6355]">Discover heritage weaves styled to your taste.</p>
                 </div>
               </div>

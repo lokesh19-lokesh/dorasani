@@ -15,6 +15,15 @@ export const KidsWearPage: React.FC = () => {
       ]}
       highlights={['Gentle Pure Silk Fabrics', 'Handloom Pattu Pavadai', 'Auspicious Festive Colors']}
       categorySlug="kids-wear"
+      seo={{
+        title: 'Traditional Kids Pattu Pavadai & Silk Ethnic Wear | DORASANI',
+        description:
+          'Shop traditional pure silk pattu pavadai sets and festive kids ethnic couture crafted by DORASANI for weddings, naming ceremonies, and South Indian festivals.',
+        canonicalPath: '/collections/kids-wear',
+        keywords:
+          'kids pattu pavadai online, traditional girls silk ethnic wear, South Indian kids festive clothing, DORASANI kids wear',
+        ogImage: '/assets/hero/subpageshero/lehengasdesktop.png',
+      }}
     />
   );
 };

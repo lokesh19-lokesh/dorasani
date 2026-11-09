@@ -12,6 +12,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
+import { SeoHead } from '../components/common/SeoHead';
 
 const FIELD_ORDER: { key: string; elementId: string }[] = [
   { key: 'fullName', elementId: 'checkout-full-name' },
@@ -211,9 +212,15 @@ export const CheckoutPage: React.FC = () => {
   if (selectedCartItems.length === 0) {
     return (
       <div className="py-20 text-center max-w-md mx-auto px-4">
-        <h2 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
+        <SeoHead
+          title="Checkout | DORASANI"
+          description="Complete your DORASANI order via Razorpay UPI, cards, net banking, or Cash on Delivery."
+          canonicalPath="/checkout"
+          robots="noindex, nofollow"
+        />
+        <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
           No items selected for checkout
-        </h2>
+        </h1>
         <p className="text-xs text-[#4F6355] mt-2">
           Please select items in your shopping bag to continue.
         </p>
@@ -232,6 +239,12 @@ export const CheckoutPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      <SeoHead
+        title="Checkout | DORASANI"
+        description="Complete your DORASANI order securely via Razorpay or Cash on Delivery."
+        canonicalPath="/checkout"
+        robots="noindex, nofollow"
+      />
       {/* 1. Header Banner & Step Indicator */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-8 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-4">
@@ -918,9 +931,9 @@ export const CheckoutPage: React.FC = () => {
           <div className="lg:col-span-4 space-y-5">
             <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 sticky top-24">
               <div className="flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
-                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
+                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
                   Order Summary ({selectedCartItems.length} items)
-                </h3>
+                </h2>
                 <Link to="/cart" className="text-xs text-[#285A3C] hover:underline font-semibold">
                   Edit Cart
                 </Link>

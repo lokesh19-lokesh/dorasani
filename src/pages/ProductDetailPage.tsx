@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Share2,
@@ -15,9 +15,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
+import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
 import { productService } from '../services/productService';
+import { buildProductPageGraph } from '../utils/seo';
 import type { Product, ProductReview } from '../types';
 
 export const ProductDetailPage: React.FC = () => {
@@ -93,9 +95,14 @@ export const ProductDetailPage: React.FC = () => {
     };
   }, [slug]);
 
+  const productJsonLd = useMemo(() => {
+    if (!product) return undefined;
+    return buildProductPageGraph(product, reviews, siteSettings);
+  }, [product, reviews, siteSettings]);
+
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-8" aria-busy="true">
         <div className="h-5 w-64 bg-[#EDE2D4] rounded animate-pulse" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           <div className="lg:col-span-7 aspect-[4/5] bg-[#EDE2D4] rounded-xl animate-pulse" />
@@ -113,7 +120,13 @@ export const ProductDetailPage: React.FC = () => {
   if (!product) {
     return (
       <div className="py-20 text-center max-w-md mx-auto px-4 space-y-4">
-        <AlertCircle className="w-12 h-12 text-[#285A3C] mx-auto" />
+        <SeoHead
+          title="Product Not Found | DORASANI"
+          description="The requested handloom creation is currently unavailable or has moved to another DORASANI collection."
+          canonicalPath={`/products/${slug || ''}`}
+          robots="noindex, nofollow"
+        />
+        <AlertCircle className="w-12 h-12 text-[#285A3C] mx-auto" aria-hidden="true" />
         <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">Product Not Found</h1>
         <p className="text-xs text-[#4F6355]">
           This piece may have been archived or moved to another collection.
@@ -197,25 +210,57 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-10 sm:space-y-12 pb-16">
+      <SeoHead
+        title={`${product.title} — ${product.fabric || product.category} | DORASANI`}
+        description={
+          product.description ||
+          product.subtitle ||
+          `Buy ${product.title} in ${product.fabric || 'authentic handloom silk'} from DORASANI with free pan-India shipping above ₹${siteSettings.freeShippingThreshold.toLocaleString('en-IN')}.`
+        }
+        canonicalPath={`/products/${product.slug}`}
+        keywords={`${product.title}, ${product.category}, ${product.fabric || 'pure silk'}, ${product.weave || 'handloom'}, DORASANI, dorasanicollections`}
+        ogType="product"
+        ogImage={product.primaryImage}
+        ogImageAlt={`${product.title} — ${product.fabric || product.category} by DORASANI`}
+        productMeta={{
+          price: product.price,
+          currency: 'INR',
+          availability: product.inStock ? 'instock' : 'oos',
+          brand: 'DORASANI',
+          retailerItemId: product.sku || product.slug,
+        }}
+        jsonLd={productJsonLd}
+      />
+
       {/* 1. Breadcrumbs */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex items-center space-x-1.5 text-xs text-[#4F6355]">
-          <Link to="/" className="hover:text-[#285A3C]">
-            Home
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          <Link to={categoryPath} className="hover:text-[#285A3C]">
-            {product.category}
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-          {product.subCategory && (
-            <>
-              <span className="text-[#4F6355]">{product.subCategory}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" />
-            </>
-          )}
-          <span className="font-semibold text-[#285A3C] truncate">{product.title}</span>
-        </div>
+        <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto">
+          <ol className="flex items-center space-x-1.5 text-xs text-[#4F6355] flex-wrap">
+            <li className="inline-flex items-center gap-1.5">
+              <Link to="/" className="hover:text-[#285A3C]">
+                Home
+              </Link>
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />
+              <Link to={categoryPath} className="hover:text-[#285A3C]">
+                {product.category}
+              </Link>
+            </li>
+            {product.subCategory && (
+              <li className="inline-flex items-center gap-1.5">
+                <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />
+                <span className="text-[#4F6355]">{product.subCategory}</span>
+              </li>
+            )}
+            <li className="inline-flex items-center gap-1.5 min-w-0">
+              <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />
+              <span aria-current="page" className="font-semibold text-[#285A3C] truncate">
+                {product.title}
+              </span>
+            </li>
+          </ol>
+        </nav>
       </div>
 
       {/* 2. Main Product Showcase */}
@@ -229,6 +274,8 @@ export const ProductDetailPage: React.FC = () => {
                   key={`${img}-${idx}`}
                   type="button"
                   onClick={() => setSelectedImage(img)}
+                  aria-label={`View photo ${idx + 1} of ${product.title}`}
+                  aria-pressed={selectedImage === img}
                   className={`w-16 h-20 sm:w-20 sm:h-24 rounded-md overflow-hidden border-2 transition-all shrink-0 bg-[#FAF5EE] ${
                     selectedImage === img
                       ? 'border-[#285A3C] shadow-sm'
@@ -238,6 +285,9 @@ export const ProductDetailPage: React.FC = () => {
                   <img
                     src={img}
                     alt={`${product.title} thumbnail ${idx + 1}`}
+                    width={160}
+                    height={192}
+                    loading="lazy"
                     className="w-full h-full object-cover object-top"
                   />
                 </button>
@@ -247,7 +297,10 @@ export const ProductDetailPage: React.FC = () => {
             <div className="flex-1 w-full rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm bg-[#FAF5EE] relative aspect-[4/5] group">
               <img
                 src={selectedImage || product.primaryImage}
-                alt={product.title}
+                alt={`${product.title} — ${product.fabric || product.category}`}
+                width={1000}
+                height={1250}
+                fetchPriority="high"
                 className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
               />
             </div>
@@ -278,10 +331,9 @@ export const ProductDetailPage: React.FC = () => {
                     type="button"
                     onClick={handleShare}
                     className="p-2 rounded-full border border-[#BCD8AA] hover:border-[#285A3C] hover:text-[#285A3C] transition-colors"
-                    title="Share product"
                     aria-label="Share product"
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -291,8 +343,8 @@ export const ProductDetailPage: React.FC = () => {
                         ? 'bg-white border-[#BCD8AA] text-[#18482C] shadow-sm'
                         : 'border-[#BCD8AA] hover:border-[#18482C] hover:text-[#0D2818] text-[#18482C]'
                     }`}
-                    title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                     aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    aria-pressed={isWishlisted}
                   >
                     <WishlistIcon className="w-4 h-4" filled={isWishlisted} />
                   </button>
@@ -544,7 +596,14 @@ export const ProductDetailPage: React.FC = () => {
       {/* 3. Product Tabs & Specifications */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-4">
         <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs">
-          <div className="flex border-b border-[#D8C7B5] overflow-x-auto no-scrollbar gap-6 sm:gap-8 text-xs sm:text-sm font-semibold">
+          <h2 className="font-serif-royal text-lg sm:text-xl font-bold text-[#1A3B2B] mb-4">
+            Product Specifications &amp; Handloom Care
+          </h2>
+          <div
+            role="tablist"
+            aria-label="Product information tabs"
+            className="flex border-b border-[#D8C7B5] overflow-x-auto no-scrollbar gap-6 sm:gap-8 text-xs sm:text-sm font-semibold"
+          >
             {[
               { id: 'desc', label: 'Description' },
               { id: 'details', label: 'Product Details' },
@@ -555,6 +614,8 @@ export const ProductDetailPage: React.FC = () => {
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`pb-3 relative whitespace-nowrap transition-colors ${
                   activeTab === tab.id
@@ -575,49 +636,67 @@ export const ProductDetailPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="space-y-3">
                   <p>{product.description || 'Crafted by skilled heritage artisans for DORASANI.'}</p>
-                  <ul className="space-y-2 text-xs">
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs pt-1">
                     {product.fabric && (
-                      <li className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-[#285A3C]" />
-                        <span>
-                          <strong>Material:</strong> {product.fabric}
-                        </span>
-                      </li>
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Material:</dt>{' '}
+                          <dd className="inline">{product.fabric}</dd>
+                        </div>
+                      </div>
                     )}
                     {product.weave && (
-                      <li className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-[#285A3C]" />
-                        <span>
-                          <strong>Weave:</strong> {product.weave}
-                        </span>
-                      </li>
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Weave:</dt>{' '}
+                          <dd className="inline">{product.weave}</dd>
+                        </div>
+                      </div>
                     )}
                     {product.occasion && (
-                      <li className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-[#285A3C]" />
-                        <span>
-                          <strong>Occasion:</strong> {product.occasion}
-                        </span>
-                      </li>
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Occasion:</dt>{' '}
+                          <dd className="inline">{product.occasion}</dd>
+                        </div>
+                      </div>
                     )}
-                    <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C]" />
-                      <span>
-                        <strong>Blouse Piece:</strong>{' '}
-                        {product.blouseIncluded
-                          ? 'Included (Unstitched matching piece)'
-                          : 'Not included / Styled separately'}
-                      </span>
-                    </li>
-                    {product.length && (
-                      <li className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-[#285A3C]" />
-                        <span>
-                          <strong>Length / Fit:</strong> {product.length}
-                        </span>
-                      </li>
+                    <div className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                      <div>
+                        <dt className="font-semibold text-[#1A3B2B] inline">Blouse Piece:</dt>{' '}
+                        <dd className="inline">
+                          {product.blouseIncluded
+                            ? 'Included (Unstitched matching piece)'
+                            : 'Not included / Styled separately'}
+                        </dd>
+                      </div>
+                    </div>
+                    {product.length &&
+                      (product.categorySlug === 'sarees' ||
+                        /saree/i.test(product.title) ||
+                        !/6\.3\s*m/i.test(product.length)) && (
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Length / Fit:</dt>{' '}
+                          <dd className="inline">{product.length}</dd>
+                        </div>
+                      </div>
                     )}
-                  </ul>
+                    {product.sku && (
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">SKU:</dt>{' '}
+                          <dd className="inline">{product.sku}</dd>
+                        </div>
+                      </div>
+                    )}
+                  </dl>
                 </div>
 
                 {product.blouseIncluded && (
@@ -625,12 +704,15 @@ export const ProductDetailPage: React.FC = () => {
                     <img
                       src="/assets/products/blouse_piece.jpg"
                       alt="Unstitched Blouse Piece"
+                      width={96}
+                      height={80}
+                      loading="lazy"
                       className="w-24 h-20 object-cover rounded-md border border-[#D8C7B5]"
                     />
                     <div>
-                      <h4 className="font-bold text-xs text-[#285A3C]">
+                      <h3 className="font-bold text-xs text-[#285A3C]">
                         Includes Unstitched Blouse Piece
-                      </h4>
+                      </h3>
                       <p className="text-[11px] text-[#4F6355] mt-0.5">
                         Coordinated fabric piece with woven border ready for custom tailoring.
                       </p>
@@ -681,7 +763,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5]">
                   <div>
-                    <h4 className="font-bold text-sm text-[#1A3B2B]">Customer Reviews</h4>
+                    <h3 className="font-bold text-sm text-[#1A3B2B]">Customer Reviews</h3>
                     <p className="text-xs text-[#4F6355]">
                       Share your experience with this handloom creation.
                     </p>

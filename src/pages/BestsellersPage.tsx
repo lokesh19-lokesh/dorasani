@@ -15,6 +15,15 @@ export const BestsellersPage: React.FC = () => {
       ]}
       highlights={['5-Star Patron Rating', 'Signature DORASANI Weaves', 'Restocked on Popular Demand']}
       isBestseller={true}
+      seo={{
+        title: 'Bestsellers | Most Loved Kanchipuram & Banarasi Silk Sarees | DORASANI',
+        description:
+          'Shop DORASANI’s most cherished bestsellers — customer-favourite Kanchipuram, Banarasi, Chanderi, and Tussar silk sarees and bridal lehengas.',
+        canonicalPath: '/collections/bestsellers',
+        keywords:
+          'bestselling silk sarees, most popular Kanchipuram saree, customer favourite Indian bridal wear, DORASANI bestsellers',
+        ogImage: '/assets/hero/subpageshero/bestsellersdesktop.png',
+      }}
     />
   );
 };

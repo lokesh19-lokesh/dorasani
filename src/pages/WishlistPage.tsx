@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Share2, MoreVertical, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Share2, Trash2, ArrowRight } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
+import { SeoHead } from '../components/common/SeoHead';
 
 export const WishlistPage: React.FC = () => {
   const { wishlist, removeFromWishlist, addToCart, moveAllToBag, showToast } = useStore();
@@ -22,6 +23,12 @@ export const WishlistPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      <SeoHead
+        title="My Wishlist | DORASANI"
+        description="Manage your saved handloom sarees, bridal lehengas, and festive wear on DORASANI."
+        canonicalPath="/wishlist"
+        robots="noindex, nofollow"
+      />
       {/* 1. Wishlist Banner */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-8 sm:py-12 px-4 sm:px-8 text-center sm:text-left">
         <div className="max-w-7xl mx-auto space-y-2">
@@ -42,9 +49,9 @@ export const WishlistPage: React.FC = () => {
         {wishlist.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-xl border border-[#D8C7B5] p-8 max-w-md mx-auto">
             <WishlistIcon className="w-12 h-12 text-[#BCD8AA] mx-auto mb-3" strokeWidth={1.2} />
-            <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
+            <h2 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
               Your wishlist is empty
-            </h3>
+            </h2>
             <p className="text-xs text-[#4F6355] mt-1">
               Explore our handcrafted sarees, lehengas, and festive wear to save your favourites.
             </p>
@@ -96,15 +103,19 @@ export const WishlistPage: React.FC = () => {
                         <img
                           src={item.product.primaryImage}
                           alt={item.product.title}
+                          width={800}
+                          height={1000}
+                          loading="lazy"
                           className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                         />
                       </Link>
 
                       {/* Remove from Wishlist Bookmark Button */}
                       <button
+                        type="button"
                         onClick={() => removeFromWishlist(item.product.id)}
                         className="absolute top-2.5 right-2.5 w-7.5 h-7.5 rounded-full bg-white text-[#18482C] border border-[#BCD8AA] flex items-center justify-center shadow-md transition-all hover:scale-110 active:scale-95"
-                        title="Remove from Wishlist"
+                        aria-label={`Remove ${item.product.title} from wishlist`}
                       >
                         <WishlistIcon className="w-3.5 h-3.5" filled={true} />
                       </button>
@@ -144,11 +155,12 @@ export const WishlistPage: React.FC = () => {
                           <span>{item.product.inStock ? 'Add to Bag' : 'Out of Stock'}</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => removeFromWishlist(item.product.id)}
                           className="p-1.5 text-[#8E9B92] hover:text-[#285A3C]"
-                          title="Remove"
+                          aria-label={`Delete ${item.product.title} from wishlist`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -162,9 +174,9 @@ export const WishlistPage: React.FC = () => {
               <div className="w-12 h-12 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center mx-auto">
                 <WishlistIcon className="w-6 h-6" filled={true} />
               </div>
-              <h3 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
+              <h2 className="font-serif-royal text-lg font-bold text-[#1A3B2B]">
                 Your Wishlist Is Special
-              </h3>
+              </h2>
               <p className="text-xs text-[#4F6355] leading-relaxed">
                 Save your favourite styles and shop them anytime. Tradition always stays close to your heart with DORASANI.
               </p>

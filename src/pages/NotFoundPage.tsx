@@ -1,10 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { SeoHead } from '../components/common/SeoHead';
 
 export const NotFoundPage: React.FC = () => {
   return (
     <div className="min-h-[60vh] flex items-center justify-center py-16 px-4 sm:px-8 text-center bg-[#FAF5EE]">
+      <SeoHead
+        title="Page Not Found | DORASANI"
+        description="The page you are looking for on DORASANI could not be found. Explore our handloom silk sarees, lehengas, and ethnic collections."
+        canonicalPath="/404"
+        robots="noindex, nofollow"
+      />
       <div className="max-w-md mx-auto space-y-4">
         <span className="font-cinzel-royal text-6xl font-bold text-[#285A3C] block">
           404

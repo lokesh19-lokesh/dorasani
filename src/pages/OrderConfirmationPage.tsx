@@ -14,6 +14,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
+import { SeoHead } from '../components/common/SeoHead';
 import type { Order } from '../types';
 
 export const OrderConfirmationPage: React.FC = () => {
@@ -66,6 +67,12 @@ export const OrderConfirmationPage: React.FC = () => {
   if (loading) {
     return (
       <div className="py-24 text-center space-y-3">
+        <SeoHead
+          title="Order Confirmation | DORASANI"
+          description="View your DORASANI order confirmation, Razorpay payment status, and dispatch timeline."
+          canonicalPath={orderId ? `/order-confirmation/${orderId}` : '/order-confirmation'}
+          robots="noindex, nofollow"
+        />
         <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-[#4F6355]">Loading your order confirmation...</p>
       </div>
@@ -75,6 +82,12 @@ export const OrderConfirmationPage: React.FC = () => {
   if (!order) {
     return (
       <div className="py-20 text-center max-w-md mx-auto px-4 space-y-4">
+        <SeoHead
+          title="Order Confirmation | DORASANI"
+          description="Look up or confirm your DORASANI order details."
+          canonicalPath="/order-confirmation"
+          robots="noindex, nofollow"
+        />
         <Package className="w-12 h-12 text-[#285A3C] mx-auto" />
         <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
           No Recent Order Found
@@ -102,6 +115,12 @@ export const OrderConfirmationPage: React.FC = () => {
 
   return (
     <div className="space-y-10 sm:space-y-12 pb-16">
+      <SeoHead
+        title={`Order #${order.orderNumber} Confirmed | DORASANI`}
+        description={`Order #${order.orderNumber} confirmation and dispatch details for your DORASANI purchase.`}
+        canonicalPath={`/order-confirmation/${order.orderNumber}`}
+        robots="noindex, nofollow"
+      />
       {/* 1. Success Hero Banner */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-10 sm:py-16 px-4 sm:px-8 text-center">
         <div className="max-w-2xl mx-auto space-y-3">
@@ -214,7 +233,7 @@ export const OrderConfirmationPage: React.FC = () => {
                   >
                     {step.completed ? '✓' : idx + 1}
                   </div>
-                  <h4
+                  <h3
                     className={`font-bold text-xs ${
                       step.current
                         ? 'text-[#285A3C]'
@@ -224,7 +243,7 @@ export const OrderConfirmationPage: React.FC = () => {
                     }`}
                   >
                     {step.title}
-                  </h4>
+                  </h3>
                   <p className="text-[11px] text-[#4F6355]">{step.timestamp}</p>
                 </div>
               ))}
@@ -238,9 +257,9 @@ export const OrderConfirmationPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Column 1: Items in Order */}
           <div className="lg:col-span-4 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5]">
+            <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5]">
               Items in This Order ({order.items.length})
-            </h3>
+            </h2>
 
             <div className="space-y-3">
               {order.items.map((item, i) => (
@@ -266,10 +285,10 @@ export const OrderConfirmationPage: React.FC = () => {
 
           {/* Column 2: Delivery Details & Tracking Actions */}
           <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
+            <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[#285A3C]" />
               <span>Delivery Information</span>
-            </h3>
+            </h2>
 
             <div className="text-xs text-[#4F6355] space-y-1">
               <p className="font-bold text-sm text-[#1A3B2B]">{order.shippingAddress.fullName}</p>
@@ -312,10 +331,10 @@ export const OrderConfirmationPage: React.FC = () => {
 
           {/* Column 3: Brand Appreciation Card */}
           <div className="lg:col-span-3 bg-[#FAF5EE] rounded-xl border border-[#D8C7B5] p-6 text-center space-y-3">
-            <span className="text-2xl">🎁</span>
-            <h3 className="font-serif-royal text-base font-bold text-[#1A3B2B]">
+            <span className="text-2xl" aria-hidden="true">🎁</span>
+            <h2 className="font-serif-royal text-base font-bold text-[#1A3B2B]">
               Thank You For Choosing DORASANI
-            </h3>
+            </h2>
             <p className="text-xs text-[#4F6355] leading-relaxed">
               Tradition lives on because of customers like you. Every piece you purchase supports generational weavers and South Indian handloom families.
             </p>

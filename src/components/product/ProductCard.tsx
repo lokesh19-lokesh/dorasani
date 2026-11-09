@@ -45,6 +45,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={product.primaryImage}
           alt={product.title}
+          width={800}
+          height={600}
           className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
@@ -70,8 +72,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Wishlist Button (Top Right) */}
         <button
+          type="button"
           onClick={handleToggleWishlist}
-          aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+          aria-label={isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
+          aria-pressed={isWishlisted}
           className={`absolute top-1.5 right-1.5 sm:top-2 sm:right-2 ${
             compact ? 'w-6.5 h-6.5 sm:w-7 sm:h-7' : 'w-7.5 h-7.5 sm:w-8 sm:h-8'
           } rounded-full flex items-center justify-center transition-all duration-300 z-10 ${
@@ -137,10 +141,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             disabled={!product.inStock}
             onClick={handleAddToCart}
             className={`${compact ? 'w-6 h-6 sm:w-6.5 sm:h-6.5' : 'w-7 h-7 sm:w-7.5 sm:h-7.5'} rounded border border-[#BCD8AA] bg-[#F3F8F1]/60 hover:bg-[#285A3C] text-[#285A3C] hover:text-white disabled:opacity-40 disabled:hover:bg-[#F3F8F1]/60 disabled:hover:text-[#285A3C] disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 shrink-0`}
-            title={product.inStock ? 'Add to Bag' : 'Out of Stock'}
-            aria-label={product.inStock ? 'Add to Bag' : 'Out of Stock'}
+            aria-label={product.inStock ? `Add ${product.title} to bag` : `${product.title} is out of stock`}
           >
-            <ShoppingBag className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+            <ShoppingBag className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} aria-hidden="true" />
           </button>
         </div>
       </div>

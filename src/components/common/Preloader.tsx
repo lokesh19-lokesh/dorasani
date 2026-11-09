@@ -393,9 +393,9 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
           </p>
 
           {/* DORASANI Regal Title */}
-          <h1 className="font-serif-royal font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[52px] text-[#133820] leading-none tracking-[0.24em] mt-1 text-center md:text-left drop-shadow-xs">
+          <p className="font-serif-royal font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[52px] text-[#133820] leading-none tracking-[0.24em] mt-1 text-center md:text-left drop-shadow-xs">
             DORASANI
-          </h1>
+          </p>
 
           {/* Tagline */}
           <p className="text-[10px] sm:text-[11px] lg:text-xs tracking-[0.22em] uppercase text-[#4A5A50] mt-2 font-medium text-center md:text-left">

@@ -21,6 +21,7 @@ import {
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
+import { SeoHead } from '../components/common/SeoHead';
 
 export const AccountPage: React.FC = () => {
   const {
@@ -79,6 +80,12 @@ export const AccountPage: React.FC = () => {
   if (authLoading) {
     return (
       <div className="py-24 text-center space-y-3">
+        <SeoHead
+          title="My Account | DORASANI"
+          description="Manage your DORASANI orders, saved addresses, and account profile."
+          canonicalPath="/account"
+          robots="noindex, nofollow"
+        />
         <div className="w-10 h-10 border-4 border-[#285A3C] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-[#4F6355]">Loading your DORASANI account...</p>
       </div>
@@ -88,7 +95,13 @@ export const AccountPage: React.FC = () => {
   if (!user) {
     return (
       <div className="py-20 text-center max-w-md mx-auto px-4">
-        <h2 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">You are not signed in</h2>
+        <SeoHead
+          title="Sign In to Account | DORASANI"
+          description="Sign in to view your DORASANI orders, saved addresses, and profile."
+          canonicalPath="/account"
+          robots="noindex, nofollow"
+        />
+        <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">You are not signed in</h1>
         <p className="text-xs text-[#4F6355] mt-2">
           Sign in to view your orders, addresses and profile.
         </p>
@@ -171,10 +184,16 @@ export const AccountPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16 pt-6">
+      <SeoHead
+        title="My Account | DORASANI"
+        description="Manage your DORASANI orders, saved addresses, wishlist, and account profile."
+        canonicalPath="/account"
+        robots="noindex, nofollow"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* 1. Left Sidebar Navigation */}
-          <aside className="lg:col-span-3 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-5">
+          <aside aria-label="Account menu" className="lg:col-span-3 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-5">
             {/* User Profile Card */}
             <div className="flex items-center gap-3 pb-4 border-b border-[#E8DCCF]">
               <div className="w-12 h-12 rounded-full bg-[#285A3C] text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0">
@@ -182,7 +201,7 @@ export const AccountPage: React.FC = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="font-bold text-sm text-[#1A3B2B] truncate">{user.fullName}</h3>
+                  <p className="font-bold text-sm text-[#1A3B2B] truncate">{user.fullName}</p>
                   {user.isAdmin && (
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#18482C] text-white text-[9px] font-bold uppercase tracking-wider">
                       <ShieldCheck className="w-2.5 h-2.5" />
@@ -212,7 +231,7 @@ export const AccountPage: React.FC = () => {
             )}
 
             {/* Nav Menu */}
-            <nav className="space-y-1 text-xs font-semibold">
+            <nav aria-label="Account" className="space-y-1 text-xs font-semibold">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${
@@ -276,10 +295,10 @@ export const AccountPage: React.FC = () => {
 
             {/* Promo Card in Sidebar */}
             <div className="rounded-xl bg-[#D0E9C0]/40 p-4 border border-[#BCD8AA] text-center space-y-1.5">
-              <span className="text-xl">🐘</span>
-              <h4 className="font-serif-royal font-bold text-xs text-[#1A3B2B]">
+              <span className="text-xl" aria-hidden="true">🐘</span>
+              <p className="font-serif-royal font-bold text-xs text-[#1A3B2B]">
                 Tradition Lives On Because of You
-              </h4>
+              </p>
               <p className="text-[10px] text-[#4F6355]">
                 Every purchase sustains master Indian handloom weavers.
               </p>
@@ -287,7 +306,7 @@ export const AccountPage: React.FC = () => {
           </aside>
 
           {/* 2. Main Account Area */}
-          <main className="lg:col-span-9 space-y-6">
+          <div className="lg:col-span-9 space-y-6">
             {/* Welcome Banner */}
             <div className="bg-[#D0E9C0]/40 rounded-xl border border-[#BCD8AA] p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -340,7 +359,7 @@ export const AccountPage: React.FC = () => {
                       <Package className="w-5 h-5" />
                       <span className="text-xl font-bold">{orders.length}</span>
                     </div>
-                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Total Orders</h4>
+                    <h2 className="font-bold text-xs text-[#1A3B2B] mt-2">Total Orders</h2>
                     <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
                       View Orders →
                     </span>
@@ -354,7 +373,7 @@ export const AccountPage: React.FC = () => {
                       <WishlistIcon className="w-5 h-5" filled={true} />
                       <span className="text-xl font-bold">{wishlist.length}</span>
                     </div>
-                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Wishlist Items</h4>
+                    <h2 className="font-bold text-xs text-[#1A3B2B] mt-2">Wishlist Items</h2>
                     <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
                       View Wishlist →
                     </span>
@@ -368,7 +387,7 @@ export const AccountPage: React.FC = () => {
                       <MapPin className="w-5 h-5" />
                       <span className="text-xl font-bold">{addresses.length}</span>
                     </div>
-                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Saved Addresses</h4>
+                    <h2 className="font-bold text-xs text-[#1A3B2B] mt-2">Saved Addresses</h2>
                     <span className="text-[10px] text-[#285A3C] font-semibold flex items-center gap-0.5 mt-1">
                       Manage Addresses →
                     </span>
@@ -379,7 +398,7 @@ export const AccountPage: React.FC = () => {
                       <CreditCard className="w-5 h-5" />
                       <span className="text-xl font-bold">UPI</span>
                     </div>
-                    <h4 className="font-bold text-xs text-[#1A3B2B] mt-2">Payment Methods</h4>
+                    <h2 className="font-bold text-xs text-[#1A3B2B] mt-2">Payment Methods</h2>
                     <span className="text-[10px] text-[#4F6355] mt-1 block">Cards, UPI & COD</span>
                   </div>
                 </div>
@@ -387,9 +406,9 @@ export const AccountPage: React.FC = () => {
                 {/* Recent Orders Section */}
                 <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-[#E8DCCF]">
-                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
+                    <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
                       Recent Orders
-                    </h3>
+                    </h2>
                     <button
                       onClick={() => setActiveTab('orders')}
                       className="text-xs text-[#285A3C] font-semibold hover:underline"
@@ -519,9 +538,9 @@ export const AccountPage: React.FC = () => {
 
             {activeTab === 'orders' && (
               <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
-                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
+                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
                   All Orders ({orders.length})
-                </h3>
+                </h2>
                 {orders.length === 0 ? (
                   <p className="text-xs text-[#4F6355] py-6 text-center">No orders found for your account.</p>
                 ) : (
@@ -583,9 +602,9 @@ export const AccountPage: React.FC = () => {
 
             {activeTab === 'addresses' && (
               <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
-                <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
+                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
                   Saved Addresses ({addresses.length})
-                </h3>
+                </h2>
                 {addresses.length === 0 ? (
                   <p className="text-xs text-[#4F6355] py-6 text-center">
                     No saved addresses yet. Your shipping address will be saved automatically during checkout.
@@ -616,9 +635,9 @@ export const AccountPage: React.FC = () => {
                   onSubmit={handleSaveProfile}
                   className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
                 >
-                  <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF]">
+                  <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF]">
                     Profile Details
-                  </h3>
+                  </h2>
                   <div>
                     <label htmlFor="profile-email" className="block font-semibold text-[#1A3B2B] mb-1">
                       Account Email
@@ -679,10 +698,10 @@ export const AccountPage: React.FC = () => {
                     onSubmit={handleUpdatePassword}
                     className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
                   >
-                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
+                    <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
                       <Lock className="w-4 h-4 text-[#285A3C]" />
                       <span>Change Password</span>
-                    </h3>
+                    </h2>
 
                     {(actionParam === 'reset-password' || passwordRecoveryPending) && (
                       <div className="p-3 rounded-lg bg-[#D0E9C0]/50 border border-[#BCD8AA] text-[#113520] font-medium">
@@ -738,10 +757,10 @@ export const AccountPage: React.FC = () => {
                     onSubmit={handleUpdateEmail}
                     className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4 text-xs"
                   >
-                    <h3 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
+                    <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-2 border-b border-[#E8DCCF] flex items-center gap-2">
                       <Mail className="w-4 h-4 text-[#285A3C]" />
                       <span>Change Email Address</span>
-                    </h3>
+                    </h2>
 
                     {actionParam === 'email-updated' && (
                       <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 font-medium">
@@ -783,7 +802,7 @@ export const AccountPage: React.FC = () => {
                 </div>
               </div>
             )}
-          </main>
+          </div>
         </div>
       </div>
     </div>
