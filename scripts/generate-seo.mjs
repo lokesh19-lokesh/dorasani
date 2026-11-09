@@ -127,7 +127,7 @@ const EDITORIAL_AND_POLICY_ROUTES = [
     title: 'About DORASANI — A Symbol of Tradition',
     description:
       'Brand philosophy, master artisan partnerships, and luxury handloom curation from our Banjara Hills flagship studio in Hyderabad.',
-    image: '/assets/banners/legacy_beauty_banner.jpg',
+    image: '/assets/banners/about_heritage_showcase.jpg',
     changefreq: 'monthly',
     priority: '0.8',
   },

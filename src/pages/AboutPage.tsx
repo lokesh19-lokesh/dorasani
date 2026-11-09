@@ -43,8 +43,8 @@ export const AboutPage: React.FC = () => {
         description="Discover the heritage story of DORASANI — curating Silk Mark authentic Kanchipuram sarees, bridal lehengas, kids wear, and handloom textiles with personal care in Hyderabad."
         canonicalPath="/about"
         keywords="About DORASANI, Dorasani Sarees Hyderabad, South Indian handloom boutique, temple silk heritage, Kanchipuram weavers"
-        ogImage="/assets/banners/legacy_beauty_banner.jpg"
-        ogImageAlt="DORASANI Sarees Heritage & Craftsmanship"
+        ogImage="/assets/banners/about_heritage_showcase.jpg"
+        ogImageAlt="Woman in an emerald Kanchipuram pure silk saree at DORASANI Heritage Handloom Boutique"
         jsonLd={aboutJsonLd}
       />
       {/* 1. Breadcrumbs */}
@@ -110,16 +110,19 @@ export const AboutPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Visual Showcase */}
           <div className="lg:col-span-5 order-2 lg:order-1">
-            <div className="relative rounded-2xl overflow-hidden border border-[#D8C7B5] shadow-lg bg-[#FAF5EE]">
+            <div className="relative rounded-2xl overflow-hidden border border-[#D8C7B5] shadow-lg bg-[#1A3B2B] max-w-[460px] mx-auto aspect-[3/4]">
               <img
-                src="/assets/banners/legacy_beauty_banner.jpg"
-                alt="Dorasani Sarees Heritage & Craftsmanship"
-                width={330}
-                height={218}
-                loading="lazy"
-                className="w-full h-[380px] sm:h-[460px] object-cover"
+                src="/assets/banners/about_heritage_showcase.jpg"
+                srcSet="/assets/banners/about_heritage_showcase-480w.jpg 480w, /assets/banners/about_heritage_showcase.jpg 896w"
+                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 90vw, 460px"
+                alt="Woman draped in a deep emerald-green Kanchipuram pure silk saree with antique gold zari border inside DORASANI's sunlit handloom boutique"
+                width={896}
+                height={1200}
+                loading="eager"
+                decoding="async"
+                className="w-full h-full object-cover object-top"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1A3B2B]/90 via-[#1A3B2B]/25 to-transparent flex flex-col justify-end p-6 text-white space-y-1">
+              <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#1A3B2B]/95 via-[#1A3B2B]/55 to-transparent flex flex-col justify-end p-6 text-white space-y-1">
                 <span className="text-xs uppercase tracking-widest text-[#D0E9C0] font-semibold font-poppins">
                   The Essence of Dorasani
                 </span>
