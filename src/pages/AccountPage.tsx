@@ -34,6 +34,7 @@ export const AccountPage: React.FC = () => {
     orders,
     wishlist,
     addresses,
+    siteSettings,
     showToast,
   } = useStore();
   const navigate = useNavigate();
@@ -399,7 +400,9 @@ export const AccountPage: React.FC = () => {
                       <span className="text-xl font-bold">UPI</span>
                     </div>
                     <h2 className="font-bold text-xs text-[#1A3B2B] mt-2">Payment Methods</h2>
-                    <span className="text-[10px] text-[#4F6355] mt-1 block">Cards, UPI & COD</span>
+                    <span className="text-[10px] text-[#4F6355] mt-1 block">
+                      {siteSettings.codEnabled ? 'Cards, UPI & COD' : 'UPI, Cards & Net Banking'}
+                    </span>
                   </div>
                 </div>
 

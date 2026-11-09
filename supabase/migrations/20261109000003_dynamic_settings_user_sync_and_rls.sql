@@ -130,7 +130,7 @@ VALUES
   ('support_email', to_jsonb('dorasanisarees@gmail.com'::TEXT), 'Primary customer support email address'),
   ('concierge_email', to_jsonb('dorasanisarees@gmail.com'::TEXT), 'Bridal and styling concierge email address'),
   ('support_phone', to_jsonb(''::TEXT), 'Customer support phone number (hidden on storefront when empty)'),
-  ('store_address', to_jsonb('Flagship Handloom Studio, Banjara Hills'::TEXT), 'Studio street or neighbourhood address'),
+  ('store_address', to_jsonb('Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist'::TEXT), 'Studio street or neighbourhood address'),
   ('store_city_state_pin', to_jsonb('Hyderabad, Telangana'::TEXT), 'Studio city, state and PIN code'),
   ('studio_hours', to_jsonb('Monday – Sunday: 10:30 AM – 8:30 PM IST'::TEXT), 'Studio and support operating hours'),
   ('free_shipping_threshold', to_jsonb(1999), 'Minimum order value in INR for free standard shipping'),

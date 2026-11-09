@@ -60,7 +60,9 @@ export const FAQPage: React.FC = () => {
           },
           {
             q: 'What payment methods are accepted on dorasanicollections.com?',
-            a: 'We accept UPI (GPay, PhonePe, Paytm), Credit & Debit Cards, Net Banking, Digital Wallets via Razorpay 256-bit SSL encrypted checkout, as well as Cash on Delivery (COD) for eligible orders.',
+            a: siteSettings.codEnabled
+              ? 'We accept UPI (GPay, PhonePe, Paytm), Credit & Debit Cards, Net Banking, Digital Wallets via Razorpay 256-bit SSL encrypted checkout, as well as Cash on Delivery (COD) for eligible orders.'
+              : 'We accept UPI (GPay, PhonePe, Paytm), Credit & Debit Cards, Net Banking, and Digital Wallets via Razorpay 256-bit SSL encrypted checkout. Cash on Delivery (COD) is currently unavailable.',
           },
           {
             q: 'Where is the DORASANI studio located for in-person bridal styling?',

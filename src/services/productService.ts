@@ -569,6 +569,16 @@ export const productService = {
         return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : fallback;
       };
 
+      const bool = (key: string, fallback: boolean): boolean => {
+        if (!map.has(key)) return fallback;
+        const raw = map.get(key);
+        if (typeof raw === 'boolean') return raw;
+        const normalized = String(raw ?? '').trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+        return fallback;
+      };
+
       let announcementItems = DEFAULT_SITE_SETTINGS.announcementItems;
       const rawAnn = map.get('announcement_items');
       if (Array.isArray(rawAnn)) {
@@ -589,6 +599,7 @@ export const productService = {
         freeShippingThreshold: num('free_shipping_threshold', DEFAULT_SITE_SETTINGS.freeShippingThreshold),
         standardShippingFee: num('standard_shipping_fee', DEFAULT_SITE_SETTINGS.standardShippingFee),
         expressShippingFee: num('express_shipping_fee', DEFAULT_SITE_SETTINGS.expressShippingFee),
+        codEnabled: bool('cod_enabled', DEFAULT_SITE_SETTINGS.codEnabled),
         announcementItems,
         instagramUrl: str('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl, true),
         facebookUrl: str('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl, true),

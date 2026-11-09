@@ -578,6 +578,10 @@ export const AdminDashboardPage: React.FC = () => {
           ? rawAnn.map((x: any) => String(x)).filter(Boolean)
           : DEFAULT_SITE_SETTINGS.announcementItems;
 
+        const rawCod = readVal('cod_enabled', DEFAULT_SITE_SETTINGS.codEnabled);
+        const codEnabled =
+          rawCod === true || String(rawCod).trim().toLowerCase() === 'true';
+
         const nextSettings: SiteSettings = {
           storeName: String(readVal('store_name', DEFAULT_SITE_SETTINGS.storeName)),
           supportEmail: String(readVal('support_email', DEFAULT_SITE_SETTINGS.supportEmail)),
@@ -600,6 +604,7 @@ export const AdminDashboardPage: React.FC = () => {
           facebookUrl: String(readVal('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl)),
           youtubeUrl: String(readVal('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl)),
           footerCopyright: String(readVal('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright)),
+          codEnabled,
         };
 
         setSettingsForm({
@@ -1445,6 +1450,7 @@ export const AdminDashboardPage: React.FC = () => {
         youtube_url: settingsForm.youtubeUrl.trim() || 'https://youtube.com',
         footer_copyright:
           settingsForm.footerCopyright.trim() || DEFAULT_SITE_SETTINGS.footerCopyright,
+        cod_enabled: Boolean(settingsForm.codEnabled),
       });
       await Promise.all([refreshSiteSettings(), loadData()]);
       showToast('Storefront & shipping settings saved and applied live!');
@@ -4009,6 +4015,44 @@ export const AdminDashboardPage: React.FC = () => {
                           }
                           className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
                         />
+                      </div>
+
+                      <div className="sm:col-span-2 p-3.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] min-h-[48px] flex items-start gap-3">
+                        <input
+                          id="cfg-cod-enabled"
+                          name="codEnabled"
+                          type="checkbox"
+                          checked={Boolean(settingsForm.codEnabled)}
+                          aria-describedby="cfg-cod-enabled-hint"
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, codEnabled: e.target.checked })
+                          }
+                          className="mt-0.5 w-4 h-4 accent-[#285A3C] rounded cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
+                        />
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <label
+                              htmlFor="cfg-cod-enabled"
+                              className="font-semibold text-[#1A3B2B] cursor-pointer"
+                            >
+                              Allow Cash on Delivery (COD) at Checkout
+                            </label>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                settingsForm.codEnabled
+                                  ? 'bg-[#EAF3ED] text-[#1A3B2B] border-[#C6DEC9]'
+                                  : 'bg-[#FFF5F5] text-[#8B1A2B] border-[#F0D5D8]'
+                              }`}
+                            >
+                              {settingsForm.codEnabled
+                                ? 'Enabled at Checkout'
+                                : 'Unavailable (Razorpay Online Only)'}
+                            </span>
+                          </div>
+                          <p id="cfg-cod-enabled-hint" className="text-[11px] text-[#4F6355]">
+                            When unchecked, Cash on Delivery is shown as unavailable at checkout and blocked on the server; only Razorpay online payments (UPI, Cards, Net Banking, Wallets) are accepted.
+                          </p>
+                        </div>
                       </div>
                     </div>
 

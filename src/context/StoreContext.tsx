@@ -895,7 +895,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const chosenAddress = orderData.shippingAddress || selectedAddress;
     const chosenDelivery = orderData.deliveryOption || 'standard';
-    const chosenPayment = orderData.paymentMethod || 'razorpay';
+    const requestedPayment = orderData.paymentMethod || 'razorpay';
+    if (requestedPayment === 'cod' && !siteSettings.codEnabled) {
+      const msg =
+        'Cash on Delivery (COD) is not available at present. Please pay online via Razorpay.';
+      showToast(msg, 'error');
+      return { success: false, error: msg };
+    }
+    const chosenPayment = requestedPayment;
     const effectiveShipping =
       chosenDelivery === 'express' ? siteSettings.expressShippingFee : shippingFee;
     const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);
@@ -1113,8 +1120,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         onStageChange?.('idle');
-        const cancelMsg =
-          'Payment was cancelled before completion. Your shopping bag and coupon are still saved — you can retry or choose Cash on Delivery.';
+        const cancelMsg = siteSettings.codEnabled
+          ? 'Payment was cancelled before completion. Your shopping bag and coupon are still saved — you can retry or choose Cash on Delivery.'
+          : 'Payment was cancelled before completion. Your shopping bag and coupon are still saved — please retry payment via Razorpay.';
         showToast('Payment cancelled. Your bag is saved.', 'info');
         return { success: false, cancelled: true, error: cancelMsg };
       }

@@ -102,7 +102,7 @@ export const ReturnsPolicyPage: React.FC = () => {
         <section className="space-y-2">
           <h2 className="font-serif-royal font-bold text-base text-[#1A3B2B]">Refund Timeline</h2>
           <p>
-            Once our quality assurance team inspects the returned garment, your refund is credited within 48 hours to your original payment method (or bank account for COD orders). For assistance, email{' '}
+            Once our quality assurance team inspects the returned garment, your refund is credited within 48 hours to your original payment method{siteSettings.codEnabled ? ' (or bank account for COD orders)' : ''}. For assistance, email{' '}
             <a
               href={`mailto:${siteSettings.supportEmail}`}
               className="text-[#285A3C] font-semibold hover:underline"

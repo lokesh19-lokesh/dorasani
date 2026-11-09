@@ -28,12 +28,13 @@ const DEFAULT_SETTINGS = {
   supportEmail: 'dorasanisarees@gmail.com',
   conciergeEmail: 'dorasanisarees@gmail.com',
   supportPhone: '',
-  storeAddress: 'Flagship Handloom Studio, Banjara Hills',
+  storeAddress: 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
   storeCityStatePin: 'Hyderabad, Telangana',
   studioHours: 'Monday – Sunday: 10:30 AM – 8:30 PM IST',
   freeShippingThreshold: 1999,
   standardShippingFee: 99,
   expressShippingFee: 199,
+  codEnabled: false,
 };
 
 const COLLECTION_ROUTES = [
@@ -134,7 +135,7 @@ const EDITORIAL_AND_POLICY_ROUTES = [
     path: '/faq',
     title: 'Frequently Asked Questions',
     description:
-      'Answers on Silk Mark authenticity, saree lengths, blouse pieces, shipping timelines, cash on delivery, Razorpay payments, and returns.',
+      'Answers on Silk Mark authenticity, saree lengths, blouse pieces, shipping timelines, Razorpay online payments, and returns.',
     changefreq: 'monthly',
     priority: '0.75',
   },
@@ -650,6 +651,16 @@ function parseSettings(rows) {
     const n = Number(map.get(key));
     return Number.isFinite(n) && n >= 0 ? Math.round(n) : fallback;
   };
+  const bool = (key, fallback) => {
+    if (!map.has(key)) return fallback;
+    const raw = map.get(key);
+    if (typeof raw === 'boolean') return raw;
+    if (raw === null || raw === undefined) return fallback;
+    const norm = String(raw).trim().toLowerCase();
+    if (norm === 'true') return true;
+    if (norm === 'false') return false;
+    return fallback;
+  };
   return {
     storeName: str('store_name', DEFAULT_SETTINGS.storeName),
     supportEmail: str('support_email', DEFAULT_SETTINGS.supportEmail),
@@ -661,6 +672,7 @@ function parseSettings(rows) {
     freeShippingThreshold: num('free_shipping_threshold', DEFAULT_SETTINGS.freeShippingThreshold),
     standardShippingFee: num('standard_shipping_fee', DEFAULT_SETTINGS.standardShippingFee),
     expressShippingFee: num('express_shipping_fee', DEFAULT_SETTINGS.expressShippingFee),
+    codEnabled: bool('cod_enabled', DEFAULT_SETTINGS.codEnabled),
   };
 }
 
@@ -888,7 +900,9 @@ function buildLlmsTxt(products, settings) {
     `- Support & Bridal Concierge Email: ${settings.supportEmail}`,
     ...(settings.supportPhone ? [`- Customer Care Phone: ${settings.supportPhone}`] : []),
     `- Currency & Shipping: Indian Rupees (INR). Free pan-India shipping above ₹${settings.freeShippingThreshold.toLocaleString('en-IN')}; Standard shipping ₹${settings.standardShippingFee}; Express shipping ₹${settings.expressShippingFee}.`,
-    '- Payment Methods: Razorpay Checkout (UPI, Credit/Debit Cards, Net Banking, Wallets) and Cash on Delivery (COD) for eligible orders.',
+    settings.codEnabled
+      ? '- Payment Methods: Razorpay Checkout (UPI, Credit/Debit Cards, Net Banking, Wallets) and Cash on Delivery (COD) for eligible orders.'
+      : '- Payment Methods: Razorpay Checkout (UPI, Credit/Debit Cards, Net Banking, Wallets). Cash on Delivery (COD) is currently unavailable.',
     '- Returns & Exchanges: 7-day return window for unworn items with original tags intact.',
     '',
     '## Collections',
@@ -954,10 +968,9 @@ function buildLlmsFullTxt(products, settings, benefits) {
       ...(showLength ? [`- Drape Length: ${p.saree_length}`] : []),
       ...(isSaree
         ? [
-            `- Blouse Piece Included: ${
-              p.blouse_included ? 'Yes (Unstitched matching piece)' : 'Styled separately'
-            }`,
-          ]
+          `- Blouse Piece Included: ${p.blouse_included ? 'Yes (Unstitched matching piece)' : 'Styled separately'
+          }`,
+        ]
         : []),
       ...(p.care_instructions ? [`- Care Instructions: ${p.care_instructions}`] : []),
       `- Availability: ${p.in_stock === false ? 'Currently Out of Stock' : 'In Stock'}`,
@@ -985,15 +998,17 @@ function buildLlmsFullTxt(products, settings, benefits) {
     `- Free Shipping Threshold: Orders above ₹${settings.freeShippingThreshold.toLocaleString('en-IN')} ship free across India.`,
     `- Standard Pan-India Shipping: ₹${settings.standardShippingFee} (below threshold). Handling time: 1–2 business days; estimated transit: 3–5 business days.`,
     `- Express Pan-India Shipping: ₹${settings.expressShippingFee} priority insured courier.`,
-    '- Payment Options: Razorpay Checkout supporting UPI, Visa/Mastercard/RuPay cards, Net Banking, Digital Wallets, plus Cash on Delivery (COD) for eligible orders.',
+    settings.codEnabled
+      ? '- Payment Options: Razorpay Checkout supporting UPI, Visa/Mastercard/RuPay cards, Net Banking, Digital Wallets, plus Cash on Delivery (COD) for eligible orders.'
+      : '- Payment Options: Razorpay Checkout supporting UPI, Visa/Mastercard/RuPay cards, Net Banking, and Digital Wallets (Cash on Delivery is not available at present).',
     '- Return & Exchange Policy: 7-day return & exchange window on unworn, unwashed garments with original tags and packaging intact.',
     '',
     ...(benefits.length > 0
       ? [
-          '## 3. Storefront Service Commitments',
-          ...benefits.map((b) => `- **${b.title}**: ${b.description}`),
-          '',
-        ]
+        '## 3. Storefront Service Commitments',
+        ...benefits.map((b) => `- **${b.title}**: ${b.description}`),
+        '',
+      ]
       : []),
     `## ${benefits.length > 0 ? '4' : '3'}. Canonical Collections Directory`,
     `- **Shop All**: ${SITE_ORIGIN}/shop`,
@@ -1019,7 +1034,9 @@ function buildLlmsFullTxt(products, settings, benefits) {
     'All DORASANI silk, organza, Chanderi cotton, and Tussar silk sarees measure approximately 6.3 meters and include an unstitched coordinating blouse piece (typically 0.8–1 meter) unless explicitly noted on the product specification.',
     '',
     '### Q: Which payment methods are accepted on dorasanicollections.com?',
-    'Customers can pay online via Razorpay (UPI, Credit Cards, Debit Cards, Net Banking, and Wallets) or opt for Cash on Delivery (COD) at checkout where eligible.',
+    settings.codEnabled
+      ? 'Customers can pay online via Razorpay (UPI, Credit Cards, Debit Cards, Net Banking, and Wallets) or opt for Cash on Delivery (COD) at checkout where eligible.'
+      : 'Customers can pay online via Razorpay (UPI, Credit Cards, Debit Cards, Net Banking, and Wallets). Cash on Delivery (COD) is not available at present.',
     '',
     '### Q: How should handwoven silk sarees and bridal lehengas be cared for?',
     'Pure Kanchipuram, Banarasi, Tussar, organza, and zardozi-embellished bridal garments require Dry Clean Only and should be wrapped in breathable pure cotton muslin away from direct sunlight. Lightweight Chanderi cotton sarees may be gently hand-washed or dry-cleaned.',
@@ -1060,7 +1077,7 @@ async function main() {
   const totalUrls = 2 + COLLECTION_ROUTES.length + EDITORIAL_AND_POLICY_ROUTES.length + products.length;
   console.log(
     `[seo:generate] Source: ${source}\n` +
-      `[seo:generate] Wrote public/sitemap.xml (${totalUrls} canonical URLs), public/llms.txt, and public/llms-full.txt`
+    `[seo:generate] Wrote public/sitemap.xml (${totalUrls} canonical URLs), public/llms.txt, and public/llms-full.txt`
   );
 }
 

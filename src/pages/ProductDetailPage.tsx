@@ -586,7 +586,9 @@ export const ProductDetailPage: React.FC = () => {
               </div>
               <div className="p-2 rounded bg-[#FAF5EE] flex flex-col items-center gap-1 border border-[#D8C7B5]">
                 <CreditCard className="w-4 h-4 text-[#285A3C]" />
-                <span className="font-semibold text-[#1A3B2B]">Cash on Delivery Available</span>
+                <span className="font-semibold text-[#1A3B2B]">
+                  {siteSettings.codEnabled ? 'Cash on Delivery Available' : 'UPI, Cards & Net Banking'}
+                </span>
               </div>
             </div>
           </div>

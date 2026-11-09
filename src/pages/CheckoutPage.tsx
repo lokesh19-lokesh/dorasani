@@ -72,8 +72,15 @@ export const CheckoutPage: React.FC = () => {
   }, [selectedAddress]);
 
   const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express'>('standard');
+  const isCodAvailable = Boolean(siteSettings.codEnabled);
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [orderNotes, setOrderNotes] = useState('');
+
+  useEffect(() => {
+    if (!isCodAvailable && paymentMethod === 'cod') {
+      setPaymentMethod('razorpay');
+    }
+  }, [isCodAvailable, paymentMethod]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutStage, setCheckoutStage] = useState<CheckoutStage>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -119,7 +126,7 @@ export const CheckoutPage: React.FC = () => {
   const getSubmitButtonLabel = (): string => {
     if (!isSubmitting) {
       const formattedAmount = payableTotal.toLocaleString('en-IN');
-      return paymentMethod === 'cod'
+      return isCodAvailable && paymentMethod === 'cod'
         ? `Place COD Order — ₹${formattedAmount}`
         : `Pay ₹${formattedAmount} Securely`;
     }
@@ -164,7 +171,7 @@ export const CheckoutPage: React.FC = () => {
       const res = await placeOrder(
         {
           deliveryOption,
-          paymentMethod,
+          paymentMethod: isCodAvailable ? paymentMethod : 'razorpay',
           orderNotes: orderNotes.trim() || undefined,
           customerEmail: email.trim(),
           shippingAddress: {
@@ -189,7 +196,9 @@ export const CheckoutPage: React.FC = () => {
           type: 'cancelled',
           message:
             res.error ||
-            'Payment was cancelled before completion. Your shopping bag and coupon are preserved — you can retry or switch to Cash on Delivery.',
+            (isCodAvailable
+              ? 'Payment was cancelled before completion. Your shopping bag and coupon are preserved — you can retry or switch to Cash on Delivery.'
+              : 'Payment was cancelled before completion. Your shopping bag and coupon are preserved — please retry payment via Razorpay.'),
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
@@ -212,7 +221,11 @@ export const CheckoutPage: React.FC = () => {
       <div className="py-20 text-center max-w-md mx-auto px-4">
         <SeoHead
           title="Checkout | DORASANI"
-          description="Complete your DORASANI order via Razorpay UPI, cards, net banking, or Cash on Delivery."
+          description={
+            isCodAvailable
+              ? 'Complete your DORASANI order via Razorpay UPI, cards, net banking, or Cash on Delivery.'
+              : 'Complete your DORASANI order securely via Razorpay UPI, cards, net banking, or digital wallets.'
+          }
           canonicalPath="/checkout"
           robots="noindex, nofollow"
         />
@@ -239,7 +252,11 @@ export const CheckoutPage: React.FC = () => {
     <div className="space-y-8 pb-16">
       <SeoHead
         title="Checkout | DORASANI"
-        description="Complete your DORASANI order securely via Razorpay or Cash on Delivery."
+        description={
+          isCodAvailable
+            ? 'Complete your DORASANI order securely via Razorpay or Cash on Delivery.'
+            : 'Complete your DORASANI order securely online via Razorpay.'
+        }
         canonicalPath="/checkout"
         robots="noindex, nofollow"
       />
@@ -251,7 +268,9 @@ export const CheckoutPage: React.FC = () => {
               Checkout
             </h1>
             <p className="text-xs sm:text-sm text-[#4F6355] mt-1">
-              Secure. Simple. Seamless. Complete your order via Razorpay or Cash on Delivery.
+              {isCodAvailable
+                ? 'Secure. Simple. Seamless. Complete your order via Razorpay or Cash on Delivery.'
+                : 'Secure. Simple. Seamless. Complete your order online via Razorpay (UPI, Cards, Net Banking & Wallets).'}
             </p>
           </div>
 
@@ -332,7 +351,7 @@ export const CheckoutPage: React.FC = () => {
                   )}
                   <span className="leading-relaxed">{paymentNotice.message}</span>
                 </div>
-                {paymentMethod !== 'cod' && (
+                {isCodAvailable && paymentMethod !== 'cod' && (
                   <button
                     type="button"
                     onClick={() => {
@@ -777,7 +796,7 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 <div
-                  className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${paymentMethod === 'razorpay'
+                  className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${!isCodAvailable || paymentMethod === 'razorpay'
                     ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
                     : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
                     }`}
@@ -788,7 +807,7 @@ export const CheckoutPage: React.FC = () => {
                       type="radio"
                       name="paymentMethod"
                       value="razorpay"
-                      checked={paymentMethod === 'razorpay'}
+                      checked={!isCodAvailable || paymentMethod === 'razorpay'}
                       onChange={() => {
                         setPaymentMethod('razorpay');
                         setPaymentNotice(null);
@@ -801,10 +820,12 @@ export const CheckoutPage: React.FC = () => {
                         htmlFor="checkout-payment-razorpay"
                         className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
                       >
-                        Pay Online via Razorpay (Recommended)
+                        {isCodAvailable
+                          ? 'Pay Online via Razorpay (Recommended)'
+                          : 'Pay Online via Razorpay'}
                       </label>
                       <p id="checkout-payment-razorpay-desc" className="text-[11px] text-[#4F6355]">
-                        UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, Net Banking & Wallets
+                        UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, Net Banking &amp; Wallets
                       </p>
                     </div>
                   </div>
@@ -816,40 +837,59 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div
-                  className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${paymentMethod === 'cod'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      id="checkout-payment-cod"
-                      type="radio"
-                      name="paymentMethod"
-                      value="cod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => {
-                        setPaymentMethod('cod');
-                        setPaymentNotice(null);
-                      }}
-                      aria-describedby="checkout-payment-cod-desc"
-                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
-                    />
-                    <div>
-                      <label
-                        htmlFor="checkout-payment-cod"
-                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
-                      >
-                        Cash on Delivery (COD)
-                      </label>
-                      <p id="checkout-payment-cod-desc" className="text-[11px] text-[#4F6355]">
-                        Pay cash upon delivery at your doorstep
-                      </p>
+                {isCodAvailable ? (
+                  <div
+                    className={`relative p-3.5 rounded-lg border flex items-center justify-between gap-3 transition-all min-h-[56px] ${paymentMethod === 'cod'
+                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="checkout-payment-cod"
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => {
+                          setPaymentMethod('cod');
+                          setPaymentNotice(null);
+                        }}
+                        aria-describedby="checkout-payment-cod-desc"
+                        className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
+                      />
+                      <div>
+                        <label
+                          htmlFor="checkout-payment-cod"
+                          className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
+                        >
+                          Cash on Delivery (COD)
+                        </label>
+                        <p id="checkout-payment-cod-desc" className="text-[11px] text-[#4F6355]">
+                          Pay cash upon delivery at your doorstep
+                        </p>
+                      </div>
                     </div>
+                    <Coins className="w-4 h-4 text-[#4F6355] shrink-0" aria-hidden="true" />
                   </div>
-                  <Coins className="w-4 h-4 text-[#4F6355] shrink-0" aria-hidden="true" />
-                </div>
+                ) : (
+                  <div className="p-3.5 rounded-lg border border-dashed border-[#D8C7B5] bg-[#FAF5EE]/75 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Coins className="w-4 h-4 text-[#647268] shrink-0" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-[#4F6355]">
+                          Cash on Delivery (COD)
+                        </p>
+                        <p className="text-[11px] text-[#647268]">
+                          Not available at present — please pay online via Razorpay.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-semibold text-[#647268] bg-white px-2.5 py-0.5 rounded border border-[#D8C7B5]">
+                      Currently Unavailable
+                    </span>
+                  </div>
+                )}
               </div>
             </fieldset>
 
@@ -938,7 +978,7 @@ export const CheckoutPage: React.FC = () => {
                 <span>{getSubmitButtonLabel()}</span>
               </button>
 
-              {paymentMethod !== 'cod' && (
+              {(!isCodAvailable || paymentMethod !== 'cod') && (
                 <p className="text-[10px] text-center text-[#285A3C] font-medium">
                   A 256-bit SSL encrypted Razorpay popup opens next — your cart stays saved if cancelled.
                 </p>

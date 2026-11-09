@@ -92,7 +92,7 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
     ...(settings.supportPhone ? { telephone: settings.supportPhone } : {}),
     address: {
       '@type': 'PostalAddress',
-      streetAddress: settings.storeAddress || 'Flagship Handloom Studio, Banjara Hills',
+      streetAddress: settings.storeAddress || 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
       addressLocality,
       addressRegion,
       ...(postalCode ? { postalCode } : {}),
@@ -108,7 +108,9 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
       { '@type': 'City', name: addressLocality },
     ],
     currenciesAccepted: 'INR',
-    paymentAccepted: 'UPI, Credit Card, Debit Card, Net Banking, Digital Wallets, Cash on Delivery, Razorpay',
+    paymentAccepted: settings.codEnabled
+      ? 'UPI, Credit Card, Debit Card, Net Banking, Digital Wallets, Cash on Delivery, Razorpay'
+      : 'UPI, Credit Card, Debit Card, Net Banking, Digital Wallets, Razorpay',
     priceRange: '₹₹–₹₹₹',
     openingHoursSpecification: [
       {
@@ -278,14 +280,14 @@ export function buildProductPageGraph(
     },
     ...(isSareeProduct
       ? [
-          {
-            '@type': 'PropertyValue',
-            name: 'Blouse Piece',
-            value: product.blouseIncluded
-              ? 'Included (Unstitched matching blouse piece)'
-              : 'Styled separately',
-          },
-        ]
+        {
+          '@type': 'PropertyValue',
+          name: 'Blouse Piece',
+          value: product.blouseIncluded
+            ? 'Included (Unstitched matching blouse piece)'
+            : 'Styled separately',
+        },
+      ]
       : []),
     product.careInstructions && {
       '@type': 'PropertyValue',
@@ -342,34 +344,34 @@ export function buildProductPageGraph(
     },
     ...(product.rating > 0 && reviewCount > 0
       ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: Number(product.rating.toFixed(1)),
-            reviewCount,
-            bestRating: 5,
-            worstRating: 1,
-          },
-        }
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: Number(product.rating.toFixed(1)),
+          reviewCount,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      }
       : {}),
     ...(approvedReviews.length > 0
       ? {
-          review: approvedReviews.slice(0, 5).map((rev) => ({
-            '@type': 'Review',
-            author: {
-              '@type': 'Person',
-              name: rev.reviewerName,
-            },
-            ...(rev.createdAt ? { datePublished: rev.createdAt.slice(0, 10) } : {}),
-            ...(rev.title ? { name: rev.title } : {}),
-            ...(rev.content ? { reviewBody: rev.content } : {}),
-            reviewRating: {
-              '@type': 'Rating',
-              ratingValue: Math.min(5, Math.max(1, Number(rev.rating || 5))),
-              bestRating: 5,
-              worstRating: 1,
-            },
-          })),
-        }
+        review: approvedReviews.slice(0, 5).map((rev) => ({
+          '@type': 'Review',
+          author: {
+            '@type': 'Person',
+            name: rev.reviewerName,
+          },
+          ...(rev.createdAt ? { datePublished: rev.createdAt.slice(0, 10) } : {}),
+          ...(rev.title ? { name: rev.title } : {}),
+          ...(rev.content ? { reviewBody: rev.content } : {}),
+          reviewRating: {
+            '@type': 'Rating',
+            ratingValue: Math.min(5, Math.max(1, Number(rev.rating || 5))),
+            bestRating: 5,
+            worstRating: 1,
+          },
+        })),
+      }
       : {}),
   };
 
@@ -432,17 +434,17 @@ export function buildCollectionPageGraph(
         inLanguage: 'en-IN',
         ...(products.length > 0
           ? {
-              mainEntity: {
-                '@type': 'ItemList',
-                numberOfItems: products.length,
-                itemListElement: products.slice(0, 12).map((p, idx) => ({
-                  '@type': 'ListItem',
-                  position: idx + 1,
-                  url: buildCanonicalUrl(`/products/${p.slug}`),
-                  name: p.title,
-                })),
-              },
-            }
+            mainEntity: {
+              '@type': 'ItemList',
+              numberOfItems: products.length,
+              itemListElement: products.slice(0, 12).map((p, idx) => ({
+                '@type': 'ListItem',
+                position: idx + 1,
+                url: buildCanonicalUrl(`/products/${p.slug}`),
+                name: p.title,
+              })),
+            },
+          }
           : {}),
       },
       buildBreadcrumbSchema(input.breadcrumbs, canonicalUrl),

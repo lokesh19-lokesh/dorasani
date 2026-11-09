@@ -98,6 +98,33 @@ serve(async (req: Request) => {
       return jsonResponse({ error: 'One or more cart items are invalid.' }, 400);
     }
 
+    // Check live site_settings for COD availability before processing order totals
+    let codEnabled = false;
+    try {
+      const { data: codSetting } = await admin
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'cod_enabled')
+        .maybeSingle();
+
+      const rawCodVal = codSetting?.value;
+      codEnabled =
+        rawCodVal === true || String(rawCodVal ?? '').trim().toLowerCase() === 'true';
+    } catch {
+      codEnabled = false;
+    }
+
+    if (paymentMethod === 'cod' && !codEnabled) {
+      return jsonResponse(
+        {
+          error:
+            'Cash on Delivery (COD) is not available at present. Please complete your order online via Razorpay (UPI, Cards, Net Banking, or Wallets).',
+          code: 'COD_UNAVAILABLE',
+        },
+        400
+      );
+    }
+
     let summary;
     try {
       summary = await computeServerCheckoutSummary(admin, cartItems, couponCode, deliveryOption);
@@ -108,8 +135,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Branch 1: Cash on Delivery — create atomic order immediately
+    // Branch 1: Cash on Delivery (only reachable when cod_enabled = true)
     if (paymentMethod === 'cod') {
+
       const { data: checkoutResult, error: checkoutError } = await admin.rpc(
         'process_checkout_atomic',
         {
@@ -185,8 +213,9 @@ serve(async (req: Request) => {
     if (summary.expectedAmountPaise < 100) {
       return jsonResponse(
         {
-          error:
-            'Online payments require a payable amount of at least ₹1. Please choose Cash on Delivery for zero-value orders.',
+          error: codEnabled
+            ? 'Online payments require a payable amount of at least ₹1. Please choose Cash on Delivery for zero-value orders.'
+            : 'Online payments require a payable amount of at least ₹1.',
         },
         400
       );

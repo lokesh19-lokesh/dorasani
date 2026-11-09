@@ -124,6 +124,7 @@ export interface SiteSettings {
   freeShippingThreshold: number;
   standardShippingFee: number;
   expressShippingFee: number;
+  codEnabled: boolean;
   announcementItems: string[];
   instagramUrl: string;
   facebookUrl: string;
@@ -136,12 +137,13 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   supportEmail: 'dorasanisarees@gmail.com',
   conciergeEmail: 'dorasanisarees@gmail.com',
   supportPhone: '',
-  storeAddress: 'Flagship Handloom Studio, Banjara Hills',
+  storeAddress: 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
   storeCityStatePin: 'Hyderabad, Telangana',
   studioHours: 'Monday – Sunday: 10:30 AM – 8:30 PM IST',
   freeShippingThreshold: 1999,
   standardShippingFee: 99,
   expressShippingFee: 199,
+  codEnabled: false,
   announcementItems: [
     'Free Shipping Above ₹{threshold}',
     'Easy Returns',
@@ -177,16 +179,16 @@ export interface Order {
   paymentMethod: 'razorpay' | 'upi' | 'card' | 'netbanking' | 'wallet' | 'cod';
   paymentStatus: 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded' | 'partially_refunded';
   status:
-    | 'pending'
-    | 'confirmed'
-    | 'processing'
-    | 'packed'
-    | 'shipped'
-    | 'out_for_delivery'
-    | 'delivered'
-    | 'cancelled'
-    | 'returned'
-    | 'refunded';
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'packed'
+  | 'shipped'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled'
+  | 'returned'
+  | 'refunded';
   timeline: {
     title: string;
     description: string;
