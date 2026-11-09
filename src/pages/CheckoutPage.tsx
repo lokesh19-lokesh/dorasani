@@ -277,22 +277,19 @@ export const CheckoutPage: React.FC = () => {
               </li>
               <li
                 aria-hidden="true"
-                className={`w-12 h-0.5 mx-2 transition-colors ${
-                  isPaymentStepActive ? 'bg-[#285A3C]' : 'bg-[#BCD8AA]'
-                }`}
+                className={`w-12 h-0.5 mx-2 transition-colors ${isPaymentStepActive ? 'bg-[#285A3C]' : 'bg-[#BCD8AA]'
+                  }`}
               />
               <li
                 aria-current={isPaymentStepActive ? 'step' : undefined}
-                className={`flex items-center transition-colors ${
-                  isPaymentStepActive ? 'text-[#285A3C]' : 'text-[#647268]'
-                }`}
+                className={`flex items-center transition-colors ${isPaymentStepActive ? 'text-[#285A3C]' : 'text-[#647268]'
+                  }`}
               >
                 <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mr-1.5 transition-colors ${
-                    isPaymentStepActive
-                      ? 'bg-[#285A3C] text-white ring-4 ring-[#D0E9C0]'
-                      : 'bg-[#FAF5EE] border border-[#BCD8AA]'
-                  }`}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mr-1.5 transition-colors ${isPaymentStepActive
+                    ? 'bg-[#285A3C] text-white ring-4 ring-[#D0E9C0]'
+                    : 'bg-[#FAF5EE] border border-[#BCD8AA]'
+                    }`}
                 >
                   3
                 </span>
@@ -324,11 +321,10 @@ export const CheckoutPage: React.FC = () => {
               <div
                 role={paymentNotice.type === 'error' ? 'alert' : 'status'}
                 aria-live="polite"
-                className={`rounded-xl border p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                  paymentNotice.type === 'cancelled'
-                    ? 'bg-amber-50 border-amber-200 text-amber-900'
-                    : 'bg-rose-50 border-rose-200 text-rose-800'
-                }`}
+                className={`rounded-xl border p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${paymentNotice.type === 'cancelled'
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
+                  }`}
               >
                 <div className="flex items-start gap-2.5">
                   {paymentNotice.type === 'cancelled' ? (
@@ -507,11 +503,10 @@ export const CheckoutPage: React.FC = () => {
                   {(['Home', 'Work', 'Other'] as const).map((type) => (
                     <label
                       key={type}
-                      className={`px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-colors ${
-                        addressType === type
-                          ? 'bg-[#285A3C] text-white'
-                          : 'bg-[#FAF5EE] text-[#4F6355] hover:bg-[#D0E9C0]/40'
-                      }`}
+                      className={`px-3 py-1.5 rounded text-xs font-semibold cursor-pointer transition-colors ${addressType === type
+                        ? 'bg-[#285A3C] text-white'
+                        : 'bg-[#FAF5EE] text-[#4F6355] hover:bg-[#D0E9C0]/40'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -690,11 +685,10 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    deliveryOption === 'standard'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${deliveryOption === 'standard'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-[#FAF5EE]'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -716,11 +710,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    deliveryOption === 'express'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${deliveryOption === 'express'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-[#FAF5EE]'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -762,11 +755,10 @@ export const CheckoutPage: React.FC = () => {
 
               <div className="space-y-2.5 text-xs">
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    paymentMethod === 'upi'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'upi'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -793,11 +785,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    paymentMethod === 'card'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'card'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -822,11 +813,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    paymentMethod === 'netbanking'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'netbanking'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -851,11 +841,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    paymentMethod === 'wallet'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'wallet'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
@@ -880,11 +869,10 @@ export const CheckoutPage: React.FC = () => {
                 </label>
 
                 <label
-                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${
-                    paymentMethod === 'cod'
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                      : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all min-h-[52px] ${paymentMethod === 'cod'
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
+                    : 'border-[#BCD8AA] bg-white hover:bg-[#FAF5EE]/60'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <input

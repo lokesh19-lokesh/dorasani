@@ -188,3 +188,4 @@ export const BaseStoreSchema: React.FC<{ settings: SiteSettings }> = ({ settings
 
   return null;
 };
+

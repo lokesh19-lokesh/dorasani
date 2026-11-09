@@ -133,44 +133,44 @@ export const HomePage: React.FC = () => {
 
   const celebrationBanner = promoBanners[0]
     ? {
-        link: promoBanners[0].primary_cta_link || '/collections/festive',
-        image: promoBanners[0].desktop_image_url || '/assets/hero/ShopbyCategoryhomepage.png',
-        title1: promoBanners[0].title_line_1 || 'A Celebration',
-        title2: promoBanners[0].title_line_2 || 'of Our Heritage',
-        description:
-          promoBanners[0].description ||
-          'Elegant styles for festivals, weddings and meaningful occasions.',
-        ctaLabel: promoBanners[0].primary_cta_label || 'Explore Festive Styles',
-      }
+      link: promoBanners[0].primary_cta_link || '/collections/festive',
+      image: promoBanners[0].desktop_image_url || '/assets/hero/ShopbyCategoryhomepage.png',
+      title1: promoBanners[0].title_line_1 || 'A Celebration',
+      title2: promoBanners[0].title_line_2 || 'of Our Heritage',
+      description:
+        promoBanners[0].description ||
+        'Elegant styles for festivals, weddings and meaningful occasions.',
+      ctaLabel: promoBanners[0].primary_cta_label || 'Explore Festive Styles',
+    }
     : {
-        link: '/collections/festive',
-        image: '/assets/hero/ShopbyCategoryhomepage.png',
-        title1: 'A Celebration',
-        title2: 'of Our Heritage',
-        description: 'Elegant styles for festivals, weddings and meaningful occasions.',
-        ctaLabel: 'Explore Festive Styles',
-      };
+      link: '/collections/festive',
+      image: '/assets/hero/ShopbyCategoryhomepage.png',
+      title1: 'A Celebration',
+      title2: 'of Our Heritage',
+      description: 'Elegant styles for festivals, weddings and meaningful occasions.',
+      ctaLabel: 'Explore Festive Styles',
+    };
 
   const legacyBanner = promoBanners[1]
     ? {
-        link: promoBanners[1].primary_cta_link || '/about',
-        image: promoBanners[1].desktop_image_url || '/assets/hero/NewArrivalsbrander.png',
-        title1: promoBanners[1].title_line_1 || 'A Legacy of Beauty.',
-        title2: promoBanners[1].title_line_2 || 'A Spirit of Tradition.',
-        description:
-          promoBanners[1].description ||
-          'DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.',
-        ctaLabel: promoBanners[1].primary_cta_label || 'Our Story',
-      }
+      link: promoBanners[1].primary_cta_link || '/about',
+      image: promoBanners[1].desktop_image_url || '/assets/hero/NewArrivalsbrander.png',
+      title1: promoBanners[1].title_line_1 || 'A Legacy of Beauty.',
+      title2: promoBanners[1].title_line_2 || 'A Spirit of Tradition.',
+      description:
+        promoBanners[1].description ||
+        'DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.',
+      ctaLabel: promoBanners[1].primary_cta_label || 'Our Story',
+    }
     : {
-        link: '/about',
-        image: '/assets/hero/NewArrivalsbrander.png',
-        title1: 'A Legacy of Beauty.',
-        title2: 'A Spirit of Tradition.',
-        description:
-          'DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.',
-        ctaLabel: 'Our Story',
-      };
+      link: '/about',
+      image: '/assets/hero/NewArrivalsbrander.png',
+      title1: 'A Legacy of Beauty.',
+      title2: 'A Spirit of Tradition.',
+      description:
+        'DORASANI celebrates the rich artistic traditions of South India, bringing timeless textiles and elegant designs to your most cherished moments.',
+      ctaLabel: 'Our Story',
+    };
 
   const homeFaqs = useMemo(
     () => [
@@ -276,9 +276,8 @@ export const HomePage: React.FC = () => {
             {heroSlides.map((slide, idx) => (
               <div
                 key={slide.id}
-                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                  safeSlideIndex === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
-                }`}
+                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${safeSlideIndex === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
+                  }`}
               >
                 <picture className="w-full h-full block">
                   <source media="(max-width: 640px)" srcSet={slide.mobileImage} />
@@ -351,11 +350,10 @@ export const HomePage: React.FC = () => {
                         type="button"
                         onClick={() => setCurrentHeroSlide(idx)}
                         aria-label={`Go to slide ${idx + 1}`}
-                        className={`rounded-full transition-all duration-300 ${
-                          safeSlideIndex === idx
-                            ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
-                            : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
-                        }`}
+                        className={`rounded-full transition-all duration-300 ${safeSlideIndex === idx
+                          ? 'w-5 sm:w-6 h-1.5 sm:h-2 bg-[#18482C]'
+                          : 'w-1.5 sm:w-2 h-1.5 sm:h-2 border border-[#809B70] bg-transparent hover:bg-[#18482C]/50'
+                          }`}
                       />
                     ))}
                   </div>
