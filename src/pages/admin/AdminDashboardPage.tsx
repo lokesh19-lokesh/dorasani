@@ -114,6 +114,35 @@ const BANNER_TYPES = [
   { value: 'announcement', label: 'Announcement' },
 ];
 
+const USER_ROLES: { value: UserRole; label: string }[] = [
+  { value: 'customer', label: 'Customer' },
+  { value: 'support_agent', label: 'Support Agent' },
+  { value: 'order_manager', label: 'Order Manager' },
+  { value: 'inventory_manager', label: 'Inventory Manager' },
+  { value: 'catalog_manager', label: 'Catalog Manager' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'super_admin', label: 'Super Admin' },
+];
+
+const BENEFIT_ICONS: { value: string; label: string }[] = [
+  { value: 'Sparkles', label: 'Sparkles (Craft)' },
+  { value: 'ShieldCheck', label: 'ShieldCheck (Trust)' },
+  { value: 'Truck', label: 'Truck (Shipping)' },
+  { value: 'Headphones', label: 'Headphones (Support)' },
+];
+
+const MESSAGE_STATUSES: { value: 'new' | 'read' | 'responded'; label: string }[] = [
+  { value: 'new', label: 'New' },
+  { value: 'read', label: 'Read' },
+  { value: 'responded', label: 'Responded' },
+];
+
+const REVIEW_STATUSES: { value: 'pending' | 'approved' | 'rejected'; label: string }[] = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
 interface ModalDialogProps {
   open: boolean;
   onClose: () => void;
@@ -317,10 +346,49 @@ const DEFAULT_BANNER_FORM: BannerFormState = {
   is_active: true,
 };
 
+interface SettingsFormState extends SiteSettings {
+  announcementText: string;
+}
+
+const DEFAULT_SETTINGS_FORM: SettingsFormState = {
+  ...DEFAULT_SITE_SETTINGS,
+  announcementText: DEFAULT_SITE_SETTINGS.announcementItems.join('\n'),
+};
+
+const DEFAULT_BENEFIT_FORM: AdminServiceBenefitInput = {
+  icon_name: 'Sparkles',
+  title: '',
+  description: '',
+  display_order: 1,
+  is_active: true,
+};
+
+const renderBenefitIcon = (iconName?: string) => {
+  switch (iconName) {
+    case 'ShieldCheck':
+      return <ShieldCheck className="w-5 h-5 text-[#285A3C]" />;
+    case 'Truck':
+      return <Truck className="w-5 h-5 text-[#285A3C]" />;
+    case 'Headphones':
+      return <Headphones className="w-5 h-5 text-[#285A3C]" />;
+    default:
+      return <Sparkles className="w-5 h-5 text-[#285A3C]" />;
+  }
+};
+
 export const AdminDashboardPage: React.FC = () => {
-  const { user, authLoading, logout, showToast, refreshCoupons } = useStore();
+  const {
+    user,
+    authLoading,
+    logout,
+    showToast,
+    refreshCoupons,
+    refreshSiteSettings,
+    refreshStoreCategories,
+  } = useStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [usersSubTab, setUsersSubTab] = useState<'users' | 'messages' | 'newsletter' | 'reviews'>('users');
   const [verifyingAdmin, setVerifyingAdmin] = useState<boolean>(true);
   const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -330,6 +398,13 @@ export const AdminDashboardPage: React.FC = () => {
     totalSales: 0,
     totalOrders: 0,
     totalCustomers: 0,
+    totalProfiles: 0,
+    staffCount: 0,
+    guestOrderCustomers: 0,
+    unreadMessages: 0,
+    newsletterCount: 0,
+    publishedReviews: 0,
+    pendingReviews: 0,
     totalProducts: 0,
     activeProducts: 0,
     outOfStockProducts: 0,
@@ -347,6 +422,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [inventoryLedger, setInventoryLedger] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [adminEmails, setAdminEmails] = useState<any[]>([]);
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [serviceBenefits, setServiceBenefits] = useState<any[]>([]);
 
   // Filters
   const [productSearch, setProductSearch] = useState('');
@@ -354,6 +435,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [inventorySearch, setInventorySearch] = useState('');
+  const [usersSearch, setUsersSearch] = useState('');
+  const [messageStatusFilter, setMessageStatusFilter] = useState<'all' | 'new' | 'read' | 'responded'>('all');
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   // Product Add/Edit & Delete Modal State
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -372,12 +456,15 @@ export const AdminDashboardPage: React.FC = () => {
   const [stockReason, setStockReason] = useState<string>('restock');
   const [savingStock, setSavingStock] = useState(false);
 
-  // Order Fulfillment Modal State
+  // Order Details, Fulfillment & Delete Modal State
+  const [orderDetailsTarget, setOrderDetailsTarget] = useState<any | null>(null);
   const [orderEditTarget, setOrderEditTarget] = useState<any | null>(null);
   const [orderEditStatus, setOrderEditStatus] = useState<string>('confirmed');
   const [orderEditCourier, setOrderEditCourier] = useState<string>('');
   const [orderEditTracking, setOrderEditTracking] = useState<string>('');
   const [savingOrder, setSavingOrder] = useState(false);
+  const [deleteOrderTarget, setDeleteOrderTarget] = useState<any | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState(false);
 
   // Category Add/Edit & Delete Modal State
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -407,11 +494,48 @@ export const AdminDashboardPage: React.FC = () => {
   const [deleteBannerTarget, setDeleteBannerTarget] = useState<any | null>(null);
   const [deletingBanner, setDeletingBanner] = useState(false);
 
+  // Users, Activity Logs, Allowlist & Inquiries State
+  const [activityUserTarget, setActivityUserTarget] = useState<any | null>(null);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [adminEmailRole, setAdminEmailRole] = useState<UserRole>('admin');
+  const [adminEmailNotes, setAdminEmailNotes] = useState('');
+  const [savingAdminEmail, setSavingAdminEmail] = useState(false);
+  const [contactViewTarget, setContactViewTarget] = useState<any | null>(null);
+
+  // Storefront Settings & Service Benefits State
+  const [settingsForm, setSettingsForm] = useState<SettingsFormState>(DEFAULT_SETTINGS_FORM);
+  const [settingsFormError, setSettingsFormError] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [benefitModalOpen, setBenefitModalOpen] = useState(false);
+  const [editingBenefitId, setEditingBenefitId] = useState<string | null>(null);
+  const [benefitForm, setBenefitForm] = useState<AdminServiceBenefitInput>(DEFAULT_BENEFIT_FORM);
+  const [benefitFormError, setBenefitFormError] = useState<string | null>(null);
+  const [savingBenefit, setSavingBenefit] = useState(false);
+  const [deleteBenefitTarget, setDeleteBenefitTarget] = useState<any | null>(null);
+  const [deletingBenefit, setDeletingBenefit] = useState(false);
+
   // Load All Live Admin Data
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, pRes, oRes, cList, coupList, bList, ledgerList] = await Promise.all([
+      const [
+        m,
+        pRes,
+        oRes,
+        cList,
+        coupList,
+        bList,
+        ledgerList,
+        uList,
+        msgList,
+        subList,
+        revList,
+        benefitsList,
+        settingsRows,
+        allowlistEmails,
+      ] = await Promise.all([
         adminService.getDashboardMetrics(),
         adminService.getProducts(1, 250),
         adminService.getOrders(1, 250),
@@ -419,6 +543,13 @@ export const AdminDashboardPage: React.FC = () => {
         adminService.getCoupons(),
         adminService.getBanners(),
         adminService.getInventoryLedger(),
+        adminService.getUsersOverview().catch(() => []),
+        adminService.getContactMessages().catch(() => []),
+        adminService.getNewsletterSubscribers().catch(() => []),
+        adminService.getAllReviews().catch(() => []),
+        adminService.getAllServiceBenefits().catch(() => []),
+        adminService.getSettings().catch(() => []),
+        adminService.getAdminEmails().catch(() => []),
       ]);
 
       setMetrics(m);
@@ -428,6 +559,53 @@ export const AdminDashboardPage: React.FC = () => {
       setCoupons(coupList);
       setBanners(bList);
       setInventoryLedger(ledgerList);
+      setUsersList(uList);
+      setContactMessages(msgList);
+      setSubscribers(subList);
+      setReviewsList(revList);
+      setServiceBenefits(benefitsList);
+      setAdminEmails(allowlistEmails);
+
+      if (Array.isArray(settingsRows) && settingsRows.length > 0) {
+        const readVal = (key: string, fallback: any) => {
+          const hit = settingsRows.find((r: any) => r.key === key);
+          if (!hit || hit.value === null || hit.value === undefined) return fallback;
+          return hit.value;
+        };
+        const rawAnn = readVal('announcement_items', DEFAULT_SITE_SETTINGS.announcementItems);
+        const annItems = Array.isArray(rawAnn)
+          ? rawAnn.map((x: any) => String(x)).filter(Boolean)
+          : DEFAULT_SITE_SETTINGS.announcementItems;
+
+        const nextSettings: SiteSettings = {
+          storeName: String(readVal('store_name', DEFAULT_SITE_SETTINGS.storeName)),
+          supportEmail: String(readVal('support_email', DEFAULT_SITE_SETTINGS.supportEmail)),
+          conciergeEmail: String(readVal('concierge_email', DEFAULT_SITE_SETTINGS.conciergeEmail)),
+          supportPhone: String(readVal('support_phone', DEFAULT_SITE_SETTINGS.supportPhone) ?? ''),
+          storeAddress: String(readVal('store_address', DEFAULT_SITE_SETTINGS.storeAddress)),
+          storeCityStatePin: String(readVal('store_city_state_pin', DEFAULT_SITE_SETTINGS.storeCityStatePin)),
+          studioHours: String(readVal('studio_hours', DEFAULT_SITE_SETTINGS.studioHours)),
+          freeShippingThreshold:
+            Number(readVal('free_shipping_threshold', DEFAULT_SITE_SETTINGS.freeShippingThreshold)) ||
+            DEFAULT_SITE_SETTINGS.freeShippingThreshold,
+          standardShippingFee: Number(
+            readVal('standard_shipping_fee', DEFAULT_SITE_SETTINGS.standardShippingFee)
+          ) || 0,
+          expressShippingFee: Number(
+            readVal('express_shipping_fee', DEFAULT_SITE_SETTINGS.expressShippingFee)
+          ) || 0,
+          announcementItems: annItems,
+          instagramUrl: String(readVal('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl)),
+          facebookUrl: String(readVal('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl)),
+          youtubeUrl: String(readVal('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl)),
+          footerCopyright: String(readVal('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright)),
+        };
+
+        setSettingsForm({
+          ...nextSettings,
+          announcementText: nextSettings.announcementItems.join('\n'),
+        });
+      }
     } catch (err: any) {
       console.error('Error loading admin data:', err);
       showToast('Error loading live admin data: ' + err.message, 'error');
@@ -722,6 +900,21 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleConfirmDeleteOrder = async () => {
+    if (!deleteOrderTarget) return;
+    setDeletingOrder(true);
+    try {
+      await adminService.deleteOrder(deleteOrderTarget.id);
+      showToast(`Order #${deleteOrderTarget.order_number} permanently deleted.`);
+      setDeleteOrderTarget(null);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to delete order: ' + err.message, 'error');
+    } finally {
+      setDeletingOrder(false);
+    }
+  };
+
   // ==================== CATEGORY HANDLERS ====================
   const openCreateCategoryModal = () => {
     setEditingCategoryId(null);
@@ -781,7 +974,7 @@ export const AdminDashboardPage: React.FC = () => {
         showToast(`Category "${cleanName}" created.`);
       }
       setCategoryModalOpen(false);
-      await loadData();
+      await Promise.all([loadData(), refreshStoreCategories()]);
     } catch (err: any) {
       const msg = err?.message || 'Failed to save category.';
       setCategoryFormError(msg);
@@ -798,7 +991,7 @@ export const AdminDashboardPage: React.FC = () => {
       await adminService.deleteCategory(deleteCategoryTarget.id);
       showToast(`Category "${deleteCategoryTarget.name}" deleted.`);
       setDeleteCategoryTarget(null);
-      await loadData();
+      await Promise.all([loadData(), refreshStoreCategories()]);
     } catch (err: any) {
       showToast('Failed to delete category: ' + err.message, 'error');
     } finally {
@@ -1026,6 +1219,278 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  // ==================== USERS, ROLES, ALLOWLIST & INQUIRIES HANDLERS ====================
+  const handleUpdateUserRole = async (targetUser: any, nextRole: UserRole) => {
+    if (!targetUser?.id || targetUser.id === user?.id) return;
+    try {
+      await adminService.updateUserRole(targetUser.id, nextRole, user?.id, targetUser.email);
+      showToast(`Updated ${targetUser.full_name || targetUser.email}'s role to ${nextRole.replace(/_/g, ' ')}.`);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update role: ' + err.message, 'error');
+    }
+  };
+
+  const openActivityLogsModal = async (targetUser: any) => {
+    setActivityUserTarget(targetUser);
+    setActivityLogs([]);
+    setLoadingActivity(true);
+    try {
+      const logs = await adminService.getCustomerActivityLogs(targetUser.id);
+      setActivityLogs(logs);
+    } catch (err: any) {
+      showToast('Failed to load activity logs: ' + err.message, 'error');
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  const handleSaveAdminEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = adminEmailInput.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      showToast('Please enter a valid email address for the staff allowlist.', 'error');
+      return;
+    }
+    setSavingAdminEmail(true);
+    try {
+      await adminService.upsertAdminEmail({
+        email: cleanEmail,
+        role: adminEmailRole,
+        is_active: true,
+        notes: adminEmailNotes,
+      });
+      showToast(`Allowlisted ${cleanEmail} as ${adminEmailRole.replace(/_/g, ' ')}.`);
+      setAdminEmailInput('');
+      setAdminEmailNotes('');
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update allowlist: ' + err.message, 'error');
+    } finally {
+      setSavingAdminEmail(false);
+    }
+  };
+
+  const handleToggleAdminEmailActive = async (entry: any) => {
+    if (entry.email?.toLowerCase() === user?.email?.toLowerCase()) {
+      showToast('You cannot deactivate your own active super admin entry.', 'info');
+      return;
+    }
+    try {
+      await adminService.upsertAdminEmail({
+        email: entry.email,
+        role: entry.role,
+        is_active: !entry.is_active,
+        notes: entry.notes || undefined,
+      });
+      showToast(`${entry.email} ${!entry.is_active ? 'activated' : 'disabled'}.`);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update allowlist entry: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteAdminEmail = async (email: string) => {
+    if (email.toLowerCase() === user?.email?.toLowerCase()) {
+      showToast('You cannot remove your own super admin allowlist entry.', 'info');
+      return;
+    }
+    try {
+      await adminService.deleteAdminEmail(email);
+      showToast(`Removed ${email} from admin allowlist.`);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to remove email: ' + err.message, 'error');
+    }
+  };
+
+  const handleUpdateContactStatus = async (
+    id: string,
+    status: 'new' | 'read' | 'responded'
+  ) => {
+    try {
+      await adminService.updateContactMessageStatus(id, status);
+      if (contactViewTarget?.id === id) {
+        setContactViewTarget({ ...contactViewTarget, status });
+      }
+      showToast(`Inquiry marked as ${status}.`);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update inquiry: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteContactMessage = async (id: string) => {
+    try {
+      await adminService.deleteContactMessage(id);
+      if (contactViewTarget?.id === id) {
+        setContactViewTarget(null);
+      }
+      showToast('Contact inquiry deleted.');
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to delete inquiry: ' + err.message, 'error');
+    }
+  };
+
+  const handleToggleSubscriber = async (sub: any) => {
+    try {
+      await adminService.toggleNewsletterSubscriber(sub.id, !(sub.is_active !== false));
+      showToast(
+        `${sub.email} ${sub.is_active !== false ? 'paused' : 'reactivated'}.`
+      );
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update subscriber: ' + err.message, 'error');
+    }
+  };
+
+  const handleUpdateReviewStatus = async (
+    id: string,
+    status: 'pending' | 'approved' | 'rejected'
+  ) => {
+    try {
+      await adminService.updateReviewStatus(id, status);
+      showToast(`Review marked as ${status} and product rating updated.`);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to update review: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    try {
+      await adminService.deleteReview(id);
+      showToast('Review deleted and product rating updated.');
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to delete review: ' + err.message, 'error');
+    }
+  };
+
+  // ==================== STOREFRONT SETTINGS & SERVICE BENEFITS HANDLERS ====================
+  const handleSaveSiteSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsFormError(null);
+
+    const cleanStoreName = settingsForm.storeName.trim();
+    const cleanSupportEmail = settingsForm.supportEmail.trim();
+    const cleanConciergeEmail = settingsForm.conciergeEmail.trim();
+
+    if (!cleanStoreName || !cleanSupportEmail || !cleanConciergeEmail) {
+      setSettingsFormError('Store name, support email, and concierge email are required.');
+      return;
+    }
+
+    const threshold = Math.max(0, Math.round(Number(settingsForm.freeShippingThreshold || 0)));
+    const standardFee = Math.max(0, Math.round(Number(settingsForm.standardShippingFee || 0)));
+    const expressFee = Math.max(0, Math.round(Number(settingsForm.expressShippingFee || 0)));
+    const announcementList = settingsForm.announcementText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    setSavingSettings(true);
+    try {
+      await adminService.updateSettingsBatch({
+        store_name: cleanStoreName,
+        support_email: cleanSupportEmail,
+        concierge_email: cleanConciergeEmail,
+        support_phone: settingsForm.supportPhone.trim(),
+        store_address: settingsForm.storeAddress.trim(),
+        store_city_state_pin: settingsForm.storeCityStatePin.trim(),
+        studio_hours: settingsForm.studioHours.trim(),
+        free_shipping_threshold: threshold,
+        standard_shipping_fee: standardFee,
+        express_shipping_fee: expressFee,
+        announcement_items:
+          announcementList.length > 0
+            ? announcementList
+            : DEFAULT_SITE_SETTINGS.announcementItems,
+        instagram_url: settingsForm.instagramUrl.trim() || 'https://instagram.com',
+        facebook_url: settingsForm.facebookUrl.trim() || 'https://facebook.com',
+        youtube_url: settingsForm.youtubeUrl.trim() || 'https://youtube.com',
+        footer_copyright:
+          settingsForm.footerCopyright.trim() || DEFAULT_SITE_SETTINGS.footerCopyright,
+      });
+      await Promise.all([refreshSiteSettings(), loadData()]);
+      showToast('Storefront & shipping settings saved and applied live!');
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to save storefront settings.';
+      setSettingsFormError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const openCreateBenefitModal = () => {
+    setEditingBenefitId(null);
+    setBenefitFormError(null);
+    setBenefitForm({
+      ...DEFAULT_BENEFIT_FORM,
+      display_order: serviceBenefits.length + 1,
+    });
+    setBenefitModalOpen(true);
+  };
+
+  const openEditBenefitModal = (b: any) => {
+    setEditingBenefitId(b.id);
+    setBenefitFormError(null);
+    setBenefitForm({
+      icon_name: b.icon_name || 'Sparkles',
+      title: b.title || '',
+      description: b.description || '',
+      display_order: Number(b.display_order ?? 1),
+      is_active: b.is_active ?? true,
+    });
+    setBenefitModalOpen(true);
+  };
+
+  const handleSaveBenefit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBenefitFormError(null);
+
+    if (!benefitForm.title.trim() || !benefitForm.description.trim()) {
+      setBenefitFormError('Benefit title and description are required.');
+      return;
+    }
+
+    setSavingBenefit(true);
+    try {
+      if (editingBenefitId) {
+        await adminService.updateServiceBenefit(editingBenefitId, benefitForm);
+        showToast(`Benefit "${benefitForm.title}" updated.`);
+      } else {
+        await adminService.createServiceBenefit(benefitForm);
+        showToast(`Benefit "${benefitForm.title}" added.`);
+      }
+      setBenefitModalOpen(false);
+      await loadData();
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to save service benefit.';
+      setBenefitFormError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setSavingBenefit(false);
+    }
+  };
+
+  const handleConfirmDeleteBenefit = async () => {
+    if (!deleteBenefitTarget) return;
+    setDeletingBenefit(true);
+    try {
+      await adminService.deleteServiceBenefit(deleteBenefitTarget.id);
+      showToast(`Service benefit "${deleteBenefitTarget.title}" deleted.`);
+      setDeleteBenefitTarget(null);
+      await loadData();
+    } catch (err: any) {
+      showToast('Failed to delete service benefit: ' + err.message, 'error');
+    } finally {
+      setDeletingBenefit(false);
+    }
+  };
+
   // ==================== CSV EXPORT ====================
   const exportToCSV = (filename: string, rows: object[]) => {
     if (!rows || !rows.length) {
@@ -1158,6 +1623,25 @@ export const AdminDashboardPage: React.FC = () => {
       (p.sku && p.sku.toLowerCase().includes(inventorySearch.toLowerCase()))
   );
 
+  const filteredUsers = usersList.filter((u) => {
+    const q = usersSearch.trim().toLowerCase();
+    return (
+      !q ||
+      (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+      (u.email && u.email.toLowerCase().includes(q)) ||
+      (u.phone && String(u.phone).toLowerCase().includes(q)) ||
+      (u.role && u.role.toLowerCase().includes(q))
+    );
+  });
+
+  const filteredContactMessages = contactMessages.filter(
+    (m) => messageStatusFilter === 'all' || (m.status || 'new') === messageStatusFilter
+  );
+
+  const filteredReviews = reviewsList.filter(
+    (r) => reviewStatusFilter === 'all' || (r.status || 'pending') === reviewStatusFilter
+  );
+
   const parsedModalImages = productForm.imagesText
     .split(/\r?\n|,/)
     .map((u) => u.trim())
@@ -1237,6 +1721,12 @@ export const AdminDashboardPage: React.FC = () => {
             { id: 'inventory', label: 'Inventory', icon: Layers },
             { id: 'categories', label: 'Categories', icon: Layers },
             { id: 'coupons', label: 'Coupons', icon: Tag },
+            {
+              id: 'users',
+              label: 'Users & Inquiries',
+              icon: Users,
+              badge: (metrics.unreadMessages || 0) + (metrics.pendingReviews || 0),
+            },
             { id: 'cms', label: 'Banners & CMS', icon: ImageIcon },
             { id: 'reports', label: 'Reports & Export', icon: FileDown },
           ].map((tab) => {
@@ -1254,6 +1744,16 @@ export const AdminDashboardPage: React.FC = () => {
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
+                {tab.badge && tab.badge > 0 ? (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive
+                      ? 'bg-white text-[#285A3C]'
+                      : 'bg-amber-100 text-amber-800'
+                      }`}
+                  >
+                    {tab.badge}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -1332,8 +1832,108 @@ export const AdminDashboardPage: React.FC = () => {
                       {metrics.totalCustomers}
                     </div>
                     <p className="text-[11px] text-[#285A3C] font-semibold">
-                      Registered customer profiles
+                      Registered customer accounts
+                      {metrics.staffCount > 0 ? ` (+${metrics.staffCount} staff)` : ''}
                     </p>
+                  </div>
+                </div>
+
+                {/* Operational Engagement Strip */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5] flex items-center justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#647268] block">
+                        Guest Buyers
+                      </span>
+                      <span className="font-golden text-xl font-bold text-[#1A3B2B] block">
+                        {metrics.guestOrderCustomers || 0}
+                      </span>
+                      <span className="text-[10px] text-[#647268] block truncate">
+                        Unique checkout buyers
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('users');
+                        setUsersSubTab('users');
+                      }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                    >
+                      Directory
+                    </button>
+                  </div>
+
+                  <div className="bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5] flex items-center justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#647268] block">
+                        Unread Inquiries
+                      </span>
+                      <span className="font-golden text-xl font-bold text-[#1A3B2B] block">
+                        {metrics.unreadMessages || 0}
+                      </span>
+                      <span className="text-[10px] text-[#647268] block truncate">
+                        Awaiting support reply
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('users');
+                        setUsersSubTab('messages');
+                      }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                    >
+                      Inbox
+                    </button>
+                  </div>
+
+                  <div className="bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5] flex items-center justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#647268] block">
+                        Newsletter
+                      </span>
+                      <span className="font-golden text-xl font-bold text-[#1A3B2B] block">
+                        {metrics.newsletterCount || 0}
+                      </span>
+                      <span className="text-[10px] text-[#647268] block truncate">
+                        Active email subscribers
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('users');
+                        setUsersSubTab('newsletter');
+                      }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                    >
+                      Manage
+                    </button>
+                  </div>
+
+                  <div className="bg-[#FAF5EE] p-4 rounded-xl border border-[#D8C7B5] flex items-center justify-between gap-3">
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#647268] block">
+                        Customer Reviews
+                      </span>
+                      <span className="font-golden text-xl font-bold text-[#1A3B2B] block">
+                        {metrics.publishedReviews || 0}
+                      </span>
+                      <span className="text-[10px] text-[#647268] block truncate">
+                        {metrics.pendingReviews || 0} pending moderation
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('users');
+                        setUsersSubTab('reviews');
+                      }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                    >
+                      Moderate
+                    </button>
                   </div>
                 </div>
 
