@@ -116,7 +116,9 @@ export const OrderConfirmationPage: React.FC = () => {
             Thank you for shopping with DORASANI
           </p>
           <p className="text-xs sm:text-sm text-[#4F6355]">
-            Your order has been received and our team is preparing your handloom package.
+            {order.paymentStatus === 'paid'
+              ? 'Payment verified via Razorpay. Your order has been confirmed and our weavers are preparing your handloom package.'
+              : 'Your order has been received and our team is preparing your handloom package.'}
           </p>
         </div>
       </div>
@@ -140,14 +142,34 @@ export const OrderConfirmationPage: React.FC = () => {
 
           <div className="space-y-1">
             <span className="text-[11px] text-[#4F6355] uppercase font-bold flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total Amount
+              <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total & Payment
             </span>
-            <p className="text-sm font-bold text-[#285A3C]">
-              ₹{order.total.toLocaleString('en-IN')}{' '}
-              <span className="text-[10px] text-[#4F6355] font-normal">
-                ({order.paymentMethod.toUpperCase()} • {order.paymentStatus})
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-bold text-[#285A3C]">
+                ₹{order.total.toLocaleString('en-IN')}
               </span>
-            </p>
+              <span className="text-[10px] font-semibold uppercase text-[#4F6355]">
+                • {order.paymentMethod}
+              </span>
+              <span
+                className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                  order.paymentStatus === 'paid'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : order.paymentStatus === 'failed'
+                    ? 'bg-rose-100 text-rose-800'
+                    : order.paymentStatus === 'refunded'
+                    ? 'bg-stone-100 text-stone-700'
+                    : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {order.paymentStatus}
+              </span>
+            </div>
+            {order.paymentDetails?.paymentId && (
+              <p className="text-[10px] font-mono text-[#647268] truncate">
+                Razorpay ID: {order.paymentDetails.paymentId}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">

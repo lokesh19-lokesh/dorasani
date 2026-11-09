@@ -155,6 +155,11 @@ export interface Order {
   courierPartner?: string;
   trackingId?: string;
   orderNotes?: string;
+  paymentDetails?: {
+    provider: string;
+    gatewayOrderId?: string;
+    paymentId?: string;
+  };
 }
 
 export type UserRole =

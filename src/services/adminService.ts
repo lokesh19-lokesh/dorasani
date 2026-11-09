@@ -445,7 +445,8 @@ export const adminService = {
       .select(
         `
         *,
-        order_items (*)
+        order_items (*),
+        payments (*)
       `,
         { count: 'exact' }
       )

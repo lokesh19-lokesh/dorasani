@@ -1,8 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { Product, CartItem, WishlistItem, Address, Order, UserProfile, Coupon, UserRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { checkoutService, calculateCouponDiscount } from '../services/checkoutService';
+import {
+  checkoutService,
+  calculateCouponDiscount,
+  saveRecentOrderToSession,
+  getCachedRecentOrder,
+  clearCachedRecentOrders,
+} from '../services/checkoutService';
+import { openRazorpayCheckout } from '../services/razorpayService';
 import { authService } from '../services/authService';
+
+export type CheckoutStage =
+  | 'idle'
+  | 'creating_order'
+  | 'awaiting_payment'
+  | 'verifying_payment';
 
 interface Toast {
   id: string;
@@ -68,8 +81,9 @@ interface StoreContextType {
   // Orders
   orders: Order[];
   placeOrder: (
-    orderData: Partial<Order> & { customerEmail?: string }
-  ) => Promise<{ success: boolean; order?: Order; error?: string }>;
+    orderData: Partial<Order> & { customerEmail?: string },
+    onStageChange?: (stage: CheckoutStage) => void
+  ) => Promise<{ success: boolean; cancelled?: boolean; order?: Order; error?: string }>;
   getOrder: (orderNumber: string) => Order | undefined;
 
   // Toasts
@@ -324,6 +338,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!isMounted) return;
       if (event === 'SIGNED_OUT' || !session?.user) {
         hydrationSeqRef.current += 1;
+        if (event === 'SIGNED_OUT') {
+          clearCachedRecentOrders();
+        }
         setUser(null);
         setOrders([]);
         setAddresses([]);
@@ -639,6 +656,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem('dorasani_user');
     localStorage.removeItem('dorasani_orders');
     localStorage.removeItem('dorasani_admin_override');
+    clearCachedRecentOrders();
     setUser(null);
     setOrders([]);
     setAddresses([]);
@@ -704,8 +722,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const placeOrder = async (
-    orderData: Partial<Order> & { customerEmail?: string }
-  ): Promise<{ success: boolean; order?: Order; error?: string }> => {
+    orderData: Partial<Order> & { customerEmail?: string },
+    onStageChange?: (stage: CheckoutStage) => void
+  ): Promise<{ success: boolean; cancelled?: boolean; order?: Order; error?: string }> => {
     if (selectedCartItems.length === 0) {
       const msg = 'No items selected for checkout.';
       showToast(msg, 'error');
@@ -713,7 +732,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     if (!isSupabaseConfigured) {
-      const msg = 'Live order service is not configured.';
+      const msg = 'Live payment and order service is not configured.';
       showToast(msg, 'error');
       return { success: false, error: msg };
     }
@@ -724,118 +743,280 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const effectiveShipping = chosenDelivery === 'express' ? 99 : shippingFee;
     const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);
     const idempotencyKey = `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const customerName = chosenAddress.fullName || user?.fullName || '';
+    const customerEmail = (orderData.customerEmail || user?.email || '').trim();
+    const customerPhone = (chosenAddress.phone || user?.phone || '').trim();
 
-    const res = await checkoutService.processOrder({
+    const buildFallbackOrder = (params: {
+      orderId: string;
+      orderNumber: string;
+      total?: number;
+      paymentStatus: 'pending' | 'paid';
+      gatewayOrderId?: string;
+      paymentId?: string;
+    }): Order => {
+      const nowLabel = new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return {
+        id: params.orderId,
+        orderNumber: params.orderNumber,
+        date: nowLabel,
+        items: selectedCartItems.map((item) => ({
+          productId: item.product.id,
+          productTitle: item.product.title,
+          variantColor: item.selectedColor,
+          price: item.product.price,
+          quantity: item.quantity,
+          imageUrl: item.product.primaryImage,
+        })),
+        shippingAddress: chosenAddress,
+        deliveryOption: chosenDelivery,
+        subtotal,
+        discount,
+        shippingFee: effectiveShipping,
+        total: params.total ?? computedTotal,
+        paymentMethod: chosenPayment,
+        paymentStatus: params.paymentStatus,
+        status: 'confirmed',
+        courierPartner: '',
+        trackingId: '',
+        orderNotes: orderData.orderNotes,
+        paymentDetails:
+          params.gatewayOrderId || params.paymentId
+            ? {
+                provider: 'razorpay',
+                gatewayOrderId: params.gatewayOrderId,
+                paymentId: params.paymentId,
+              }
+            : undefined,
+        timeline: [
+          {
+            title: 'Order Placed',
+            description:
+              params.paymentStatus === 'paid'
+                ? 'Payment verified via Razorpay and order confirmed.'
+                : 'Your order has been confirmed and is being processed.',
+            timestamp: nowLabel,
+            completed: true,
+            current: true,
+          },
+          {
+            title: 'Processing & Packing',
+            description: 'Preparing your handloom order.',
+            timestamp: 'Upcoming',
+            completed: false,
+          },
+          {
+            title: 'Shipped',
+            description: 'Handed over to delivery partner.',
+            timestamp: 'Upcoming',
+            completed: false,
+          },
+          {
+            title: 'Out for Delivery',
+            description: 'Your package is on the way to your doorstep.',
+            timestamp: 'Upcoming',
+            completed: false,
+          },
+          {
+            title: 'Delivered',
+            description: 'Estimated within 3-5 business days.',
+            timestamp: 'Upcoming',
+            completed: false,
+          },
+        ],
+      };
+    };
+
+    const finalizeLocalOrderState = (finalOrder: Order) => {
+      saveRecentOrderToSession(finalOrder);
+      setOrders((prev) => [
+        finalOrder,
+        ...prev.filter((o) => o.orderNumber !== finalOrder.orderNumber),
+      ]);
+      setCart((prev) => prev.filter((item) => !item.selected));
+      setAppliedCoupon(null);
+      void refreshCoupons();
+
+      if (user?.id) {
+        checkoutService
+          .getCustomerOrders(user.id)
+          .then((liveOrders) => {
+            if (liveOrders && liveOrders.length > 0) {
+              setOrders(liveOrders);
+            }
+          })
+          .catch(() => {});
+      }
+
+      onStageChange?.('idle');
+      showToast(`Order #${finalOrder.orderNumber} placed successfully!`);
+    };
+
+    onStageChange?.('creating_order');
+
+    const initRes = await checkoutService.initiateCheckoutSession({
       userId: user?.id,
-      customerName: chosenAddress.fullName || user?.fullName || '',
-      customerEmail: orderData.customerEmail || user?.email || '',
-      customerPhone: chosenAddress.phone || user?.phone || '',
+      customerName,
+      customerEmail,
+      customerPhone,
       billingAddress: chosenAddress,
       shippingAddress: chosenAddress,
       deliveryOption: chosenDelivery,
       paymentMethod: chosenPayment,
       cartItems: selectedCartItems,
       couponCode: appliedCoupon?.code,
+      orderNotes: orderData.orderNotes,
       idempotencyKey,
     });
 
-    if (!res.success || !res.orderNumber) {
-      const errMsg = res.error || 'Unable to place order. Please try again.';
+    if (!initRes.success) {
+      onStageChange?.('idle');
+      const errMsg = initRes.error || 'Unable to initiate checkout. Please try again.';
       showToast(errMsg, 'error');
       return { success: false, error: errMsg };
     }
 
-    const dbTotal = res.total ?? computedTotal;
-    const nowLabel = new Date().toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const newOrder: Order = {
-      id: res.orderId || `ord-${Date.now()}`,
-      orderNumber: res.orderNumber,
-      date: nowLabel,
-      items: selectedCartItems.map((item) => ({
-        productId: item.product.id,
-        productTitle: item.product.title,
-        variantColor: item.selectedColor,
-        price: item.product.price,
-        quantity: item.quantity,
-        imageUrl: item.product.primaryImage,
-      })),
-      shippingAddress: chosenAddress,
-      deliveryOption: chosenDelivery,
-      subtotal,
-      discount,
-      shippingFee: effectiveShipping,
-      total: dbTotal,
-      paymentMethod: chosenPayment,
-      paymentStatus: chosenPayment === 'cod' ? 'pending' : 'pending',
-      status: 'confirmed',
-      courierPartner: '',
-      trackingId: '',
-      orderNotes: orderData.orderNotes,
-      timeline: [
-        {
-          title: 'Order Placed',
-          description: 'Your order has been confirmed and is being processed.',
-          timestamp: nowLabel,
-          completed: true,
-          current: true,
-        },
-        {
-          title: 'Processing & Packing',
-          description: 'Preparing your handloom order.',
-          timestamp: 'Upcoming',
-          completed: false,
-        },
-        {
-          title: 'Shipped',
-          description: 'Handed over to delivery partner.',
-          timestamp: 'Upcoming',
-          completed: false,
-        },
-        {
-          title: 'Out for Delivery',
-          description: 'Your package is on the way to your doorstep.',
-          timestamp: 'Upcoming',
-          completed: false,
-        },
-        {
-          title: 'Delivered',
-          description: 'Estimated within 3-5 business days.',
-          timestamp: 'Upcoming',
-          completed: false,
-        },
-      ],
-    };
-
-    setOrders((prev) => [newOrder, ...prev.filter((o) => o.orderNumber !== newOrder.orderNumber)]);
-    setCart((prev) => prev.filter((item) => !item.selected));
-    setAppliedCoupon(null);
-    void refreshCoupons();
-
-    if (user?.id) {
-      checkoutService.getCustomerOrders(user.id).then((liveOrders) => {
-        if (liveOrders && liveOrders.length > 0) {
-          setOrders(liveOrders);
-        }
-      }).catch(() => {});
+    if (initRes.flow === 'cod') {
+      const finalOrder =
+        initRes.order ||
+        buildFallbackOrder({
+          orderId: initRes.orderId || `ord-${Date.now()}`,
+          orderNumber: initRes.orderNumber,
+          total: initRes.total,
+          paymentStatus: 'pending',
+        });
+      finalizeLocalOrderState(finalOrder);
+      return { success: true, order: finalOrder };
     }
 
-    showToast(`Order #${newOrder.orderNumber} placed successfully!`);
-    return { success: true, order: newOrder };
+    if (initRes.alreadyPaid && initRes.order) {
+      finalizeLocalOrderState(initRes.order);
+      return { success: true, order: initRes.order };
+    }
+
+    onStageChange?.('awaiting_payment');
+
+    const preferredMethod =
+      chosenPayment === 'upi' ||
+      chosenPayment === 'card' ||
+      chosenPayment === 'netbanking' ||
+      chosenPayment === 'wallet'
+        ? chosenPayment
+        : undefined;
+
+    try {
+      const modalOutcome = await openRazorpayCheckout({
+        keyId: initRes.keyId,
+        razorpayOrderId: initRes.razorpayOrderId,
+        amountInPaise: initRes.amountInPaise,
+        currency: initRes.currency,
+        customerName,
+        customerEmail,
+        customerPhone,
+        preferredMethod,
+        checkoutSessionId: initRes.checkoutSessionId,
+        description: `DORASANI Handloom Order (${selectedCartItems.length} item${selectedCartItems.length === 1 ? '' : 's'})`,
+      });
+
+      if (modalOutcome.status === 'dismissed') {
+        const report = await checkoutService.reportRazorpayAttemptStatus({
+          action: 'mark_cancelled',
+          checkoutSessionId: initRes.checkoutSessionId,
+          razorpayOrderId: initRes.razorpayOrderId,
+        });
+
+        if (report.alreadyPaid && report.order) {
+          finalizeLocalOrderState(report.order);
+          return { success: true, order: report.order };
+        }
+
+        onStageChange?.('idle');
+        const cancelMsg =
+          'Payment was cancelled before completion. Your shopping bag and coupon are still saved — you can retry or choose Cash on Delivery.';
+        showToast('Payment cancelled. Your bag is saved.', 'info');
+        return { success: false, cancelled: true, error: cancelMsg };
+      }
+
+      if (modalOutcome.status === 'failed') {
+        const report = await checkoutService.reportRazorpayAttemptStatus({
+          action: 'mark_failed',
+          checkoutSessionId: initRes.checkoutSessionId,
+          razorpayOrderId: initRes.razorpayOrderId,
+          razorpayPaymentId: modalOutcome.error?.metadata?.payment_id,
+          errorCode: modalOutcome.error?.code,
+          errorDescription: modalOutcome.error?.description,
+        });
+
+        if (report.alreadyPaid && report.order) {
+          finalizeLocalOrderState(report.order);
+          return { success: true, order: report.order };
+        }
+
+        onStageChange?.('idle');
+        const reasonText =
+          modalOutcome.error?.description ||
+          modalOutcome.error?.reason ||
+          'The payment was declined by the bank or UPI app.';
+        const failMsg = `Payment failed: ${reasonText} Your bag and coupon are still saved — please try again or choose another payment method.`;
+        showToast(reasonText, 'error');
+        return { success: false, error: failMsg };
+      }
+
+      onStageChange?.('verifying_payment');
+
+      const verifyRes = await checkoutService.verifyRazorpayPayment({
+        checkoutSessionId: initRes.checkoutSessionId,
+        razorpayOrderId: modalOutcome.response.razorpay_order_id,
+        razorpayPaymentId: modalOutcome.response.razorpay_payment_id,
+        razorpaySignature: modalOutcome.response.razorpay_signature,
+      });
+
+      if (!verifyRes.success || !verifyRes.orderNumber) {
+        onStageChange?.('idle');
+        const paymentRef = modalOutcome.response.razorpay_payment_id;
+        const baseErr =
+          verifyRes.error || 'Could not verify Razorpay payment on the server.';
+        const errMsg = `${baseErr} If your account was debited, quote Razorpay Payment ID: ${paymentRef}.`;
+        showToast(errMsg, 'error');
+        return { success: false, error: errMsg };
+      }
+
+      const finalOrder =
+        verifyRes.order ||
+        buildFallbackOrder({
+          orderId: verifyRes.orderId || `ord-${Date.now()}`,
+          orderNumber: verifyRes.orderNumber,
+          total: verifyRes.total ?? initRes.total,
+          paymentStatus: 'paid',
+          gatewayOrderId: modalOutcome.response.razorpay_order_id,
+          paymentId: modalOutcome.response.razorpay_payment_id,
+        });
+
+      finalizeLocalOrderState(finalOrder);
+      return { success: true, order: finalOrder };
+    } catch (err: any) {
+      onStageChange?.('idle');
+      const errMsg =
+        err?.message ||
+        'Unable to launch Razorpay Checkout. Please check your connection and try again.';
+      showToast(errMsg, 'error');
+      return { success: false, error: errMsg };
+    }
   };
 
   const getOrder = (orderNumber: string) => {
-    return orders.find(
-      (o) =>
-        o.orderNumber.toLowerCase() === orderNumber.toLowerCase() ||
-        o.id === orderNumber
+    const clean = orderNumber.trim().toLowerCase();
+    const fromState = orders.find(
+      (o) => o.orderNumber.toLowerCase() === clean || o.id.toLowerCase() === clean
     );
+    if (fromState) return fromState;
+    return getCachedRecentOrder(orderNumber) || undefined;
   };
 
   return (

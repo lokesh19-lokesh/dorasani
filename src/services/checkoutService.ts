@@ -12,7 +12,135 @@ export interface CheckoutPayload {
   paymentMethod: string;
   cartItems: CartItem[];
   couponCode?: string;
+  orderNotes?: string;
   idempotencyKey?: string;
+}
+
+export type InitiateCheckoutResult =
+  | {
+      success: true;
+      flow: 'cod';
+      orderId: string;
+      orderNumber: string;
+      total: number;
+      order?: Order;
+    }
+  | {
+      success: true;
+      flow: 'razorpay';
+      alreadyPaid?: boolean;
+      checkoutSessionId: string;
+      keyId: string;
+      razorpayOrderId: string;
+      amountInPaise: number;
+      currency: string;
+      total: number;
+      orderId?: string;
+      orderNumber?: string;
+      order?: Order;
+    }
+  | {
+      success: false;
+      error: string;
+      code?: string;
+    };
+
+export interface VerifyRazorpayResult {
+  success: boolean;
+  alreadyPaid?: boolean;
+  orderId?: string;
+  orderNumber?: string;
+  total?: number;
+  order?: Order;
+  error?: string;
+}
+
+const RECENT_ORDERS_SESSION_KEY = 'dorasani_recent_orders';
+
+export function saveRecentOrderToSession(order: Order): void {
+  if (typeof window === 'undefined' || !order?.orderNumber) return;
+  try {
+    const raw = window.sessionStorage.getItem(RECENT_ORDERS_SESSION_KEY);
+    const existing: Order[] = raw ? JSON.parse(raw) : [];
+    const filtered = Array.isArray(existing)
+      ? existing.filter(
+          (o) =>
+            o?.orderNumber?.toLowerCase() !== order.orderNumber.toLowerCase() &&
+            o?.id !== order.id
+        )
+      : [];
+    const next = [order, ...filtered].slice(0, 10);
+    window.sessionStorage.setItem(RECENT_ORDERS_SESSION_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage quota or private mode issues
+  }
+}
+
+export function getCachedRecentOrder(queryTerm: string): Order | null {
+  if (typeof window === 'undefined' || !queryTerm?.trim()) return null;
+  const clean = queryTerm.trim().replace(/^#/, '').toLowerCase();
+  if (!clean) return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(RECENT_ORDERS_SESSION_KEY);
+    if (!raw) return null;
+    const list: Order[] = JSON.parse(raw);
+    if (!Array.isArray(list)) return null;
+    return (
+      list.find(
+        (o) =>
+          o.orderNumber?.toLowerCase() === clean ||
+          o.id?.toLowerCase() === clean ||
+          (o.trackingId && o.trackingId.toLowerCase() === clean)
+      ) || null
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function clearCachedRecentOrders(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(RECENT_ORDERS_SESSION_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+async function extractFunctionError(
+  error: any,
+  data: any,
+  fallback: string
+): Promise<{ message: string; code?: string }> {
+  if (data && typeof data === 'object' && typeof data.error === 'string' && data.error.trim()) {
+    return { message: data.error, code: data.code };
+  }
+
+  const ctx = error?.context;
+  if (ctx && typeof ctx.clone === 'function') {
+    try {
+      const parsed = await ctx.clone().json();
+      if (parsed && typeof parsed.error === 'string' && parsed.error.trim()) {
+        return { message: parsed.error, code: parsed.code };
+      }
+    } catch {
+      try {
+        const text = await ctx.clone().text();
+        if (text && text.trim()) {
+          return { message: text.trim() };
+        }
+      } catch {
+        // Ignore parse failure
+      }
+    }
+  }
+
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return { message: error.message };
+  }
+
+  return { message: fallback };
 }
 
 export function mapDbCouponToCoupon(row: any): Coupon {
@@ -123,7 +251,10 @@ function buildOrderTimeline(o: any): Order['timeline'] {
     {
       key: ['pending', 'confirmed'],
       title: 'Order Placed',
-      desc: 'Your order has been confirmed.',
+      desc:
+        o.payment_status === 'paid'
+          ? 'Payment verified and order confirmed.'
+          : 'Your order has been confirmed.',
     },
     {
       key: ['processing', 'packed'],
@@ -169,6 +300,17 @@ function buildOrderTimeline(o: any): Order['timeline'] {
 }
 
 export function mapDbOrderToOrder(o: any): Order {
+  const paymentsList: any[] = Array.isArray(o.payments)
+    ? o.payments
+    : o.payments
+    ? [o.payments]
+    : [];
+
+  const primaryPayment =
+    paymentsList.find((p) => p?.status === 'paid' || p?.status === 'refunded') ||
+    paymentsList[0] ||
+    null;
+
   return {
     id: o.id,
     orderNumber: o.order_number,
@@ -182,7 +324,7 @@ export function mapDbOrderToOrder(o: any): Order {
     items: (o.order_items || []).map((i: any) => ({
       productId: i.product_id || i.id,
       productTitle: i.product_title,
-      variantColor: i.product_sku || 'Standard',
+      variantColor: i.variant_details?.color || i.product_sku || 'Standard',
       price: i.unit_price_inr,
       quantity: i.quantity,
       imageUrl: i.image_url || '/assets/products/kanjivaram_silk_saree.jpg',
@@ -209,6 +351,13 @@ export function mapDbOrderToOrder(o: any): Order {
     courierPartner: o.courier_name || '',
     trackingId: o.tracking_id || '',
     orderNotes: o.customer_notes || undefined,
+    paymentDetails: primaryPayment
+      ? {
+          provider: primaryPayment.provider,
+          gatewayOrderId: primaryPayment.provider_order_id || undefined,
+          paymentId: primaryPayment.provider_payment_id || undefined,
+        }
+      : undefined,
   };
 }
 
@@ -231,7 +380,11 @@ export const checkoutService = {
         .filter((row) => {
           if (row.start_date && new Date(row.start_date) > now) return false;
           if (row.end_date && new Date(row.end_date) <= now) return false;
-          if (row.usage_limit !== null && row.usage_limit !== undefined && (row.used_count ?? 0) >= row.usage_limit) {
+          if (
+            row.usage_limit !== null &&
+            row.usage_limit !== undefined &&
+            (row.used_count ?? 0) >= row.usage_limit
+          ) {
             return false;
           }
           return true;
@@ -280,7 +433,11 @@ export const checkoutService = {
       if (data.end_date && new Date(data.end_date) <= now) {
         return { valid: false, discount: 0, message: 'This coupon has expired.' };
       }
-      if (data.usage_limit !== null && data.usage_limit !== undefined && (data.used_count ?? 0) >= data.usage_limit) {
+      if (
+        data.usage_limit !== null &&
+        data.usage_limit !== undefined &&
+        (data.used_count ?? 0) >= data.usage_limit
+      ) {
         return { valid: false, discount: 0, message: 'This coupon has reached its maximum usage limit.' };
       }
 
@@ -308,12 +465,177 @@ export const checkoutService = {
     }
   },
 
-  // Process atomic transactional checkout
+  // Create Razorpay order session OR place COD order via create-checkout Edge Function
+  async initiateCheckoutSession(payload: CheckoutPayload): Promise<InitiateCheckoutResult> {
+    if (!isSupabaseConfigured) {
+      return {
+        success: false,
+        error: 'Live payment gateway connection is not configured.',
+      };
+    }
+
+    try {
+      const formattedItems = payload.cartItems.map((item) => ({
+        productId: item.product.id,
+        variantId: null,
+        quantity: item.quantity,
+      }));
+
+      const idempotencyKey =
+        payload.idempotencyKey || `idem-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          customerName: payload.customerName,
+          customerEmail: payload.customerEmail,
+          customerPhone: payload.customerPhone,
+          billingAddress: payload.billingAddress,
+          shippingAddress: payload.shippingAddress,
+          items: formattedItems,
+          couponCode: payload.couponCode || null,
+          paymentMethod: payload.paymentMethod,
+          deliveryOption: payload.deliveryOption,
+          orderNotes: payload.orderNotes || null,
+          idempotencyKey,
+        },
+        headers: {
+          'idempotency-key': idempotencyKey,
+        },
+      });
+
+      if (error || !data?.success) {
+        const extracted = await extractFunctionError(
+          error,
+          data,
+          'Unable to initiate checkout. Please try again.'
+        );
+        return {
+          success: false,
+          error: extracted.message,
+          code: extracted.code,
+        };
+      }
+
+      const mappedOrder = data.order ? mapDbOrderToOrder(data.order) : undefined;
+
+      if (data.flow === 'cod' || (data.alreadyPaid && mappedOrder)) {
+        return {
+          success: true,
+          flow: 'cod',
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+          total: Number(data.total ?? mappedOrder?.total ?? 0),
+          order: mappedOrder,
+        };
+      }
+
+      return {
+        success: true,
+        flow: 'razorpay',
+        alreadyPaid: Boolean(data.alreadyPaid),
+        checkoutSessionId: data.checkoutSessionId,
+        keyId: data.keyId,
+        razorpayOrderId: data.razorpayOrderId || data.paymentGateway?.gatewayOrderId,
+        amountInPaise: Number(data.amountInPaise ?? data.paymentGateway?.amountInPaise ?? 0),
+        currency: data.currency || 'INR',
+        total: Number(data.total ?? 0),
+        orderId: data.orderId,
+        orderNumber: data.orderNumber,
+        order: mappedOrder,
+      };
+    } catch (err: any) {
+      console.error('Checkout initiation failed:', err);
+      return {
+        success: false,
+        error: err?.message || 'Unable to connect to checkout service. Please try again.',
+      };
+    }
+  },
+
+  // Verify Razorpay payment signature & finalize atomic order on backend
+  async verifyRazorpayPayment(params: {
+    checkoutSessionId: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }): Promise<VerifyRazorpayResult> {
+    if (!isSupabaseConfigured) {
+      return { success: false, error: 'Live payment verification is not configured.' };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: {
+          action: 'verify',
+          checkoutSessionId: params.checkoutSessionId,
+          razorpayOrderId: params.razorpayOrderId,
+          razorpayPaymentId: params.razorpayPaymentId,
+          razorpaySignature: params.razorpaySignature,
+        },
+      });
+
+      if (error || !data?.success) {
+        const extracted = await extractFunctionError(
+          error,
+          data,
+          'Could not verify Razorpay payment on the server.'
+        );
+        return { success: false, error: extracted.message };
+      }
+
+      const mappedOrder = data.order ? mapDbOrderToOrder(data.order) : undefined;
+      return {
+        success: true,
+        alreadyPaid: Boolean(data.alreadyPaid),
+        orderId: data.orderId,
+        orderNumber: data.orderNumber || mappedOrder?.orderNumber,
+        total: Number(data.total ?? mappedOrder?.total ?? 0),
+        order: mappedOrder,
+      };
+    } catch (err: any) {
+      console.error('Razorpay verification request failed:', err);
+      return {
+        success: false,
+        error: err?.message || 'Unable to verify payment right now.',
+      };
+    }
+  },
+
+  // Record cancellation / payment failure state cleanly (and check whether webhook already fulfilled order)
+  async reportRazorpayAttemptStatus(params: {
+    action: 'mark_cancelled' | 'mark_failed';
+    checkoutSessionId: string;
+    razorpayOrderId: string;
+    razorpayPaymentId?: string;
+    errorCode?: string;
+    errorDescription?: string;
+  }): Promise<{ alreadyPaid?: boolean; order?: Order }> {
+    if (!isSupabaseConfigured) return {};
+
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: params,
+      });
+
+      if (!error && data?.alreadyPaid && data?.order) {
+        return {
+          alreadyPaid: true,
+          order: mapDbOrderToOrder(data.order),
+        };
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  },
+
+  // Process atomic transactional checkout (used for direct COD calls / fallback)
   async processOrder(payload: CheckoutPayload): Promise<{
     success: boolean;
     orderId?: string;
     orderNumber?: string;
     total?: number;
+    order?: Order;
     error?: string;
   }> {
     if (!isSupabaseConfigured) {
@@ -333,7 +655,6 @@ export const checkoutService = {
       const idempotencyKey =
         payload.idempotencyKey || `idem-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-      // Execute PostgreSQL atomic function
       const { data, error } = await supabase.rpc('process_checkout_atomic', {
         p_user_id: (payload.userId || null) as any,
         p_customer_name: payload.customerName,
@@ -346,6 +667,7 @@ export const checkoutService = {
         p_payment_method: payload.paymentMethod,
         p_delivery_option: payload.deliveryOption,
         p_idempotency_key: idempotencyKey,
+        p_customer_notes: payload.orderNotes || null,
       });
 
       if (error) {
@@ -378,7 +700,8 @@ export const checkoutService = {
         .select(
           `
           *,
-          order_items (*)
+          order_items (*),
+          payments (*)
         `
         )
         .eq('user_id', userId)
@@ -395,28 +718,33 @@ export const checkoutService = {
 
   // Look up an order accessible under current RLS session by order_number or tracking_id
   async lookupOrderByNumber(queryTerm: string): Promise<Order | null> {
-    if (!isSupabaseConfigured || !queryTerm.trim()) return null;
+    if (!queryTerm.trim()) return null;
 
-    const clean = queryTerm.trim().replace(/^#/, '').replace(/[,%()]/g, '');
-    if (!clean) return null;
+    if (isSupabaseConfigured) {
+      const clean = queryTerm.trim().replace(/^#/, '').replace(/[,%()]/g, '');
+      if (clean) {
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .select(
+              `
+              *,
+              order_items (*),
+              payments (*)
+            `
+            )
+            .or(`order_number.ilike.${clean},tracking_id.ilike.${clean}`)
+            .maybeSingle();
 
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(
-          `
-          *,
-          order_items (*)
-        `
-        )
-        .or(`order_number.ilike.${clean},tracking_id.ilike.${clean}`)
-        .maybeSingle();
-
-      if (error || !data) return null;
-      return mapDbOrderToOrder(data);
-    } catch (err) {
-      console.error('Failed to look up order:', err);
-      return null;
+          if (!error && data) {
+            return mapDbOrderToOrder(data);
+          }
+        } catch (err) {
+          console.error('Failed to look up order:', err);
+        }
+      }
     }
+
+    return getCachedRecentOrder(queryTerm);
   },
 };

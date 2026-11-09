@@ -422,24 +422,40 @@ export const AccountPage: React.FC = () => {
                               className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
                             />
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-xs text-[#1A3B2B]">
                                   Order #{ord.orderNumber}
                                 </span>
                                 <span
                                   className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                                    ord.status === 'out_for_delivery' || ord.status === 'confirmed'
+                                    ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
                                       ? 'bg-[#D0E9C0] text-[#1A3B2B]'
+                                      : ord.status === 'cancelled' || ord.status === 'refunded'
+                                      ? 'bg-rose-100 text-rose-800'
                                       : 'bg-gray-100 text-gray-700'
                                   }`}
                                 >
                                   {ord.status.replace(/_/g, ' ')}
                                 </span>
+                                <span
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                    ord.paymentStatus === 'paid'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : ord.paymentStatus === 'failed'
+                                      ? 'bg-rose-100 text-rose-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {ord.paymentMethod} • {ord.paymentStatus}
+                                </span>
                               </div>
                               <p className="text-xs font-medium text-[#1A3B2B]">
                                 {ord.items[0]?.productTitle}
                               </p>
-                              <p className="text-[11px] text-[#4F6355]">{ord.date}</p>
+                              <p className="text-[11px] text-[#4F6355]">
+                                {ord.date}
+                                {ord.paymentDetails?.paymentId ? ` • Ref: ${ord.paymentDetails.paymentId}` : ''}
+                              </p>
                             </div>
                           </div>
 
@@ -522,13 +538,29 @@ export const AccountPage: React.FC = () => {
                             className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
                           />
                           <div className="space-y-1">
-                            <span className="font-bold text-xs text-[#1A3B2B] block">
-                              Order #{ord.orderNumber}
-                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs text-[#1A3B2B]">
+                                Order #{ord.orderNumber}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  ord.paymentStatus === 'paid'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : ord.paymentStatus === 'failed'
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {ord.paymentMethod} • {ord.paymentStatus}
+                              </span>
+                            </div>
                             <p className="text-xs text-[#4F6355]">
                               {ord.items.map((i) => i.productTitle).join(', ')}
                             </p>
-                            <p className="text-[11px] text-[#4F6355]">{ord.date}</p>
+                            <p className="text-[11px] text-[#4F6355]">
+                              {ord.date}
+                              {ord.paymentDetails?.paymentId ? ` • Razorpay: ${ord.paymentDetails.paymentId}` : ''}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">

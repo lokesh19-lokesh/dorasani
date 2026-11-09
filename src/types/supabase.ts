@@ -142,6 +142,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"checkout_sessions": {
+                  Row: {
+                    "billing_address": NonNullable<Json>,"cart_items": NonNullable<Json>,"coupon_code": string | null,"created_at": string,"currency": string,"customer_email": string,"customer_name": string,"customer_notes": string | null,"customer_phone": string,"delivery_option": string,"discount_inr": number,"error_code": string | null,"error_description": string | null,"expected_amount_paise": number,"expires_at": string,"id": string,"idempotency_key": string,"order_id": string | null,"payment_method": string,"razorpay_order_id": string | null,"razorpay_payment_id": string | null,"shipping_address": NonNullable<Json>,"shipping_fee_inr": number,"status": string,"subtotal_inr": number,"total_inr": number,"updated_at": string,"user_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "billing_address": NonNullable<Json>,"cart_items": NonNullable<Json>,"coupon_code"?: string | null,"created_at"?: string,"currency"?: string,"customer_email": string,"customer_name": string,"customer_notes"?: string | null,"customer_phone": string,"delivery_option"?: string,"discount_inr"?: number,"error_code"?: string | null,"error_description"?: string | null,"expected_amount_paise": number,"expires_at"?: string,"id"?: string,"idempotency_key": string,"order_id"?: string | null,"payment_method": string,"razorpay_order_id"?: string | null,"razorpay_payment_id"?: string | null,"shipping_address": NonNullable<Json>,"shipping_fee_inr"?: number,"status"?: string,"subtotal_inr": number,"total_inr": number,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "billing_address"?: NonNullable<Json>,"cart_items"?: NonNullable<Json>,"coupon_code"?: string | null,"created_at"?: string,"currency"?: string,"customer_email"?: string,"customer_name"?: string,"customer_notes"?: string | null,"customer_phone"?: string,"delivery_option"?: string,"discount_inr"?: number,"error_code"?: string | null,"error_description"?: string | null,"expected_amount_paise"?: number,"expires_at"?: string,"id"?: string,"idempotency_key"?: string,"order_id"?: string | null,"payment_method"?: string,"razorpay_order_id"?: string | null,"razorpay_payment_id"?: string | null,"shipping_address"?: NonNullable<Json>,"shipping_fee_inr"?: number,"status"?: string,"subtotal_inr"?: number,"total_inr"?: number,"updated_at"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "checkout_sessions_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"collection_products": {
                   Row: {
                     "collection_id": string,"created_at": string | null,"display_order": number | null,"id": string,"product_id": string
@@ -784,7 +804,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "process_checkout_atomic":
-{ Args: { "p_billing_address": Json,"p_cart_items": Json,"p_coupon_code": string,"p_customer_email": string,"p_customer_name": string,"p_customer_phone": string,"p_delivery_option": string,"p_idempotency_key": string,"p_payment_method": string,"p_shipping_address": Json,"p_user_id": string }; Returns: Json
+{ Args: { "p_billing_address": Json,"p_cart_items": Json,"p_coupon_code": string,"p_customer_email": string,"p_customer_name": string,"p_customer_notes"?: string | null,"p_customer_phone": string,"p_delivery_option": string,"p_idempotency_key": string,"p_payment_method": string,"p_shipping_address": Json,"p_user_id": string }; Returns: Json
                            },
 "show_limit":
 { Args: Record<PropertyKey, never>; Returns: number

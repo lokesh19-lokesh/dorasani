@@ -163,8 +163,11 @@ export const TrackOrderPage: React.FC = () => {
                 setTrackingIdInput(e.target.value);
                 if (lookupError) setLookupError(null);
               }}
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck={false}
               placeholder="Enter Order # or Tracking ID"
-              className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3.5 py-2 text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+              className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3.5 py-2 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
             />
             <button
               type="submit"
@@ -247,14 +250,34 @@ export const TrackOrderPage: React.FC = () => {
 
               <div>
                 <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total Amount
+                  <CreditCard className="w-3.5 h-3.5 text-[#285A3C]" /> Total & Payment
                 </span>
-                <p className="font-bold text-sm text-[#285A3C] mt-0.5">
-                  ₹{currentOrder.total.toLocaleString('en-IN')}{' '}
-                  <span className="text-[10px] text-[#4F6355] font-normal">
-                    ({currentOrder.paymentMethod.toUpperCase()} • {currentOrder.paymentStatus})
+                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  <span className="font-bold text-sm text-[#285A3C]">
+                    ₹{currentOrder.total.toLocaleString('en-IN')}
                   </span>
-                </p>
+                  <span className="text-[10px] font-semibold uppercase text-[#4F6355]">
+                    • {currentOrder.paymentMethod}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                      currentOrder.paymentStatus === 'paid'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : currentOrder.paymentStatus === 'failed'
+                        ? 'bg-rose-100 text-rose-800'
+                        : currentOrder.paymentStatus === 'refunded'
+                        ? 'bg-stone-100 text-stone-700'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {currentOrder.paymentStatus}
+                  </span>
+                </div>
+                {currentOrder.paymentDetails?.paymentId && (
+                  <p className="text-[10px] font-mono text-[#647268] mt-0.5 truncate">
+                    Razorpay ID: {currentOrder.paymentDetails.paymentId}
+                  </p>
+                )}
               </div>
 
               <div>

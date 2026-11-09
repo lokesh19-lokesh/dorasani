@@ -1114,14 +1114,26 @@ export const AdminDashboardPage: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  const filteredOrders = orders.filter(
-    (o) =>
-      (!orderSearch ||
-        o.order_number.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        o.customer_name.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        o.customer_email.toLowerCase().includes(orderSearch.toLowerCase())) &&
-      (orderStatusFilter === 'all' || o.order_status === orderStatusFilter)
-  );
+  const filteredOrders = orders.filter((o) => {
+    const q = orderSearch.trim().toLowerCase();
+    const paymentsList: any[] = Array.isArray(o.payments)
+      ? o.payments
+      : o.payments
+      ? [o.payments]
+      : [];
+    const matchesSearch =
+      !q ||
+      o.order_number.toLowerCase().includes(q) ||
+      o.customer_name.toLowerCase().includes(q) ||
+      o.customer_email.toLowerCase().includes(q) ||
+      paymentsList.some(
+        (p) =>
+          p?.provider_payment_id?.toLowerCase().includes(q) ||
+          p?.provider_order_id?.toLowerCase().includes(q)
+      );
+    const matchesStatus = orderStatusFilter === 'all' || o.order_status === orderStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const filteredInventoryProducts = products.filter(
     (p) =>
@@ -1219,11 +1231,10 @@ export const AdminDashboardPage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
-                  isActive
-                    ? 'bg-[#285A3C] text-white shadow-xs'
-                    : 'text-[#4F6355] hover:bg-[#D0E9C0]/30 hover:text-[#1A3B2B]'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${isActive
+                  ? 'bg-[#285A3C] text-white shadow-xs'
+                  : 'text-[#4F6355] hover:bg-[#D0E9C0]/30 hover:text-[#1A3B2B]'
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -1384,13 +1395,12 @@ export const AdminDashboardPage: React.FC = () => {
                               </td>
                               <td className="p-2.5">
                                 <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                                    o.order_status === 'delivered'
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : o.order_status === 'cancelled'
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${o.order_status === 'delivered'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : o.order_status === 'cancelled'
                                       ? 'bg-rose-100 text-rose-800'
                                       : 'bg-amber-100 text-amber-800'
-                                  }`}
+                                    }`}
                                 >
                                   {o.order_status}
                                 </span>
@@ -1544,9 +1554,8 @@ export const AdminDashboardPage: React.FC = () => {
                               </td>
                               <td className="p-3">
                                 <span
-                                  className={`font-semibold ${
-                                    p.stock_quantity < 5 ? 'text-rose-600' : 'text-[#1A3B2B]'
-                                  }`}
+                                  className={`font-semibold ${p.stock_quantity < 5 ? 'text-rose-600' : 'text-[#1A3B2B]'
+                                    }`}
                                 >
                                   {p.stock_quantity} units
                                 </span>
@@ -1558,13 +1567,12 @@ export const AdminDashboardPage: React.FC = () => {
                                   onChange={(e) =>
                                     void handleQuickProductStatus(p.id, e.target.value)
                                   }
-                                  className={`text-[11px] font-semibold rounded-lg px-2 py-1 border focus:outline-none ${
-                                    p.status === 'active'
-                                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                      : p.status === 'out_of_stock'
+                                  className={`text-[11px] font-semibold rounded-lg px-2 py-1 border focus:outline-none ${p.status === 'active'
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                    : p.status === 'out_of_stock'
                                       ? 'bg-rose-50 border-rose-200 text-rose-800'
                                       : 'bg-amber-50 border-amber-200 text-amber-800'
-                                  }`}
+                                    }`}
                                 >
                                   {PRODUCT_STATUSES.map((st) => (
                                     <option key={st.value} value={st.value}>
@@ -1630,7 +1638,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <input
                       type="search"
                       aria-label="Search orders"
-                      placeholder="Search orders by number, customer, email..."
+                      placeholder="Search orders by #, customer, email, or Razorpay ID..."
                       value={orderSearch}
                       onChange={(e) => setOrderSearch(e.target.value)}
                       autoCorrect="off"
@@ -1655,11 +1663,10 @@ export const AdminDashboardPage: React.FC = () => {
                         key={status}
                         type="button"
                         onClick={() => setOrderStatusFilter(status)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${
-                          orderStatusFilter === status
-                            ? 'bg-[#285A3C] text-white'
-                            : 'bg-white border border-[#D8C7B5] text-[#4F6355] hover:bg-[#FAF5EE]'
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${orderStatusFilter === status
+                          ? 'bg-[#285A3C] text-white'
+                          : 'bg-white border border-[#D8C7B5] text-[#4F6355] hover:bg-[#FAF5EE]'
+                          }`}
                       >
                         {status.replace(/_/g, ' ')}
                       </button>
@@ -1722,45 +1729,82 @@ export const AdminDashboardPage: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E8DCCF]">
-                          {filteredOrders.map((o) => (
-                            <tr key={o.id} className="hover:bg-[#FAF5EE]/50">
-                              <th scope="row" className="p-3 font-bold text-[#1A3B2B]">
-                                <div>
-                                  <span>{o.order_number}</span>
-                                  {o.tracking_id && (
-                                    <span className="block text-[10px] font-normal text-[#647268]">
-                                      {o.courier_name || 'Courier'}: {o.tracking_id}
-                                    </span>
-                                  )}
-                                </div>
-                              </th>
-                              <td className="p-3">
-                                <div>
-                                  <p className="font-semibold text-[#1A3B2B]">{o.customer_name}</p>
-                                  <p className="text-[10px] text-[#647268]">{o.customer_phone}</p>
-                                </div>
-                              </td>
-                              <td className="p-3">{o.order_items?.length || 1} item(s)</td>
-                              <td className="p-3 font-bold text-[#285A3C]">
-                                ₹{Number(o.total_inr || 0).toLocaleString('en-IN')}
-                              </td>
-                              <td className="p-3 capitalize">
-                                <div>
-                                  <span className="font-semibold">{o.payment_method}</span>
-                                  <span className="block text-[10px] text-[#285A3C]">
-                                    {o.payment_status}
-                                  </span>
-                                </div>
-                              </td>
+                          {filteredOrders.map((o) => {
+                            const paymentsList: any[] = Array.isArray(o.payments)
+                              ? o.payments
+                              : o.payments
+                              ? [o.payments]
+                              : [];
+                            const primaryPayment =
+                              paymentsList.find(
+                                (p) => p?.status === 'paid' || p?.status === 'refunded'
+                              ) ||
+                              paymentsList[0] ||
+                              null;
+
+                            return (
+                              <tr key={o.id} className="hover:bg-[#FAF5EE]/50">
+                                <th scope="row" className="p-3 font-bold text-[#1A3B2B]">
+                                  <div>
+                                    <span>{o.order_number}</span>
+                                    {o.tracking_id && (
+                                      <span className="block text-[10px] font-normal text-[#647268]">
+                                        {o.courier_name || 'Courier'}: {o.tracking_id}
+                                      </span>
+                                    )}
+                                  </div>
+                                </th>
+                                <td className="p-3">
+                                  <div>
+                                    <p className="font-semibold text-[#1A3B2B]">{o.customer_name}</p>
+                                    <p className="text-[10px] text-[#647268]">{o.customer_phone}</p>
+                                  </div>
+                                </td>
+                                <td className="p-3">{o.order_items?.length || 1} item(s)</td>
+                                <td className="p-3 font-bold text-[#285A3C]">
+                                  ₹{Number(o.total_inr || 0).toLocaleString('en-IN')}
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-semibold uppercase text-[11px] text-[#1A3B2B]">
+                                        {o.payment_method}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                          o.payment_status === 'paid'
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : o.payment_status === 'failed'
+                                            ? 'bg-rose-100 text-rose-800'
+                                            : o.payment_status === 'refunded' ||
+                                              o.payment_status === 'partially_refunded'
+                                            ? 'bg-stone-100 text-stone-700'
+                                            : o.payment_status === 'authorized'
+                                            ? 'bg-sky-100 text-sky-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                        }`}
+                                      >
+                                        {String(o.payment_status || 'pending').replace(/_/g, ' ')}
+                                      </span>
+                                    </div>
+                                    {primaryPayment?.provider_payment_id && (
+                                      <span
+                                        className="block text-[10px] font-mono text-[#647268] truncate max-w-[165px]"
+                                        title={`Razorpay Payment ID: ${primaryPayment.provider_payment_id}`}
+                                      >
+                                        {primaryPayment.provider_payment_id}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
                               <td className="p-3">
                                 <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
-                                    o.order_status === 'delivered'
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : o.order_status === 'cancelled'
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${o.order_status === 'delivered'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : o.order_status === 'cancelled'
                                       ? 'bg-rose-100 text-rose-800'
                                       : 'bg-amber-100 text-amber-800'
-                                  }`}
+                                    }`}
                                 >
                                   {o.order_status.replace(/_/g, ' ')}
                                 </span>
@@ -1781,19 +1825,20 @@ export const AdminDashboardPage: React.FC = () => {
                                       </option>
                                     ))}
                                   </select>
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditOrderModal(o)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
-                                    title="Edit courier & tracking details"
-                                  >
-                                    <Truck className="w-3 h-3 text-[#285A3C]" />
-                                    <span>Dispatch</span>
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditOrderModal(o)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                      title="Edit courier & tracking details"
+                                    >
+                                      <Truck className="w-3 h-3 text-[#285A3C]" />
+                                      <span>Dispatch</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -2022,13 +2067,12 @@ export const AdminDashboardPage: React.FC = () => {
                                 </td>
                                 <td className="p-3">
                                   <span
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      delta > 0
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : delta < 0
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${delta > 0
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : delta < 0
                                         ? 'bg-rose-100 text-rose-800'
                                         : 'bg-stone-100 text-stone-700'
-                                    }`}
+                                      }`}
                                   >
                                     {delta > 0 ? `+${delta}` : delta}
                                   </span>
@@ -2112,11 +2156,10 @@ export const AdminDashboardPage: React.FC = () => {
                               </div>
                             </div>
                             <span
-                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                                c.is_active
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-rose-100 text-rose-800'
-                              }`}
+                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${c.is_active
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
+                                }`}
                             >
                               {c.is_active ? 'Active' : 'Hidden'}
                             </span>
@@ -2204,11 +2247,10 @@ export const AdminDashboardPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => void handleToggleCoupon(c.id, Boolean(c.is_active))}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${
-                                c.is_active
-                                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                  : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-colors ${c.is_active
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                                }`}
                               title="Click to toggle status"
                             >
                               {c.is_active ? 'Active' : 'Disabled'}
@@ -2219,11 +2261,10 @@ export const AdminDashboardPage: React.FC = () => {
                             <p className="font-semibold">
                               Discount:{' '}
                               {c.discount_type === 'percentage'
-                                ? `${c.discount_value}%${
-                                    c.max_discount_inr
-                                      ? ` (max ₹${Number(c.max_discount_inr).toLocaleString('en-IN')})`
-                                      : ''
-                                  }`
+                                ? `${c.discount_value}%${c.max_discount_inr
+                                  ? ` (max ₹${Number(c.max_discount_inr).toLocaleString('en-IN')})`
+                                  : ''
+                                }`
                                 : `₹${Number(c.discount_value).toLocaleString('en-IN')}`}
                             </p>
                             <p className="text-[11px] text-[#647268]">
@@ -2308,11 +2349,10 @@ export const AdminDashboardPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => void handleToggleBanner(b)}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                b.is_active
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-rose-600 text-white'
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${b.is_active
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-rose-600 text-white'
+                                }`}
                             >
                               {b.is_active ? 'Published' : 'Hidden'}
                             </button>
@@ -2381,7 +2421,48 @@ export const AdminDashboardPage: React.FC = () => {
                     </p>
                     <button
                       type="button"
-                      onClick={() => exportToCSV('dorasani_orders', orders)}
+                      onClick={() =>
+                        exportToCSV(
+                          'dorasani_orders',
+                          orders.map((o) => {
+                            const paymentsList: any[] = Array.isArray(o.payments)
+                              ? o.payments
+                              : o.payments
+                              ? [o.payments]
+                              : [];
+                            const primaryPayment =
+                              paymentsList.find(
+                                (p) => p?.status === 'paid' || p?.status === 'refunded'
+                              ) ||
+                              paymentsList[0] ||
+                              null;
+                            return {
+                              order_number: o.order_number,
+                              created_at: o.created_at,
+                              customer_name: o.customer_name,
+                              customer_email: o.customer_email,
+                              customer_phone: o.customer_phone,
+                              order_status: o.order_status,
+                              payment_method: o.payment_method,
+                              payment_status: o.payment_status,
+                              payment_provider:
+                                primaryPayment?.provider || (o.payment_method === 'cod' ? 'cod' : ''),
+                              razorpay_order_id: primaryPayment?.provider_order_id || '',
+                              razorpay_payment_id: primaryPayment?.provider_payment_id || '',
+                              subtotal_inr: o.subtotal_inr,
+                              discount_inr: o.discount_inr,
+                              shipping_fee_inr: o.shipping_fee_inr,
+                              total_inr: o.total_inr,
+                              coupon_code: o.coupon_code || '',
+                              delivery_option: o.delivery_option,
+                              courier_name: o.courier_name || '',
+                              tracking_id: o.tracking_id || '',
+                              items_count: Array.isArray(o.order_items) ? o.order_items.length : 0,
+                              shipping_address: o.shipping_address,
+                            };
+                          })
+                        )
+                      }
                       className="w-full py-2.5 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] shadow-xs"
                     >
                       Export Orders (CSV)
@@ -2664,11 +2745,10 @@ export const AdminDashboardPage: React.FC = () => {
               {PRODUCT_STATUSES.map((st) => (
                 <label
                   key={st.value}
-                  className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                    productForm.status === st.value
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                      : 'border-[#D8C7B5] bg-white hover:bg-[#FAF5EE]'
-                  }`}
+                  className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${productForm.status === st.value
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                    : 'border-[#D8C7B5] bg-white hover:bg-[#FAF5EE]'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -2866,8 +2946,8 @@ export const AdminDashboardPage: React.FC = () => {
               {savingProduct
                 ? 'Saving...'
                 : editingProductId
-                ? 'Update Product'
-                : 'Save Product to Supabase'}
+                  ? 'Update Product'
+                  : 'Save Product to Supabase'}
             </button>
           </div>
         </form>
@@ -2955,11 +3035,10 @@ export const AdminDashboardPage: React.FC = () => {
             <legend className="font-semibold text-[#1A3B2B]">Update Mode</legend>
             <div className="grid grid-cols-2 gap-2">
               <label
-                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${
-                  stockMode === 'exact'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                    : 'border-[#D8C7B5] bg-white'
-                }`}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${stockMode === 'exact'
+                  ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                  : 'border-[#D8C7B5] bg-white'
+                  }`}
               >
                 <input
                   type="radio"
@@ -2976,11 +3055,10 @@ export const AdminDashboardPage: React.FC = () => {
               </label>
 
               <label
-                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${
-                  stockMode === 'delta'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                    : 'border-[#D8C7B5] bg-white'
-                }`}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${stockMode === 'delta'
+                  ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                  : 'border-[#D8C7B5] bg-white'
+                  }`}
               >
                 <input
                   type="radio"
@@ -3033,11 +3111,10 @@ export const AdminDashboardPage: React.FC = () => {
               {STOCK_REASONS.map((r) => (
                 <label
                   key={r.value}
-                  className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer ${
-                    stockReason === r.value
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                      : 'border-[#D8C7B5] bg-white'
-                  }`}
+                  className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer ${stockReason === r.value
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                    : 'border-[#D8C7B5] bg-white'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -3349,8 +3426,8 @@ export const AdminDashboardPage: React.FC = () => {
               {savingCategory
                 ? 'Saving...'
                 : editingCategoryId
-                ? 'Update Category'
-                : 'Create Category'}
+                  ? 'Update Category'
+                  : 'Create Category'}
             </button>
           </div>
         </form>
@@ -3457,11 +3534,10 @@ export const AdminDashboardPage: React.FC = () => {
             <legend className="font-semibold text-[#1A3B2B]">Discount Type</legend>
             <div className="grid grid-cols-2 gap-2">
               <label
-                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${
-                  couponForm.discount_type === 'percentage'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                    : 'border-[#D8C7B5] bg-white'
-                }`}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${couponForm.discount_type === 'percentage'
+                  ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                  : 'border-[#D8C7B5] bg-white'
+                  }`}
               >
                 <input
                   type="radio"
@@ -3477,11 +3553,10 @@ export const AdminDashboardPage: React.FC = () => {
               </label>
 
               <label
-                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${
-                  couponForm.discount_type === 'fixed'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                    : 'border-[#D8C7B5] bg-white'
-                }`}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer ${couponForm.discount_type === 'fixed'
+                  ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                  : 'border-[#D8C7B5] bg-white'
+                  }`}
               >
                 <input
                   type="radio"
@@ -3619,8 +3694,8 @@ export const AdminDashboardPage: React.FC = () => {
               {savingCoupon
                 ? 'Saving...'
                 : editingCouponId
-                ? 'Update Coupon'
-                : 'Create Coupon'}
+                  ? 'Update Coupon'
+                  : 'Create Coupon'}
             </button>
           </div>
         </form>
@@ -3706,11 +3781,10 @@ export const AdminDashboardPage: React.FC = () => {
               {BANNER_TYPES.map((bt) => (
                 <label
                   key={bt.value}
-                  className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer ${
-                    bannerForm.banner_type === bt.value
-                      ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                      : 'border-[#D8C7B5] bg-white'
-                  }`}
+                  className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer ${bannerForm.banner_type === bt.value
+                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
+                    : 'border-[#D8C7B5] bg-white'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -3944,8 +4018,8 @@ export const AdminDashboardPage: React.FC = () => {
               {savingBanner
                 ? 'Saving...'
                 : editingBannerId
-                ? 'Update Banner'
-                : 'Create Banner'}
+                  ? 'Update Banner'
+                  : 'Create Banner'}
             </button>
           </div>
         </form>
