@@ -2941,95 +2941,1220 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* TAB: CMS & BANNERS */}
-            {activeTab === 'cms' && (
-              <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
-                      Dynamic Storefront Banners
-                    </h2>
-                    <p className="text-xs text-[#647268]">
-                      Manage hero banners, mobile images, titles, and CTA links without code edits
-                    </p>
-                  </div>
+            {/* TAB: USERS & INQUIRIES */}
+            {activeTab === 'users' && (
+              <div className="space-y-6">
+                {/* Sub-navigation bar */}
+                <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-2xl border border-[#D8C7B5] shadow-xs">
                   <button
                     type="button"
-                    onClick={openCreateBannerModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
+                    onClick={() => setUsersSubTab('users')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'users'
+                      ? 'bg-[#285A3C] text-white'
+                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Banner</span>
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Registered Users & Roles ({usersList.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUsersSubTab('messages')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'messages'
+                      ? 'bg-[#285A3C] text-white'
+                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Contact Inquiries ({contactMessages.length})</span>
+                    {metrics.unreadMessages > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        {metrics.unreadMessages} new
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUsersSubTab('newsletter')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'newsletter'
+                      ? 'bg-[#285A3C] text-white'
+                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Newsletter ({subscribers.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUsersSubTab('reviews')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'reviews'
+                      ? 'bg-[#285A3C] text-white'
+                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
+                  >
+                    <Star className="w-3.5 h-3.5" />
+                    <span>Product Reviews ({reviewsList.length})</span>
+                    {metrics.pendingReviews > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        {metrics.pendingReviews} pending
+                      </span>
+                    )}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {banners.map((b) => (
-                    <div
-                      key={b.id}
-                      className="rounded-2xl border border-[#D8C7B5] overflow-hidden bg-[#FAF5EE] flex flex-col justify-between p-4 gap-3"
-                    >
-                      <div className="space-y-3">
-                        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/10">
-                          <img
-                            src={b.desktop_image_url}
-                            alt={b.title_line_1}
-                            className="w-full h-full object-cover"
+                {/* Sub-tab 1: Users, Roles & Admin Allowlist */}
+                {usersSubTab === 'users' && (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                            Registered Users & Roles
+                          </h2>
+                          <p className="text-xs text-[#647268]">
+                            Inspect customer profiles, activity telemetry, and assigned database roles
+                            {user?.role !== 'super_admin'
+                              ? ' (role changes restricted to Super Admin)'
+                              : ''}
+                          </p>
+                        </div>
+                        <div className="relative min-w-[240px]">
+                          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8E9B92]" />
+                          <input
+                            type="search"
+                            aria-label="Search registered users"
+                            placeholder="Search by name, email, or phone..."
+                            value={usersSearch}
+                            onChange={(e) => setUsersSearch(e.target.value)}
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] text-xs focus:outline-none focus:border-[#285A3C]"
                           />
-                          <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded-full bg-white/90 text-[10px] font-bold uppercase text-[#1A3B2B]">
-                              {b.banner_type}
+                        </div>
+                      </div>
+
+                      {filteredUsers.length === 0 ? (
+                        <p className="py-8 text-center text-xs text-[#647268]">
+                          No registered profiles match your filter. Note: guest checkout buyers appear in Orders until they create an account.
+                        </p>
+                      ) : (
+                        <div
+                          tabIndex={0}
+                          role="region"
+                          aria-labelledby="users-table-caption"
+                          className="admin-table-wrapper"
+                        >
+                          <table
+                            className="admin-responsive-table w-full text-left text-xs"
+                            style={
+                              {
+                                '--label-2': '"Phone"',
+                                '--label-3': '"Role"',
+                                '--label-4': '"Joined"',
+                                '--label-5': '"Activity"',
+                              } as React.CSSProperties
+                            }
+                          >
+                            <caption id="users-table-caption" className="sr-only">
+                              Registered users and database role directory
+                            </caption>
+                            <thead className="text-[#647268]">
+                              <tr>
+                                <th scope="col" className="p-3 font-semibold">User</th>
+                                <th scope="col" className="p-3 font-semibold">Phone</th>
+                                <th scope="col" className="p-3 font-semibold">Role</th>
+                                <th scope="col" className="p-3 font-semibold">Joined</th>
+                                <th scope="col" className="p-3 font-semibold text-right">Activity</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E8DCCF]">
+                              {filteredUsers.map((u) => {
+                                const isSelf = u.id === user?.id;
+                                return (
+                                  <tr key={u.id} className="hover:bg-[#FAF5EE]/50">
+                                    <th scope="row" className="p-3 text-left font-normal">
+                                      <p className="font-semibold text-[#1A3B2B]">
+                                        {u.full_name || 'DORASANI Member'}
+                                        {isSelf ? ' (You)' : ''}
+                                      </p>
+                                      <p className="text-[11px] font-mono text-[#647268]">{u.email || '—'}</p>
+                                    </th>
+                                    <td className="p-3 text-[#4F6355]">{u.phone || '—'}</td>
+                                    <td className="p-3">
+                                      {user?.role === 'super_admin' ? (
+                                        <select
+                                          aria-label={`Role for ${u.email || u.full_name}`}
+                                          disabled={isSelf}
+                                          value={u.role || 'customer'}
+                                          onChange={(e) =>
+                                            void handleUpdateUserRole(u, e.target.value as UserRole)
+                                          }
+                                          title={
+                                            isSelf
+                                              ? 'Cannot change your own super admin role'
+                                              : 'Assign role'
+                                          }
+                                          className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2 py-1 text-[#1A3B2B] disabled:opacity-60"
+                                        >
+                                          {USER_ROLES.map((r) => (
+                                            <option key={r.value} value={r.value}>
+                                              {r.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#D0E9C0]/60 text-[#1A3B2B]">
+                                          {String(u.role || 'customer').replace(/_/g, ' ')}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="p-3 text-[#647268]">
+                                      {u.created_at
+                                        ? new Date(u.created_at).toLocaleDateString('en-GB')
+                                        : '—'}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => void openActivityLogsModal(u)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                      >
+                                        <Activity className="w-3 h-3 text-[#285A3C]" />
+                                        <span>View Logs</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Super Admin Allowlist Management */}
+                    {user?.role === 'super_admin' && (
+                      <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                        <div className="flex items-start gap-3">
+                          <Shield className="w-5 h-5 text-[#285A3C] shrink-0 mt-0.5" />
+                          <div>
+                            <h3 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                              Authorized Admin Emails Allowlist (`admin_emails`)
+                            </h3>
+                            <p className="text-xs text-[#647268]">
+                              Emails listed here automatically receive their designated staff role upon sign-in or signup verification
+                            </p>
+                          </div>
+                        </div>
+
+                        <form
+                          onSubmit={handleSaveAdminEmail}
+                          className="dorasani-form grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-[#FAF5EE] p-4 rounded-xl border border-[#E8DCCF] text-xs"
+                        >
+                          <div className="md:col-span-4 space-y-1">
+                            <label htmlFor="allowlist-email" className="font-semibold text-[#1A3B2B] block">
+                              Staff Email Address *
+                            </label>
+                            <input
+                              id="allowlist-email"
+                              name="email"
+                              type="email"
+                              required
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck={false}
+                              value={adminEmailInput}
+                              onChange={(e) => setAdminEmailInput(e.target.value)}
+                              placeholder="staff@example.com"
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            />
+                          </div>
+
+                          <div className="md:col-span-3 space-y-1">
+                            <label htmlFor="allowlist-role" className="font-semibold text-[#1A3B2B] block">
+                              Granted Role
+                            </label>
+                            <select
+                              id="allowlist-role"
+                              name="role"
+                              value={adminEmailRole}
+                              onChange={(e) => setAdminEmailRole(e.target.value as UserRole)}
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            >
+                              {USER_ROLES.filter((r) => r.value !== 'customer').map((r) => (
+                                <option key={r.value} value={r.value}>
+                                  {r.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-3 space-y-1">
+                            <label htmlFor="allowlist-notes" className="font-semibold text-[#1A3B2B] block">
+                              Notes (Optional)
+                            </label>
+                            <input
+                              id="allowlist-notes"
+                              name="notes"
+                              type="text"
+                              value={adminEmailNotes}
+                              onChange={(e) => setAdminEmailNotes(e.target.value)}
+                              placeholder="e.g. Fulfillment lead"
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <button
+                              type="submit"
+                              disabled={savingAdminEmail}
+                              className="w-full py-2.5 px-3 rounded-lg bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] disabled:opacity-60"
+                            >
+                              {savingAdminEmail ? 'Saving...' : 'Allow Email'}
+                            </button>
+                          </div>
+                        </form>
+
+                        {adminEmails.length > 0 && (
+                          <div
+                            tabIndex={0}
+                            role="region"
+                            aria-labelledby="allowlist-table-caption"
+                            className="admin-table-wrapper"
+                          >
+                            <table
+                              className="admin-responsive-table w-full text-left text-xs"
+                              style={
+                                {
+                                  '--label-2': '"Role"',
+                                  '--label-3': '"Notes"',
+                                  '--label-4': '"Status"',
+                                  '--label-5': '"Actions"',
+                                } as React.CSSProperties
+                              }
+                            >
+                              <caption id="allowlist-table-caption" className="sr-only">
+                                Authorized administrator email allowlist
+                              </caption>
+                              <thead className="text-[#647268]">
+                                <tr>
+                                  <th scope="col" className="p-3 font-semibold">Email</th>
+                                  <th scope="col" className="p-3 font-semibold">Role</th>
+                                  <th scope="col" className="p-3 font-semibold">Notes</th>
+                                  <th scope="col" className="p-3 font-semibold">Status</th>
+                                  <th scope="col" className="p-3 font-semibold text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#E8DCCF]">
+                                {adminEmails.map((entry) => {
+                                  const isSelfEmail =
+                                    entry.email?.toLowerCase() === user?.email?.toLowerCase();
+                                  return (
+                                    <tr key={entry.email} className="hover:bg-[#FAF5EE]/50">
+                                      <th scope="row" className="p-3 font-mono font-semibold text-[#1A3B2B]">
+                                        {entry.email}
+                                      </th>
+                                      <td className="p-3 capitalize">
+                                        {String(entry.role || 'admin').replace(/_/g, ' ')}
+                                      </td>
+                                      <td className="p-3 text-[#647268]">{entry.notes || '—'}</td>
+                                      <td className="p-3">
+                                        <button
+                                          type="button"
+                                          disabled={isSelfEmail}
+                                          onClick={() => void handleToggleAdminEmailActive(entry)}
+                                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase disabled:opacity-60 ${entry.is_active
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-rose-100 text-rose-800'
+                                            }`}
+                                        >
+                                          {entry.is_active ? 'Active' : 'Disabled'}
+                                        </button>
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <button
+                                          type="button"
+                                          disabled={isSelfEmail}
+                                          onClick={() => void handleDeleteAdminEmail(entry.email)}
+                                          className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-40"
+                                          aria-label={`Remove ${entry.email}`}
+                                          title={
+                                            isSelfEmail
+                                              ? 'Cannot remove your own active email'
+                                              : 'Remove from allowlist'
+                                          }
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-tab 2: Contact Messages */}
+                {usersSubTab === 'messages' && (
+                  <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                          Customer Contact Inquiries
+                        </h2>
+                        <p className="text-xs text-[#647268]">
+                          Messages submitted from the storefront Contact & Stylist Assistance page
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(['all', 'new', 'read', 'responded'] as const).map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setMessageStatusFilter(st)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${messageStatusFilter === st
+                              ? 'bg-[#285A3C] text-white'
+                              : 'bg-[#FAF5EE] border border-[#D8C7B5] text-[#4F6355]'
+                              }`}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {filteredContactMessages.length === 0 ? (
+                      <p className="py-10 text-center text-xs text-[#647268]">
+                        No customer inquiries match this filter.
+                      </p>
+                    ) : (
+                      <div
+                        tabIndex={0}
+                        role="region"
+                        aria-labelledby="messages-table-caption"
+                        className="admin-table-wrapper"
+                      >
+                        <table
+                          className="admin-responsive-table w-full text-left text-xs"
+                          style={
+                            {
+                              '--label-2': '"Subject"',
+                              '--label-3': '"Preview"',
+                              '--label-4': '"Status"',
+                              '--label-5': '"Date"',
+                              '--label-6': '"Actions"',
+                            } as React.CSSProperties
+                          }
+                        >
+                          <caption id="messages-table-caption" className="sr-only">
+                            Customer contact inquiries inbox
+                          </caption>
+                          <thead className="text-[#647268]">
+                            <tr>
+                              <th scope="col" className="p-3 font-semibold">Sender</th>
+                              <th scope="col" className="p-3 font-semibold">Subject</th>
+                              <th scope="col" className="p-3 font-semibold">Preview</th>
+                              <th scope="col" className="p-3 font-semibold">Status</th>
+                              <th scope="col" className="p-3 font-semibold">Date</th>
+                              <th scope="col" className="p-3 font-semibold text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E8DCCF]">
+                            {filteredContactMessages.map((msg) => (
+                              <tr key={msg.id} className="hover:bg-[#FAF5EE]/50">
+                                <th scope="row" className="p-3 text-left font-normal">
+                                  <p className="font-semibold text-[#1A3B2B]">{msg.name}</p>
+                                  <p className="text-[11px] font-mono text-[#647268]">{msg.email}</p>
+                                  {msg.phone && (
+                                    <p className="text-[10px] text-[#8E9B92]">{msg.phone}</p>
+                                  )}
+                                </th>
+                                <td className="p-3 font-medium text-[#1A3B2B]">
+                                  {msg.subject || 'General Inquiry'}
+                                </td>
+                                <td className="p-3 text-[#647268] max-w-[240px] truncate">
+                                  {msg.message}
+                                </td>
+                                <td className="p-3">
+                                  <select
+                                    aria-label={`Status for message from ${msg.name}`}
+                                    value={msg.status || 'new'}
+                                    onChange={(e) =>
+                                      void handleUpdateContactStatus(
+                                        msg.id,
+                                        e.target.value as 'new' | 'read' | 'responded'
+                                      )
+                                    }
+                                    className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2 py-1 text-[#1A3B2B]"
+                                  >
+                                    {MESSAGE_STATUSES.map((st) => (
+                                      <option key={st.value} value={st.value}>
+                                        {st.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="p-3 text-[#647268]">
+                                  {new Date(msg.created_at).toLocaleDateString('en-GB')}
+                                </td>
+                                <td className="p-3 text-right">
+                                  <div className="inline-flex items-center gap-1.5 justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => setContactViewTarget(msg)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                    >
+                                      <Eye className="w-3 h-3 text-[#285A3C]" />
+                                      <span>View</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleDeleteContactMessage(msg.id)}
+                                      className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                      aria-label={`Delete message from ${msg.name}`}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-tab 3: Newsletter Subscribers */}
+                {usersSubTab === 'newsletter' && (
+                  <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                          Newsletter Subscribers
+                        </h2>
+                        <p className="text-xs text-[#647268]">
+                          Patrons subscribed via the DORASANI Family footer signup
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => exportToCSV('dorasani_newsletter_subscribers', subscribers)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] shadow-xs"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+
+                    {subscribers.length === 0 ? (
+                      <p className="py-10 text-center text-xs text-[#647268]">
+                        No newsletter subscribers recorded yet.
+                      </p>
+                    ) : (
+                      <div
+                        tabIndex={0}
+                        role="region"
+                        aria-labelledby="newsletter-table-caption"
+                        className="admin-table-wrapper"
+                      >
+                        <table
+                          className="admin-responsive-table w-full text-left text-xs"
+                          style={
+                            {
+                              '--label-2': '"Status"',
+                              '--label-3': '"Subscribed On"',
+                              '--label-4': '"Actions"',
+                            } as React.CSSProperties
+                          }
+                        >
+                          <caption id="newsletter-table-caption" className="sr-only">
+                            Newsletter subscriber list
+                          </caption>
+                          <thead className="text-[#647268]">
+                            <tr>
+                              <th scope="col" className="p-3 font-semibold">Email</th>
+                              <th scope="col" className="p-3 font-semibold">Status</th>
+                              <th scope="col" className="p-3 font-semibold">Subscribed On</th>
+                              <th scope="col" className="p-3 font-semibold text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E8DCCF]">
+                            {subscribers.map((sub) => {
+                              const active = sub.is_active !== false;
+                              return (
+                                <tr key={sub.id} className="hover:bg-[#FAF5EE]/50">
+                                  <th scope="row" className="p-3 font-mono font-semibold text-[#1A3B2B]">
+                                    {sub.email}
+                                  </th>
+                                  <td className="p-3">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${active
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-stone-200 text-stone-700'
+                                        }`}
+                                    >
+                                      {active ? 'Active' : 'Unsubscribed'}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-[#647268]">
+                                    {sub.created_at
+                                      ? new Date(sub.created_at).toLocaleDateString('en-GB')
+                                      : '—'}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleToggleSubscriber(sub)}
+                                      className="px-3 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                    >
+                                      {active ? 'Pause' : 'Reactivate'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-tab 4: Product Reviews Moderation */}
+                {usersSubTab === 'reviews' && (
+                  <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                          Product Reviews Moderation
+                        </h2>
+                        <p className="text-xs text-[#647268]">
+                          Approving, rejecting, or deleting reviews automatically recalculates product star ratings and counts
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setReviewStatusFilter(st)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${reviewStatusFilter === st
+                              ? 'bg-[#285A3C] text-white'
+                              : 'bg-[#FAF5EE] border border-[#D8C7B5] text-[#4F6355]'
+                              }`}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {filteredReviews.length === 0 ? (
+                      <p className="py-10 text-center text-xs text-[#647268]">
+                        No product reviews match this filter.
+                      </p>
+                    ) : (
+                      <div
+                        tabIndex={0}
+                        role="region"
+                        aria-labelledby="reviews-table-caption"
+                        className="admin-table-wrapper"
+                      >
+                        <table
+                          className="admin-responsive-table w-full text-left text-xs"
+                          style={
+                            {
+                              '--label-2': '"Reviewer"',
+                              '--label-3': '"Rating"',
+                              '--label-4': '"Review"',
+                              '--label-5': '"Status"',
+                              '--label-6': '"Date"',
+                              '--label-7': '"Actions"',
+                            } as React.CSSProperties
+                          }
+                        >
+                          <caption id="reviews-table-caption" className="sr-only">
+                            Customer product reviews moderation table
+                          </caption>
+                          <thead className="text-[#647268]">
+                            <tr>
+                              <th scope="col" className="p-3 font-semibold">Product</th>
+                              <th scope="col" className="p-3 font-semibold">Reviewer</th>
+                              <th scope="col" className="p-3 font-semibold">Rating</th>
+                              <th scope="col" className="p-3 font-semibold">Review</th>
+                              <th scope="col" className="p-3 font-semibold">Status</th>
+                              <th scope="col" className="p-3 font-semibold">Date</th>
+                              <th scope="col" className="p-3 font-semibold text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#E8DCCF]">
+                            {filteredReviews.map((rev) => (
+                              <tr key={rev.id} className="hover:bg-[#FAF5EE]/50">
+                                <th scope="row" className="p-3 text-left font-semibold text-[#1A3B2B]">
+                                  {rev.products?.slug ? (
+                                    <Link
+                                      to={`/product/${rev.products.slug}`}
+                                      target="_blank"
+                                      className="hover:text-[#285A3C] hover:underline"
+                                    >
+                                      {rev.products?.title || 'Product'}
+                                    </Link>
+                                  ) : (
+                                    rev.products?.title || 'Product'
+                                  )}
+                                </th>
+                                <td className="p-3">
+                                  <p className="font-semibold text-[#1A3B2B]">{rev.reviewer_name}</p>
+                                  {rev.verified_purchase && (
+                                    <span className="text-[10px] font-bold text-emerald-700">
+                                      Verified Buyer
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-3 font-bold text-[#C29336]">★ {rev.rating}/5</td>
+                                <td className="p-3 max-w-[260px]">
+                                  {rev.title && (
+                                    <p className="font-semibold text-[#1A3B2B] truncate">{rev.title}</p>
+                                  )}
+                                  <p className="text-[#647268] line-clamp-2">{rev.content}</p>
+                                </td>
+                                <td className="p-3">
+                                  <select
+                                    aria-label={`Moderation status for review by ${rev.reviewer_name}`}
+                                    value={rev.status || 'pending'}
+                                    onChange={(e) =>
+                                      void handleUpdateReviewStatus(
+                                        rev.id,
+                                        e.target.value as 'pending' | 'approved' | 'rejected'
+                                      )
+                                    }
+                                    className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#FAF5EE] rounded-lg px-2 py-1 text-[#1A3B2B]"
+                                  >
+                                    {REVIEW_STATUSES.map((st) => (
+                                      <option key={st.value} value={st.value}>
+                                        {st.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="p-3 text-[#647268]">
+                                  {new Date(rev.created_at).toLocaleDateString('en-GB')}
+                                </td>
+                                <td className="p-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleDeleteReview(rev.id)}
+                                    className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                    aria-label={`Delete review by ${rev.reviewer_name}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: CMS, SETTINGS & BANNERS */}
+            {activeTab === 'cms' && (
+              <div className="space-y-8">
+                {/* 1. Storefront & Shipping Settings */}
+                <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                  <div className="flex items-start gap-3">
+                    <Settings className="w-5 h-5 text-[#285A3C] shrink-0 mt-0.5" />
+                    <div>
+                      <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                        Storefront Contact, Social & Shipping Rules
+                      </h2>
+                      <p className="text-xs text-[#647268]">
+                        Changes saved here update the Announcement Bar, Footer, Contact Page, Cart, Checkout, and server shipping validation immediately
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveSiteSettings} className="dorasani-form space-y-5 text-xs">
+                    {settingsFormError && (
+                      <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800">
+                        {settingsFormError}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-store-name" className="font-semibold text-[#1A3B2B] block">
+                          Store Display Name *
+                        </label>
+                        <input
+                          id="cfg-store-name"
+                          name="storeName"
+                          type="text"
+                          required
+                          value={settingsForm.storeName}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, storeName: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-support-email" className="font-semibold text-[#1A3B2B] block">
+                          Support Email *
+                        </label>
+                        <input
+                          id="cfg-support-email"
+                          name="supportEmail"
+                          type="email"
+                          required
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.supportEmail}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, supportEmail: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-concierge-email" className="font-semibold text-[#1A3B2B] block">
+                          Concierge / Bridal Email *
+                        </label>
+                        <input
+                          id="cfg-concierge-email"
+                          name="conciergeEmail"
+                          type="email"
+                          required
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.conciergeEmail}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, conciergeEmail: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-support-phone" className="font-semibold text-[#1A3B2B] block">
+                          Support Phone (optional)
+                        </label>
+                        <input
+                          id="cfg-support-phone"
+                          name="supportPhone"
+                          type="tel"
+                          autoCorrect="off"
+                          value={settingsForm.supportPhone}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, supportPhone: e.target.value })
+                          }
+                          placeholder="Leave blank to hide public phone line"
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-address" className="font-semibold text-[#1A3B2B] block">
+                          Studio Street Address
+                        </label>
+                        <input
+                          id="cfg-address"
+                          name="storeAddress"
+                          type="text"
+                          value={settingsForm.storeAddress}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, storeAddress: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-city-state" className="font-semibold text-[#1A3B2B] block">
+                          Studio City / State / PIN
+                        </label>
+                        <input
+                          id="cfg-city-state"
+                          name="storeCityStatePin"
+                          type="text"
+                          value={settingsForm.storeCityStatePin}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, storeCityStatePin: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-hours" className="font-semibold text-[#1A3B2B] block">
+                          Studio Hours
+                        </label>
+                        <input
+                          id="cfg-hours"
+                          name="studioHours"
+                          type="text"
+                          value={settingsForm.studioHours}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, studioHours: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-threshold" className="font-semibold text-[#1A3B2B] block">
+                          Free Shipping Threshold (₹) *
+                        </label>
+                        <input
+                          id="cfg-threshold"
+                          name="freeShippingThreshold"
+                          type="number"
+                          required
+                          min={0}
+                          value={settingsForm.freeShippingThreshold}
+                          onChange={(e) =>
+                            setSettingsForm({
+                              ...settingsForm,
+                              freeShippingThreshold: Number(e.target.value),
+                            })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-standard-fee" className="font-semibold text-[#1A3B2B] block">
+                          Standard Shipping Fee Below Threshold (₹) *
+                        </label>
+                        <input
+                          id="cfg-standard-fee"
+                          name="standardShippingFee"
+                          type="number"
+                          required
+                          min={0}
+                          value={settingsForm.standardShippingFee}
+                          onChange={(e) =>
+                            setSettingsForm({
+                              ...settingsForm,
+                              standardShippingFee: Number(e.target.value),
+                            })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-express-fee" className="font-semibold text-[#1A3B2B] block">
+                          Express Shipping Fee (₹) *
+                        </label>
+                        <input
+                          id="cfg-express-fee"
+                          name="expressShippingFee"
+                          type="number"
+                          required
+                          min={0}
+                          value={settingsForm.expressShippingFee}
+                          onChange={(e) =>
+                            setSettingsForm({
+                              ...settingsForm,
+                              expressShippingFee: Number(e.target.value),
+                            })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-ig" className="font-semibold text-[#1A3B2B] block">
+                          Instagram URL
+                        </label>
+                        <input
+                          id="cfg-ig"
+                          name="instagramUrl"
+                          type="url"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.instagramUrl}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, instagramUrl: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-fb" className="font-semibold text-[#1A3B2B] block">
+                          Facebook URL
+                        </label>
+                        <input
+                          id="cfg-fb"
+                          name="facebookUrl"
+                          type="url"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.facebookUrl}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, facebookUrl: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-yt" className="font-semibold text-[#1A3B2B] block">
+                          YouTube URL
+                        </label>
+                        <input
+                          id="cfg-yt"
+                          name="youtubeUrl"
+                          type="url"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.youtubeUrl}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, youtubeUrl: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2">
+                        <label htmlFor="cfg-copyright" className="font-semibold text-[#1A3B2B] block">
+                          Footer Copyright Line
+                        </label>
+                        <input
+                          id="cfg-copyright"
+                          name="footerCopyright"
+                          type="text"
+                          value={settingsForm.footerCopyright}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, footerCopyright: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label htmlFor="cfg-announcements" className="font-semibold text-[#1A3B2B] block">
+                        Top Announcement Ticker Items (one per line)
+                      </label>
+                      <span id="cfg-announcements-hint" className="text-[11px] text-[#647268] block mb-1">
+                        Use <code className="font-mono bg-[#FAF5EE] px-1 rounded">{'{threshold}'}</code> to automatically insert your free-shipping amount.
+                      </span>
+                      <textarea
+                        id="cfg-announcements"
+                        name="announcementText"
+                        aria-describedby="cfg-announcements-hint"
+                        rows={4}
+                        value={settingsForm.announcementText}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, announcementText: e.target.value })
+                        }
+                        className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={savingSettings}
+                        className="px-5 py-2.5 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] disabled:opacity-60 shadow-xs"
+                      >
+                        {savingSettings ? 'Saving Settings...' : 'Save Storefront Settings'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* 2. Service Benefits Manager */}
+                <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                        Homepage Service Benefits (`service_benefits`)
+                      </h2>
+                      <p className="text-xs text-[#647268]">
+                        Trust and value strip displayed on the storefront homepage
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openCreateBenefitModal}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Benefit</span>
+                    </button>
+                  </div>
+
+                  {serviceBenefits.length === 0 ? (
+                    <p className="py-8 text-center text-xs text-[#647268]">
+                      No service benefits configured yet.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {serviceBenefits.map((sb) => (
+                        <div
+                          key={sb.id}
+                          className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col justify-between gap-3"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="w-9 h-9 rounded-full bg-[#D0E9C0] flex items-center justify-center">
+                                {renderBenefitIcon(sb.icon_name)}
+                              </div>
+                              <span
+                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${sb.is_active
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-rose-100 text-rose-800'
+                                  }`}
+                              >
+                                {sb.is_active ? 'Active' : 'Hidden'}
+                              </span>
+                            </div>
+                            <h3 className="font-bold text-xs text-[#1A3B2B]">{sb.title}</h3>
+                            <p className="text-[11px] text-[#647268]">{sb.description}</p>
+                            <span className="text-[10px] text-[#8E9B92] block">
+                              Order: #{sb.display_order}
                             </span>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DCCF]">
                             <button
                               type="button"
-                              onClick={() => void handleToggleBanner(b)}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${b.is_active
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-rose-600 text-white'
-                                }`}
+                              onClick={() => openEditBenefitModal(sb)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
                             >
-                              {b.is_active ? 'Published' : 'Hidden'}
+                              <Pencil className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteBenefitTarget(sb)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-semibold text-rose-700 hover:bg-rose-100"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
                             </button>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                        <div className="space-y-1 text-xs">
-                          <span className="text-[10px] font-bold text-[#C29336] uppercase tracking-wider">
-                            {b.tagline || 'Featured'}
-                          </span>
-                          <h3 className="font-golden text-base font-bold text-[#1A3B2B]">
-                            {b.title_line_1} {b.title_line_2}
-                          </h3>
-                          <p className="text-[11px] text-[#647268]">{b.description}</p>
-                          <div className="pt-1 flex items-center justify-between text-[11px] font-semibold text-[#285A3C]">
-                            <span>
-                              CTA: {b.primary_cta_label || 'None'} ({b.primary_cta_link || '—'})
+                {/* 3. Dynamic Storefront Banners */}
+                <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                        Dynamic Storefront Banners (Hero & Promotional)
+                      </h2>
+                      <p className="text-xs text-[#647268]">
+                        Manage hero slides, homepage promotional banners, mobile images, titles, and CTA links without code edits
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openCreateBannerModal}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Banner</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {banners.map((b) => (
+                      <div
+                        key={b.id}
+                        className="rounded-2xl border border-[#D8C7B5] overflow-hidden bg-[#FAF5EE] flex flex-col justify-between p-4 gap-3"
+                      >
+                        <div className="space-y-3">
+                          <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/10">
+                            <img
+                              src={b.desktop_image_url}
+                              alt={b.title_line_1}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-full bg-white/90 text-[10px] font-bold uppercase text-[#1A3B2B]">
+                                {b.banner_type}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void handleToggleBanner(b)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${b.is_active
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-rose-600 text-white'
+                                  }`}
+                              >
+                                {b.is_active ? 'Published' : 'Hidden'}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 text-xs">
+                            <span className="text-[10px] font-bold text-[#C29336] uppercase tracking-wider">
+                              {b.tagline || 'Featured'}
                             </span>
-                            <span>Order: #{b.display_order}</span>
+                            <h3 className="font-golden text-base font-bold text-[#1A3B2B]">
+                              {b.title_line_1} {b.title_line_2}
+                            </h3>
+                            <p className="text-[11px] text-[#647268]">{b.description}</p>
+                            <div className="pt-1 flex items-center justify-between text-[11px] font-semibold text-[#285A3C]">
+                              <span>
+                                CTA: {b.primary_cta_label || 'None'} ({b.primary_cta_link || '—'})
+                              </span>
+                              <span>Order: #{b.display_order}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DCCF]">
-                        <button
-                          type="button"
-                          onClick={() => openEditBannerModal(b)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-xs font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
-                        >
-                          <Pencil className="w-3 h-3" />
-                          <span>Edit Banner</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteBannerTarget(b)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-100"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Delete</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DCCF]">
+                          <button
+                            type="button"
+                            onClick={() => openEditBannerModal(b)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-[#D8C7B5] text-xs font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Edit Banner</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteBannerTarget(b)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
