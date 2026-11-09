@@ -1051,7 +1051,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (!initRes.success) {
       onStageChange?.('idle');
-      const errMsg = initRes.error || 'Unable to initiate checkout. Please try again.';
+      const errMsg =
+        ('error' in initRes && initRes.error) ||
+        'Unable to initiate checkout. Please try again.';
       showToast(errMsg, 'error');
       return { success: false, error: errMsg };
     }
