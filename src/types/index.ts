@@ -133,13 +133,14 @@ export interface SiteSettings {
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  storeName: 'DORASANI Flagship Studio',
+  storeName: 'Dorasani Sarees',
   supportEmail: 'dorasanisarees@gmail.com',
   conciergeEmail: 'dorasanisarees@gmail.com',
-  supportPhone: '',
-  storeAddress: 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
-  storeCityStatePin: 'Hyderabad, Telangana',
-  studioHours: 'Monday – Sunday: 10:30 AM – 8:30 PM IST',
+  supportPhone: '+91 7780673360',
+  storeAddress:
+    'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist (Landmark: Opposite Maxx Cycle Shop and beside new KFC)',
+  storeCityStatePin: 'Hyderabad, Telangana - 500067',
+  studioHours: 'Monday – Sunday: 10:30 AM – 9:00 PM IST',
   freeShippingThreshold: 1999,
   standardShippingFee: 99,
   expressShippingFee: 199,

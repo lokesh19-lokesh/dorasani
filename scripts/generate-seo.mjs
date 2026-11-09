@@ -24,13 +24,14 @@ const SITE_ORIGIN = 'https://dorasanicollections.com';
 const TODAY = new Date().toISOString().slice(0, 10);
 
 const DEFAULT_SETTINGS = {
-  storeName: 'DORASANI Flagship Studio',
+  storeName: 'Dorasani Sarees',
   supportEmail: 'dorasanisarees@gmail.com',
   conciergeEmail: 'dorasanisarees@gmail.com',
-  supportPhone: '',
-  storeAddress: 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
-  storeCityStatePin: 'Hyderabad, Telangana',
-  studioHours: 'Monday – Sunday: 10:30 AM – 8:30 PM IST',
+  supportPhone: '+91 7780673360',
+  storeAddress:
+    'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist (Landmark: Opposite Maxx Cycle Shop and beside new KFC)',
+  storeCityStatePin: 'Hyderabad, Telangana - 500067',
+  studioHours: 'Monday – Sunday: 10:30 AM – 9:00 PM IST',
   freeShippingThreshold: 1999,
   standardShippingFee: 99,
   expressShippingFee: 199,
@@ -126,7 +127,7 @@ const EDITORIAL_AND_POLICY_ROUTES = [
     path: '/about',
     title: 'About DORASANI — A Symbol of Tradition',
     description:
-      'Brand philosophy, master artisan partnerships, and luxury handloom curation from our Banjara Hills flagship studio in Hyderabad.',
+      'Brand philosophy, master artisan partnerships, and luxury handloom curation from our Shapur Road, Quthbullapur (Medchal Dist), Hyderabad studio.',
     image: '/assets/banners/about_heritage_showcase.jpg',
     changefreq: 'monthly',
     priority: '0.8',
@@ -143,7 +144,7 @@ const EDITORIAL_AND_POLICY_ROUTES = [
     path: '/contact',
     title: 'Contact & Bridal Concierge',
     description:
-      'Reach DORASANI bridal styling and customer care in Banjara Hills, Hyderabad for orders, custom bridal consultations, and support.',
+      'Reach DORASANI bridal styling and customer care at Shapur Road, Quthbullapur (Medchal Dist), Hyderabad - 500067 for orders, custom bridal consultations, and support.',
     changefreq: 'monthly',
     priority: '0.7',
   },
@@ -891,7 +892,7 @@ function buildLlmsTxt(products, settings) {
   const lines = [
     '# DORASANI',
     '',
-    `> DORASANI ("Where Heritage Meets Divine Elegance") is a luxury South Indian handloom boutique based in Banjara Hills, Hyderabad, Telangana, India (${SITE_ORIGIN}). The store offers pure silk and cotton sarees, bridal & festive lehengas, embroidered Anarkali and sharara sets, handcrafted kurthis, and children's Pattu Pavadai garments shipped pan-India.`,
+    `> DORASANI ("Where Heritage Meets Divine Elegance") is a luxury South Indian handloom boutique located at Shapur Road, Quthbullapur (Medchal Dist), Hyderabad - 500067, Telangana, India (${SITE_ORIGIN}). The store offers pure silk and cotton sarees, bridal & festive lehengas, embroidered Anarkali and sharara sets, handcrafted kurthis, and children's Pattu Pavadai garments shipped pan-India.`,
     '',
     '## Studio & Storefront Facts',
     `- Canonical Domain: ${SITE_ORIGIN}/`,
@@ -988,7 +989,7 @@ function buildLlmsFullTxt(products, settings, benefits) {
     '## 1. Brand Identity & Regional Presence (GEO)',
     '- Brand Name: DORASANI ("A Symbol of Tradition" / "Where Heritage Meets Divine Elegance")',
     `- Flagship Location: ${settings.storeAddress}, ${settings.storeCityStatePin}, India`,
-    `- Geographic Coordinates: 17.4156° N, 78.4347° E (Hyderabad, Telangana, IN-TG)`,
+    `- Geographic Coordinates: 17.5112° N, 78.4480° E (Quthbullapur / Shapur Nagar, Hyderabad, Telangana, IN-TG)`,
     `- Operating Hours: ${settings.studioHours}`,
     `- Customer Care & Bridal Concierge Email: ${settings.supportEmail}`,
     ...(settings.supportPhone ? [`- Telephone: ${settings.supportPhone}`] : []),
@@ -1028,7 +1029,7 @@ function buildLlmsFullTxt(products, settings, benefits) {
     `## ${benefits.length > 0 ? '7' : '6'}. Answer Engine Optimization (AEO) — Key Buyer Questions`,
     '',
     '### Q: Does DORASANI ship pure Kanchipuram and Banarasi sarees outside Hyderabad?',
-    `Yes. While our flagship studio is in Banjara Hills, Hyderabad (Telangana), DORASANI ships pan-India within 1–2 business days of order confirmation, with free shipping on orders above ₹${settings.freeShippingThreshold.toLocaleString('en-IN')}.`,
+    `Yes. While our boutique is located on Shapur Road, Quthbullapur (Medchal Dist), Hyderabad - 500067 (Telangana), DORASANI ships pan-India within 1–2 business days of order confirmation, with free shipping on orders above ₹${settings.freeShippingThreshold.toLocaleString('en-IN')}.`,
     '',
     '### Q: Are blouse pieces included with DORASANI sarees?',
     'All DORASANI silk, organza, Chanderi cotton, and Tussar silk sarees measure approximately 6.3 meters and include an unstitched coordinating blouse piece (typically 0.8–1 meter) unless explicitly noted on the product specification.',

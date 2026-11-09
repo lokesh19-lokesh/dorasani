@@ -64,10 +64,10 @@ export const ContactPage: React.FC = () => {
   return (
     <div className="space-y-12 pb-16">
       <SeoHead
-        title="Contact Us | Bridal Styling & Flagship Studio in Banjara Hills, Hyderabad | DORASANI"
-        description={`Contact DORASANI at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin} or email ${siteSettings.supportEmail} for custom bridal saree orders, styling appointments, and support.`}
+        title="Contact Us | Bridal Styling & Flagship Studio in Quthbullapur, Hyderabad | DORASANI"
+        description={`Contact DORASANI at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}, call ${siteSettings.supportPhone || '+91 7780673360'}, or email ${siteSettings.supportEmail} for custom bridal saree orders, styling appointments, and support.`}
         canonicalPath="/contact"
-        keywords="contact DORASANI, DORASANI Hyderabad studio, Banjara Hills handloom saree boutique, bridal saree styling appointment"
+        keywords="contact DORASANI, DORASANI Hyderabad studio, Quthbullapur handloom saree boutique, Shapur Road sarees, Medchal Dist silk boutique, bridal saree styling appointment"
         jsonLd={contactJsonLd}
       />
       {/* Header */}
@@ -132,7 +132,12 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-bold text-[#1A3B2B]">Customer Care Phone</p>
-                    <p>{siteSettings.supportPhone}</p>
+                    <a
+                      href={`tel:${siteSettings.supportPhone.replace(/[^+\d]/g, '')}`}
+                      className="hover:text-[#1A3B2B] hover:underline font-medium"
+                    >
+                      {siteSettings.supportPhone}
+                    </a>
                   </div>
                 </div>
               )}
@@ -144,12 +149,25 @@ export const ContactPage: React.FC = () => {
                 <div>
                   <p className="font-bold text-[#1A3B2B]">Email Assistance</p>
                   <p className="break-all">
-                    {siteSettings.supportEmail}
+                    <a
+                      href={`mailto:${siteSettings.supportEmail}`}
+                      className="hover:text-[#1A3B2B] hover:underline font-medium"
+                    >
+                      {siteSettings.supportEmail}
+                    </a>
                     {siteSettings.conciergeEmail &&
                     siteSettings.conciergeEmail.toLowerCase() !==
-                      siteSettings.supportEmail.toLowerCase()
-                      ? ` / ${siteSettings.conciergeEmail}`
-                      : ''}
+                      siteSettings.supportEmail.toLowerCase() ? (
+                      <>
+                        {' / '}
+                        <a
+                          href={`mailto:${siteSettings.conciergeEmail}`}
+                          className="hover:text-[#1A3B2B] hover:underline font-medium"
+                        >
+                          {siteSettings.conciergeEmail}
+                        </a>
+                      </>
+                    ) : null}
                   </p>
                 </div>
               </div>

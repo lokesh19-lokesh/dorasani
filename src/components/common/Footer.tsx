@@ -278,9 +278,26 @@ export const Footer: React.FC = () => {
               <li>{siteSettings.storeAddress}</li>
               <li>{siteSettings.storeCityStatePin}</li>
               {siteSettings.supportPhone && (
-                <li className="pt-1">Phone: {siteSettings.supportPhone}</li>
+                <li className="pt-1">
+                  Phone:{' '}
+                  <a
+                    href={`tel:${siteSettings.supportPhone.replace(/[^+\d]/g, '')}`}
+                    className="hover:text-[#000000] hover:underline font-medium"
+                  >
+                    {siteSettings.supportPhone}
+                  </a>
+                </li>
               )}
-              <li className="break-all">Email: {siteSettings.supportEmail}</li>
+              <li className="break-all">
+                Email:{' '}
+                <a
+                  href={`mailto:${siteSettings.supportEmail}`}
+                  className="hover:text-[#000000] hover:underline font-medium"
+                >
+                  {siteSettings.supportEmail}
+                </a>
+              </li>
+              <li>Hours: {siteSettings.studioHours}</li>
             </ul>
           </div>
         </div>
@@ -383,11 +400,27 @@ export const Footer: React.FC = () => {
             </button>
             {openSections['contact'] && (
               <div className="mt-3 text-xs text-[#143D24] pl-2 space-y-1 font-medium">
-                {siteSettings.supportPhone && <p>Phone: {siteSettings.supportPhone}</p>}
-                <p className="break-all">Email: {siteSettings.supportEmail}</p>
+                {siteSettings.supportPhone && (
+                  <p>
+                    Phone:{' '}
+                    <a
+                      href={`tel:${siteSettings.supportPhone.replace(/[^+\d]/g, '')}`}
+                      className="underline"
+                    >
+                      {siteSettings.supportPhone}
+                    </a>
+                  </p>
+                )}
+                <p className="break-all">
+                  Email:{' '}
+                  <a href={`mailto:${siteSettings.supportEmail}`} className="underline">
+                    {siteSettings.supportEmail}
+                  </a>
+                </p>
                 <p>
                   {siteSettings.storeAddress}, {siteSettings.storeCityStatePin}
                 </p>
+                <p>Hours: {siteSettings.studioHours}</p>
               </div>
             )}
           </div>

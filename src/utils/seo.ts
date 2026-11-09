@@ -92,7 +92,9 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
     ...(settings.supportPhone ? { telephone: settings.supportPhone } : {}),
     address: {
       '@type': 'PostalAddress',
-      streetAddress: settings.storeAddress || 'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist',
+      streetAddress:
+        settings.storeAddress ||
+        'Plot No 7-13/1/A, Bhagyalaxmi Colony, Shapur Road, Quthbullapur (M), Medchal Dist (Landmark: Opposite Maxx Cycle Shop and beside new KFC)',
       addressLocality,
       addressRegion,
       ...(postalCode ? { postalCode } : {}),
@@ -100,8 +102,8 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
     },
     geo: {
       '@type': 'GeoCoordinates',
-      latitude: 17.4156,
-      longitude: 78.4347,
+      latitude: 17.5112,
+      longitude: 78.448,
     },
     areaServed: [
       { '@type': 'Country', name: 'India' },
@@ -125,7 +127,7 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
           'Sunday',
         ],
         opens: '10:30',
-        closes: '20:30',
+        closes: '21:00',
       },
     ],
     contactPoint: {

@@ -355,8 +355,8 @@ async function seedDatabase() {
     const settings = [
       { key: 'store_name', value: '"Dorasani Sarees"' },
       { key: 'tagline', value: '"A Symbol of Tradition"' },
-      { key: 'support_phone', value: '"+91 98765 43210"' },
-      { key: 'support_email', value: '"care@dorasanisarees.com"' },
+      { key: 'support_phone', value: '"+91 7780673360"' },
+      { key: 'support_email', value: '"dorasanisarees@gmail.com"' },
       { key: 'currency', value: '"INR"' },
       { key: 'free_shipping_threshold', value: '1999' },
       { key: 'standard_shipping_fee', value: '99' },
