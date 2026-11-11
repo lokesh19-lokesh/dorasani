@@ -350,7 +350,7 @@ const FALLBACK_PRODUCTS = [
     short_description:
       'Lightweight Chanderi cotton saree with tissue pallu and micro-buttas for daytime festivities.',
     categories: { name: 'Sarees', slug: 'sarees' },
-    product_media: [{ url: '/assets/products/prod_chanderi_cotton_photo.jpg', is_primary: true }],
+    product_media: [{ url: '/assets/products/chanderi_cotton_saree.jpg', is_primary: true }],
   },
   {
     title: 'Bridal Silk Lehenga',

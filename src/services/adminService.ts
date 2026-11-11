@@ -36,6 +36,7 @@ export interface AdminCategoryInput {
   slug: string;
   description?: string | null;
   image_url?: string | null;
+  filter_keywords?: string | null;
   parent_id?: string | null;
   display_order?: number;
   is_active?: boolean;
@@ -513,6 +514,7 @@ export const adminService = {
         slug: cat.slug.trim(),
         description: cat.description ?? null,
         image_url: cat.image_url ?? null,
+        filter_keywords: cat.filter_keywords?.trim() || null,
         parent_id: cat.parent_id || null,
         display_order: cat.display_order ?? 10,
         is_active: cat.is_active ?? true,
@@ -530,6 +532,9 @@ export const adminService = {
       updated_at: new Date().toISOString(),
     };
     if (payload.parent_id === '') payload.parent_id = null;
+    if (updates.filter_keywords !== undefined) {
+      payload.filter_keywords = updates.filter_keywords?.trim() || null;
+    }
 
     const { data, error } = await supabase
       .from('categories')
@@ -539,6 +544,59 @@ export const adminService = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  async uploadImage(
+    file: File,
+    bucket: 'category-images' | 'product-images' | 'homepage-banners' | 'collection-images' = 'category-images',
+    folder: string = 'uploads'
+  ): Promise<string> {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    if (!file) throw new Error('No file selected.');
+
+    const maxBytes = bucket === 'homepage-banners' ? 15 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      throw new Error(`Image exceeds ${Math.round(maxBytes / (1024 * 1024))}MB bucket limit.`);
+    }
+
+    const extFromName = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let contentType = file.type;
+    if (!contentType) {
+      if (extFromName === 'png') contentType = 'image/png';
+      else if (extFromName === 'webp') contentType = 'image/webp';
+      else if (extFromName === 'svg' && bucket === 'product-images') contentType = 'image/svg+xml';
+      else contentType = 'image/jpeg';
+    }
+
+    const allowed =
+      bucket === 'product-images'
+        ? ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+        : ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(contentType)) {
+      throw new Error('Please upload a JPG, PNG, or WebP image.');
+    }
+
+    const baseName = file.name
+      .replace(/\.[^/.]+$/, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 48) || 'image';
+    const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : contentType === 'image/svg+xml' ? 'svg' : 'jpg';
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${baseName}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType,
+      });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
   },
 
   async deleteCategory(id: string) {

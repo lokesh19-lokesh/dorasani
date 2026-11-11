@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { X, ChevronRight, User, Package, Sparkles, MapPin, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { X, ChevronRight, Package, Sparkles, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
 
@@ -9,24 +9,38 @@ interface MobileDrawerProps {
   onClose: () => void;
 }
 
-const MENU_SECTIONS = [
-  { name: 'Home', path: '/' },
-  { name: 'Shop All Collections', path: '/shop' },
-  { name: 'Sarees Collection', path: '/collections/sarees' },
-  { name: 'Kurthis Collection', path: '/collections/kurtis' },
+const DEFAULT_MOBILE_COLLECTIONS = [
+  { name: 'Sarees', path: '/collections/sarees' },
+  { name: 'Kurthis', path: '/collections/kurtis' },
   { name: 'Ethnic Wear', path: '/collections/ethnic-wear' },
-  { name: 'Lehengas Collection', path: '/collections/lehengas' },
+  { name: 'Lehengas', path: '/collections/lehengas' },
   { name: 'Kids Wear', path: '/collections/kids-wear' },
   { name: 'Festive Collection', path: '/collections/festive' },
   { name: 'New Arrivals', path: '/collections/new-arrivals' },
-  { name: 'Our Bestsellers', path: '/collections/bestsellers' },
-  { name: 'Mythology & Heritage', path: '/heritage' },
-  { name: 'About DORASANI', path: '/about' },
-  { name: 'Contact & Support', path: '/contact' },
+  { name: 'Bestsellers', path: '/collections/bestsellers' },
 ];
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) => {
-  const { user, siteSettings } = useStore();
+  const { user, siteSettings, storeCategories } = useStore();
+
+  const menuSections = useMemo(() => {
+    const dynamicCollections =
+      storeCategories.length > 0
+        ? storeCategories.map((c) => ({
+            name: c.name,
+            path: `/collections/${c.slug}`,
+          }))
+        : DEFAULT_MOBILE_COLLECTIONS;
+
+    return [
+      { name: 'Home', path: '/' },
+      { name: 'Shop All Collections', path: '/shop' },
+      ...dynamicCollections,
+      { name: 'Mythology & Heritage', path: '/heritage' },
+      { name: 'About DORASANI', path: '/about' },
+      { name: 'Contact & Support', path: '/contact' },
+    ];
+  }, [storeCategories]);
 
   if (!isOpen) return null;
 
@@ -118,7 +132,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
 
         {/* Navigation Links */}
         <nav aria-label="Mobile" className="flex-1 py-2">
-          {MENU_SECTIONS.map((item) => (
+          {menuSections.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

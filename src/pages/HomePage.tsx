@@ -29,19 +29,25 @@ const BENEFIT_ICON_MAP: Record<string, React.ComponentType<{ className?: string 
 };
 
 export const HomePage: React.FC = () => {
-  const { siteSettings } = useStore();
+  const { siteSettings, storeCategories } = useStore();
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [promoBanners, setPromoBanners] = useState<any[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(storeCategories);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [benefits, setBenefits] = useState<ServiceBenefit[]>([]);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
 
   const [heroLoading, setHeroLoading] = useState(true);
   const [catalogLoading, setCatalogLoading] = useState(true);
+
+  useEffect(() => {
+    if (storeCategories.length > 0) {
+      setCategories(storeCategories);
+    }
+  }, [storeCategories]);
 
   useEffect(() => {
     let isMounted = true;

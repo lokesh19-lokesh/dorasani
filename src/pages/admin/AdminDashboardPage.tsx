@@ -35,6 +35,10 @@ import {
   Headphones,
   Activity,
   Shield,
+  Upload,
+  ArrowUp,
+  ArrowDown,
+  EyeOff,
 } from 'lucide-react';
 import {
   adminService,
@@ -49,6 +53,16 @@ import { useStore } from '../../context/StoreContext';
 import { SeoHead } from '../../components/common/SeoHead';
 import {
   DEFAULT_SITE_SETTINGS,
+  DEFAULT_EXPLORE_CATEGORIES_CONFIG,
+  DEFAULT_COLLECTION_FILTERS_CONFIG,
+  normalizeExploreCategoriesConfig,
+  normalizeCollectionFiltersConfig,
+  type ExploreCategoriesConfig,
+  type ExploreCategoryOverride,
+  type CollectionFiltersConfig,
+  type CategoryFilterOverride,
+  type CategoryFilterGroupOverride,
+  type FilterGroupConfig,
   type SiteSettings,
   type UserRole,
 } from '../../types';
@@ -74,6 +88,7 @@ const slugify = (val: string) =>
 const PRODUCT_TYPES = [
   { value: 'saree', label: 'Saree' },
   { value: 'lehenga', label: 'Lehenga' },
+  { value: 'ethnic_wear', label: 'Ethnic Wear / Salwar / Anarkali' },
   { value: 'kurti', label: 'Kurti / Tunic' },
   { value: 'dress', label: 'Ethnic Dress' },
   { value: 'kids_wear', label: 'Kids Wear' },
@@ -223,6 +238,63 @@ const ModalDialog: React.FC<ModalDialogProps> = ({
   );
 };
 
+interface CommaListInputProps {
+  id?: string;
+  values: string[];
+  onChange: (nextValues: string[]) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+const CommaListInput: React.FC<CommaListInputProps> = ({
+  id,
+  values,
+  onChange,
+  placeholder,
+  className = '',
+}) => {
+  const [text, setText] = useState(() => values.join(', '));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setText(values.join(', '));
+    }
+  }, [values]);
+
+  return (
+    <input
+      id={id}
+      type="text"
+      value={text}
+      placeholder={placeholder}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        const parsed = text
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        setText(parsed.join(', '));
+        onChange(parsed);
+      }}
+      onChange={(e) => {
+        const nextRaw = e.target.value;
+        setText(nextRaw);
+        onChange(
+          nextRaw
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        );
+      }}
+      className={className}
+    />
+  );
+};
+
 interface ProductFormState {
   title: string;
   slug: string;
@@ -244,6 +316,8 @@ interface ProductFormState {
   is_new: boolean;
   is_bestseller: boolean;
   is_festive: boolean;
+  specificationsSubCategory: string;
+  specificationsTagsText: string;
   imagesText: string;
   description: string;
 }
@@ -269,6 +343,8 @@ const DEFAULT_PRODUCT_FORM: ProductFormState = {
   is_new: true,
   is_bestseller: false,
   is_festive: false,
+  specificationsSubCategory: '',
+  specificationsTagsText: '',
   imagesText: '/assets/products/kanjivaram_silk_saree.jpg',
   description: '',
 };
@@ -279,6 +355,7 @@ interface CategoryFormState {
   parent_id: string;
   display_order: number;
   image_url: string;
+  filter_keywords: string;
   description: string;
   is_active: boolean;
 }
@@ -289,6 +366,7 @@ const DEFAULT_CATEGORY_FORM: CategoryFormState = {
   parent_id: '',
   display_order: 10,
   image_url: '',
+  filter_keywords: '',
   description: '',
   is_active: true,
 };
@@ -443,6 +521,7 @@ export const AdminDashboardPage: React.FC = () => {
   // Product Add/Edit & Delete Modal State
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingProductSpecs, setEditingProductSpecs] = useState<Record<string, any>>({});
   const [productSlugTouched, setProductSlugTouched] = useState(false);
   const [productForm, setProductForm] = useState<ProductFormState>(DEFAULT_PRODUCT_FORM);
   const [productFormError, setProductFormError] = useState<string | null>(null);
@@ -467,7 +546,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [deleteOrderTarget, setDeleteOrderTarget] = useState<any | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
 
-  // Category Add/Edit & Delete Modal State
+  // Category & Explore Management State
+  const [categoriesSubTab, setCategoriesSubTab] = useState<'items' | 'builder'>('items');
+  const [categoryParentFilter, setCategoryParentFilter] = useState<'all' | 'top' | string>('all');
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categorySlugTouched, setCategorySlugTouched] = useState(false);
@@ -476,6 +557,18 @@ export const AdminDashboardPage: React.FC = () => {
   const [savingCategory, setSavingCategory] = useState(false);
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<any | null>(null);
   const [deletingCategory, setDeletingCategory] = useState(false);
+
+  // Explore Bar & Collection Filters Builder State
+  const [exploreConfigForm, setExploreConfigForm] = useState<ExploreCategoriesConfig>(
+    DEFAULT_EXPLORE_CATEGORIES_CONFIG
+  );
+  const [filtersConfigForm, setFiltersConfigForm] = useState<CollectionFiltersConfig>(
+    DEFAULT_COLLECTION_FILTERS_CONFIG
+  );
+  const [configScopeSlug, setConfigScopeSlug] = useState<string>('__global__');
+  const [customTagLabelInput, setCustomTagLabelInput] = useState<string>('');
+  const [savingExploreAndFilters, setSavingExploreAndFilters] = useState<boolean>(false);
+  const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
 
   // Coupon Add/Edit & Delete Modal State
   const [couponModalOpen, setCouponModalOpen] = useState(false);
@@ -582,6 +675,13 @@ export const AdminDashboardPage: React.FC = () => {
         const codEnabled =
           rawCod === true || String(rawCod).trim().toLowerCase() === 'true';
 
+        const nextExploreCfg = normalizeExploreCategoriesConfig(
+          readVal('explore_categories_config', DEFAULT_EXPLORE_CATEGORIES_CONFIG)
+        );
+        const nextFiltersCfg = normalizeCollectionFiltersConfig(
+          readVal('collection_filters_config', DEFAULT_COLLECTION_FILTERS_CONFIG)
+        );
+
         const nextSettings: SiteSettings = {
           storeName: String(readVal('store_name', DEFAULT_SITE_SETTINGS.storeName)),
           supportEmail: String(readVal('support_email', DEFAULT_SITE_SETTINGS.supportEmail)),
@@ -605,12 +705,16 @@ export const AdminDashboardPage: React.FC = () => {
           youtubeUrl: String(readVal('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl)),
           footerCopyright: String(readVal('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright)),
           codEnabled,
+          exploreCategoriesConfig: nextExploreCfg,
+          collectionFiltersConfig: nextFiltersCfg,
         };
 
         setSettingsForm({
           ...nextSettings,
           announcementText: nextSettings.announcementItems.join('\n'),
         });
+        setExploreConfigForm(nextExploreCfg);
+        setFiltersConfigForm(nextFiltersCfg);
       }
     } catch (err: any) {
       console.error('Error loading admin data:', err);
@@ -696,9 +800,31 @@ export const AdminDashboardPage: React.FC = () => {
     navigate('/login');
   };
 
+  // ==================== IMAGE UPLOAD HELPER ====================
+  const handleUploadSingleImage = async (
+    file: File | undefined,
+    bucket: 'category-images' | 'product-images' | 'homepage-banners' | 'collection-images',
+    folder: string,
+    targetKey: string,
+    onSuccessUrl: (url: string) => void
+  ) => {
+    if (!file) return;
+    setUploadingTarget(targetKey);
+    try {
+      const publicUrl = await adminService.uploadImage(file, bucket, folder);
+      onSuccessUrl(publicUrl);
+      showToast('Photo uploaded to Supabase Storage!');
+    } catch (err: any) {
+      showToast('Image upload failed: ' + (err?.message || 'Unknown error'), 'error');
+    } finally {
+      setUploadingTarget(null);
+    }
+  };
+
   // ==================== PRODUCT HANDLERS ====================
   const openCreateProductModal = () => {
     setEditingProductId(null);
+    setEditingProductSpecs({});
     setProductSlugTouched(false);
     setProductFormError(null);
     setProductForm({
@@ -714,6 +840,12 @@ export const AdminDashboardPage: React.FC = () => {
       .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
       .map((m: any) => m.url)
       .filter(Boolean);
+
+    const existingSpecs =
+      p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)
+        ? p.specifications
+        : {};
+    setEditingProductSpecs(existingSpecs);
 
     setEditingProductId(p.id);
     setProductSlugTouched(true);
@@ -739,6 +871,11 @@ export const AdminDashboardPage: React.FC = () => {
       is_new: Boolean(p.is_new),
       is_bestseller: Boolean(p.is_bestseller),
       is_festive: Boolean(p.is_festive),
+      specificationsSubCategory:
+        typeof existingSpecs.subCategory === 'string' ? existingSpecs.subCategory : '',
+      specificationsTagsText: Array.isArray(existingSpecs.tags)
+        ? existingSpecs.tags.join(', ')
+        : '',
       imagesText:
         sortedUrls.length > 0
           ? sortedUrls.join('\n')
@@ -776,6 +913,17 @@ export const AdminDashboardPage: React.FC = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const nextSpecs: Record<string, any> = {
+      ...(editingProductSpecs || {}),
+    };
+    const cleanSub = productForm.specificationsSubCategory.trim();
+    if (cleanSub) nextSpecs.subCategory = cleanSub;
+    else delete nextSpecs.subCategory;
+    nextSpecs.tags = productForm.specificationsTagsText
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     const payload: AdminProductInput = {
       title: cleanTitle,
       slug: cleanSlug,
@@ -797,6 +945,7 @@ export const AdminDashboardPage: React.FC = () => {
       is_new: productForm.is_new,
       is_bestseller: productForm.is_bestseller,
       is_festive: productForm.is_festive,
+      specifications: nextSpecs,
       images: parsedImages,
       description: productForm.description,
     };
@@ -954,13 +1103,15 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   // ==================== CATEGORY HANDLERS ====================
-  const openCreateCategoryModal = () => {
+  const openCreateCategoryModal = (defaultParentId: string = '') => {
     setEditingCategoryId(null);
     setCategorySlugTouched(false);
     setCategoryFormError(null);
+    const siblingCount = categories.filter((c) => (c.parent_id || '') === defaultParentId).length;
     setCategoryForm({
       ...DEFAULT_CATEGORY_FORM,
-      display_order: (categories.length + 1) * 10,
+      parent_id: defaultParentId,
+      display_order: siblingCount + 1,
     });
     setCategoryModalOpen(true);
   };
@@ -975,6 +1126,7 @@ export const AdminDashboardPage: React.FC = () => {
       parent_id: c.parent_id || '',
       display_order: Number(c.display_order ?? 10),
       image_url: c.image_url || '',
+      filter_keywords: c.filter_keywords || '',
       description: c.description || '',
       is_active: c.is_active ?? true,
     });
@@ -998,6 +1150,7 @@ export const AdminDashboardPage: React.FC = () => {
       parent_id: categoryForm.parent_id || null,
       display_order: Number(categoryForm.display_order ?? 10),
       image_url: categoryForm.image_url.trim() || null,
+      filter_keywords: categoryForm.filter_keywords.trim() || null,
       description: categoryForm.description.trim() || null,
       is_active: categoryForm.is_active,
     };
@@ -1006,10 +1159,10 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       if (editingCategoryId) {
         await adminService.updateCategory(editingCategoryId, payload);
-        showToast(`Category "${cleanName}" updated.`);
+        showToast(`Category "${cleanName}" updated and live on storefront.`);
       } else {
         await adminService.createCategory(payload);
-        showToast(`Category "${cleanName}" created.`);
+        showToast(`Category "${cleanName}" created and live on storefront.`);
       }
       setCategoryModalOpen(false);
       await Promise.all([loadData(), refreshStoreCategories()]);
@@ -1019,6 +1172,48 @@ export const AdminDashboardPage: React.FC = () => {
       showToast(msg, 'error');
     } finally {
       setSavingCategory(false);
+    }
+  };
+
+  const handleToggleCategoryActive = async (c: any) => {
+    try {
+      const next = !c.is_active;
+      await adminService.updateCategory(c.id, { is_active: next });
+      showToast(`"${c.name}" is now ${next ? 'visible' : 'hidden'} on storefront.`);
+      await Promise.all([loadData(), refreshStoreCategories()]);
+    } catch (err: any) {
+      showToast('Failed to update visibility: ' + err.message, 'error');
+    }
+  };
+
+  const handleMoveCategoryOrder = async (c: any, direction: 'up' | 'down', siblings: any[]) => {
+    const idx = siblings.findIndex((s) => s.id === c.id);
+    if (idx === -1) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= siblings.length) return;
+
+    const current = siblings[idx];
+    const neighbor = siblings[swapIdx];
+    const currentOrder = Number(current.display_order ?? idx + 1);
+    const neighborOrder = Number(neighbor.display_order ?? swapIdx + 1);
+
+    const newCurrentOrder =
+      currentOrder === neighborOrder
+        ? direction === 'up'
+          ? Math.max(0, neighborOrder - 1)
+          : neighborOrder + 1
+        : neighborOrder;
+    const newNeighborOrder = currentOrder === neighborOrder ? neighborOrder : currentOrder;
+
+    try {
+      await Promise.all([
+        adminService.updateCategory(current.id, { display_order: newCurrentOrder }),
+        adminService.updateCategory(neighbor.id, { display_order: newNeighborOrder }),
+      ]);
+      showToast(`Updated order for "${current.name}".`);
+      await Promise.all([loadData(), refreshStoreCategories()]);
+    } catch (err: any) {
+      showToast('Failed to reorder category: ' + err.message, 'error');
     }
   };
 
@@ -1034,6 +1229,230 @@ export const AdminDashboardPage: React.FC = () => {
       showToast('Failed to delete category: ' + err.message, 'error');
     } finally {
       setDeletingCategory(false);
+    }
+  };
+
+  // ==================== EXPLORE BAR & DYNAMIC FILTERS BUILDER HANDLERS ====================
+  const detectCatalogValuesForFilterGroup = (group: FilterGroupConfig): string[] => {
+    const activeProds = products.filter((p) => p.status === 'active');
+    switch (group.type) {
+      case 'fabric':
+        return Array.from(
+          new Set(activeProds.map((p) => String(p.fabric || '').trim()).filter(Boolean))
+        ).sort();
+      case 'occasion':
+        return Array.from(
+          new Set(activeProds.map((p) => String(p.occasion || '').trim()).filter(Boolean))
+        ).sort();
+      case 'weave':
+        return Array.from(
+          new Set(activeProds.map((p) => String(p.weaving_style || '').trim()).filter(Boolean))
+        ).sort();
+      case 'color': {
+        const colors = new Set<string>();
+        for (const p of activeProds) {
+          const specs = p.specifications || {};
+          if (Array.isArray(specs.colors)) {
+            for (const c of specs.colors) {
+              if (c?.name?.trim()) colors.add(c.name.trim());
+            }
+          }
+          if (p.color_description?.trim()) colors.add(p.color_description.trim());
+        }
+        return Array.from(colors).sort();
+      }
+      case 'availability':
+        return ['In Stock Only', 'New Arrivals', 'Bestsellers', 'Festive Edit'];
+      case 'discount':
+        return ['10% or more', '20% or more', '30% or more'];
+      case 'tag': {
+        const tags = new Set<string>();
+        for (const p of activeProds) {
+          const specs = p.specifications || {};
+          if (typeof specs.subCategory === 'string' && specs.subCategory.trim()) {
+            tags.add(specs.subCategory.trim());
+          }
+          if (Array.isArray(specs.tags)) {
+            for (const t of specs.tags) {
+              if (String(t).trim()) tags.add(String(t).trim());
+            }
+          }
+        }
+        return Array.from(tags).sort();
+      }
+      default:
+        return [];
+    }
+  };
+
+  const updateFilterGroup = (groupId: string, patch: Partial<FilterGroupConfig>) => {
+    setFiltersConfigForm((prev) => ({
+      ...prev,
+      groups: prev.groups.map((g) => (g.id === groupId ? { ...g, ...patch } : g)),
+    }));
+  };
+
+  const moveFilterGroupOrder = (groupId: string, direction: 'up' | 'down') => {
+    setFiltersConfigForm((prev) => {
+      const sorted = [...prev.groups].sort((a, b) => a.displayOrder - b.displayOrder);
+      const idx = sorted.findIndex((g) => g.id === groupId);
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return prev;
+      const temp = sorted[idx];
+      sorted[idx] = sorted[swapIdx];
+      sorted[swapIdx] = temp;
+      return {
+        ...prev,
+        groups: sorted.map((g, i) => ({ ...g, displayOrder: i + 1 })),
+      };
+    });
+  };
+
+  const handleAddCustomTagFilterGroup = () => {
+    const cleanLabel = customTagLabelInput.trim();
+    if (!cleanLabel) {
+      showToast('Enter a filter group title first (e.g. Zari Style or Sub-Collection).', 'error');
+      return;
+    }
+    const id = `tag-${slugify(cleanLabel) || Date.now()}`;
+    if (filtersConfigForm.groups.some((g) => g.id === id)) {
+      showToast('A filter group with a matching ID already exists.', 'error');
+      return;
+    }
+    const nextOrder =
+      filtersConfigForm.groups.reduce((m, g) => Math.max(m, g.displayOrder), 0) + 1;
+    setFiltersConfigForm((prev) => ({
+      ...prev,
+      groups: [
+        ...prev.groups,
+        {
+          id,
+          type: 'tag',
+          label: cleanLabel,
+          enabled: true,
+          displayOrder: nextOrder,
+          optionSource: 'auto',
+          customOptions: [],
+          hiddenOptions: [],
+        },
+      ],
+    }));
+    setCustomTagLabelInput('');
+  };
+
+  const handleDeleteCustomTagFilterGroup = (groupId: string) => {
+    setFiltersConfigForm((prev) => ({
+      ...prev,
+      groups: prev.groups.filter((g) => g.id !== groupId),
+    }));
+  };
+
+  const updateExploreScopeOverride = (
+    slug: string,
+    patch: Partial<ExploreCategoryOverride>
+  ) => {
+    setExploreConfigForm((prev) => {
+      const nextOv: ExploreCategoryOverride = {
+        ...(prev.categoryOverrides[slug] || {}),
+        ...patch,
+      };
+      const nextOverrides = { ...prev.categoryOverrides, [slug]: nextOv };
+      if (
+        nextOv.enabled === undefined &&
+        !nextOv.title &&
+        nextOv.showAllPill === undefined &&
+        !nextOv.allPillLabel
+      ) {
+        delete nextOverrides[slug];
+      }
+      return {
+        ...prev,
+        categoryOverrides: nextOverrides,
+      };
+    });
+  };
+
+  const updateFilterScopeOverride = (
+    slug: string,
+    patch: Partial<CategoryFilterOverride>
+  ) => {
+    setFiltersConfigForm((prev) => ({
+      ...prev,
+      categoryOverrides: {
+        ...prev.categoryOverrides,
+        [slug]: {
+          ...(prev.categoryOverrides[slug] || {}),
+          ...patch,
+        },
+      },
+    }));
+  };
+
+  const updateFilterGroupOverride = (
+    slug: string,
+    groupId: string,
+    patch: Partial<CategoryFilterGroupOverride>
+  ) => {
+    setFiltersConfigForm((prev) => {
+      const currentScope = prev.categoryOverrides[slug] || {};
+      const currentGroupOverrides = { ...(currentScope.groupOverrides || {}) };
+      const mergedGroupOv: CategoryFilterGroupOverride = {
+        ...(currentGroupOverrides[groupId] || {}),
+        ...patch,
+      };
+      if (
+        mergedGroupOv.enabled === undefined &&
+        !mergedGroupOv.label &&
+        (!mergedGroupOv.customOptions || mergedGroupOv.customOptions.length === 0) &&
+        mergedGroupOv.minPrice === undefined &&
+        mergedGroupOv.maxPrice === undefined
+      ) {
+        delete currentGroupOverrides[groupId];
+      } else {
+        currentGroupOverrides[groupId] = mergedGroupOv;
+      }
+      return {
+        ...prev,
+        categoryOverrides: {
+          ...prev.categoryOverrides,
+          [slug]: {
+            ...currentScope,
+            groupOverrides: currentGroupOverrides,
+          },
+        },
+      };
+    });
+  };
+
+  const handleResetScopeOverrides = (slug: string) => {
+    setExploreConfigForm((prev) => {
+      const next = { ...prev.categoryOverrides };
+      delete next[slug];
+      return { ...prev, categoryOverrides: next };
+    });
+    setFiltersConfigForm((prev) => {
+      const next = { ...prev.categoryOverrides };
+      delete next[slug];
+      return { ...prev, categoryOverrides: next };
+    });
+    showToast(`Cleared custom overrides for "/${slug}" (reverted to Global Default).`);
+  };
+
+  const handleSaveExploreAndFilters = async () => {
+    setSavingExploreAndFilters(true);
+    try {
+      const cleanExplore = normalizeExploreCategoriesConfig(exploreConfigForm);
+      const cleanFilters = normalizeCollectionFiltersConfig(filtersConfigForm);
+      await adminService.updateSettingsBatch({
+        explore_categories_config: cleanExplore,
+        collection_filters_config: cleanFilters,
+      });
+      await Promise.all([refreshSiteSettings(), loadData()]);
+      showToast('Explore Categories & Collection Filters saved and live on storefront!');
+    } catch (err: any) {
+      showToast('Failed to save Explore & Filters config: ' + (err?.message || 'Error'), 'error');
+    } finally {
+      setSavingExploreAndFilters(false);
     }
   };
 
@@ -1697,6 +2116,80 @@ export const AdminDashboardPage: React.FC = () => {
     .split(/\r?\n|,/)
     .map((u) => u.trim())
     .filter(Boolean);
+
+  const sortedCategories = [...categories].sort((a, b) => {
+    const pDiff = (a.parent_id ? 1 : 0) - (b.parent_id ? 1 : 0);
+    if (categoryParentFilter === 'all' && pDiff !== 0) {
+      // Keep parent collections grouped ahead or follow display_order naturally
+    }
+    const orderDiff = Number(a.display_order ?? 999) - Number(b.display_order ?? 999);
+    if (orderDiff !== 0) return orderDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+
+  const topLevelCategories = sortedCategories.filter((c) => !c.parent_id);
+
+  // Include both true top-level categories and nested collections that have their own Explore subcategories (e.g. kurtis)
+  const parentFilterCategories = sortedCategories.filter(
+    (c) => !c.parent_id || sortedCategories.some((child) => child.parent_id === c.id)
+  );
+
+  const selectedFilterParent =
+    categoryParentFilter !== 'all' && categoryParentFilter !== 'top'
+      ? categories.find((c) => c.id === categoryParentFilter) || null
+      : null;
+
+  const filteredCategoriesView = sortedCategories.filter((c) => {
+    if (categoryParentFilter === 'all') return true;
+    if (categoryParentFilter === 'top') return !c.parent_id;
+    return c.parent_id === categoryParentFilter;
+  });
+
+  const knownSubcategoryNames = Array.from(
+    new Set(
+      categories
+        .filter((c) => Boolean(c.parent_id) || c.slug === 'kurtis' || c.slug === 'festive')
+        .map((c) => c.name)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const scopeOptions: { slug: string; label: string }[] = [
+    { slug: '__global__', label: 'Global Default (All Collection Pages)' },
+    { slug: 'all', label: 'Shop All (/shop)' },
+    { slug: 'new-arrivals', label: 'New Arrivals (/new-arrivals)' },
+    { slug: 'bestsellers', label: 'Bestsellers (/bestsellers)' },
+    ...parentFilterCategories
+      .filter((c) => !['all', 'new-arrivals', 'bestsellers'].includes(c.slug))
+      .map((c) => ({
+        slug: c.slug,
+        label: `${c.name} (/collections/${c.slug})`,
+      })),
+  ];
+
+  const isGlobalBuilderScope = configScopeSlug === '__global__';
+  const activeScopeExploreOv = !isGlobalBuilderScope
+    ? exploreConfigForm.categoryOverrides[configScopeSlug] || {}
+    : {};
+  const activeScopeFilterOv = !isGlobalBuilderScope
+    ? filtersConfigForm.categoryOverrides[configScopeSlug] || {}
+    : {};
+  const hasScopeOverride =
+    !isGlobalBuilderScope &&
+    (Boolean(exploreConfigForm.categoryOverrides[configScopeSlug]) ||
+      Boolean(
+        filtersConfigForm.categoryOverrides[configScopeSlug] &&
+          (filtersConfigForm.categoryOverrides[configScopeSlug].enabled !== undefined ||
+            filtersConfigForm.categoryOverrides[configScopeSlug].sidebarTitle ||
+            (filtersConfigForm.categoryOverrides[configScopeSlug].disabledGroupIds?.length ?? 0) > 0 ||
+            Object.keys(
+              filtersConfigForm.categoryOverrides[configScopeSlug].groupOverrides || {}
+            ).length > 0)
+      ));
+
+  const sortedFilterGroups = [...filtersConfigForm.groups].sort(
+    (a, b) => a.displayOrder - b.displayOrder
+  );
 
   return (
     <div className="min-h-screen bg-[#FAF5EE] text-[#1A3B2B] font-poppins pb-20">
@@ -2793,99 +3286,1113 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* TAB: CATEGORIES */}
+            {/* TAB: CATEGORIES, EXPLORE STRIP & DYNAMIC FILTERS */}
             {activeTab === 'categories' && (
-              <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
-                      Database Categories
-                    </h2>
-                    <p className="text-xs text-[#647268]">
-                      Manage taxonomy, display order, images, and navigation hierarchy
-                    </p>
+              <div className="space-y-6">
+                {/* Sub-navigation bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#D8C7B5] shadow-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCategoriesSubTab('items')}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                        categoriesSubTab === 'items'
+                          ? 'bg-[#285A3C] text-white'
+                          : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Categories & Explore Items ({categories.length})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCategoriesSubTab('builder')}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                        categoriesSubTab === 'builder'
+                          ? 'bg-[#285A3C] text-white'
+                          : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                      }`}
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span>Explore Bar & Filters Builder</span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={openCreateCategoryModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Category</span>
-                  </button>
+
+                  {categoriesSubTab === 'items' ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openCreateCategoryModal(
+                          selectedFilterParent ? selectedFilterParent.id : ''
+                        )
+                      }
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>
+                        {selectedFilterParent
+                          ? `Add Explore Item to ${selectedFilterParent.name}`
+                          : 'Add Category'}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={savingExploreAndFilters}
+                      onClick={() => void handleSaveExploreAndFilters()}
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] disabled:opacity-60 transition-colors shadow-xs"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>
+                        {savingExploreAndFilters ? 'Saving Config...' : 'Save Explore & Filters Config'}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {categories.map((c) => {
-                    const parentCat = c.parent_id
-                      ? categories.find((p) => p.id === c.parent_id)
-                      : null;
-                    return (
-                      <div
-                        key={c.id}
-                        className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col justify-between gap-3"
+                {/* SUB-TAB 1: CATEGORIES & EXPLORE ITEMS */}
+                {categoriesSubTab === 'items' && (
+                  <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                          Categories & Explore Strip Items
+                        </h2>
+                        <p className="text-xs text-[#647268]">
+                          Rename collections, upload circular Explore photos, set keyword rules, toggle visibility, and reorder pills live across navbar & collection pages
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Parent Collection Filter Strip */}
+                    <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-[#E8DCCF]">
+                      <button
+                        type="button"
+                        onClick={() => setCategoryParentFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          categoryParentFilter === 'all'
+                            ? 'bg-[#285A3C] text-white'
+                            : 'bg-[#FAF5EE] border border-[#D8C7B5] text-[#4F6355] hover:border-[#285A3C]'
+                        }`}
                       >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {c.image_url && (
-                                <img
-                                  src={c.image_url}
-                                  alt={c.name}
-                                  className="w-10 h-10 rounded-lg object-cover border border-[#D8C7B5] shrink-0"
-                                />
-                              )}
-                              <div className="min-w-0">
-                                <h3 className="font-golden font-bold text-sm text-[#1A3B2B] truncate">
-                                  {c.name}
-                                </h3>
-                                {parentCat && (
-                                  <span className="text-[10px] text-[#285A3C] font-semibold">
-                                    Subcategory of {parentCat.name}
-                                  </span>
+                        All Categories ({categories.length})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCategoryParentFilter('top')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          categoryParentFilter === 'top'
+                            ? 'bg-[#285A3C] text-white'
+                            : 'bg-[#FAF5EE] border border-[#D8C7B5] text-[#4F6355] hover:border-[#285A3C]'
+                        }`}
+                      >
+                        Top-Level Collections ({topLevelCategories.length})
+                      </button>
+
+                      {parentFilterCategories.map((p) => {
+                        const childCount = categories.filter((x) => x.parent_id === p.id).length;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setCategoryParentFilter(p.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                              categoryParentFilter === p.id
+                                ? 'bg-[#285A3C] text-white'
+                                : 'bg-[#FAF5EE] border border-[#D8C7B5] text-[#4F6355] hover:border-[#285A3C]'
+                            }`}
+                          >
+                            {p.name} Explore ({childCount})
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {filteredCategoriesView.length === 0 ? (
+                      <div className="py-12 text-center border border-dashed border-[#D8C7B5] rounded-2xl space-y-3">
+                        <Layers className="w-8 h-8 text-[#8E9B92] mx-auto" />
+                        <p className="text-xs text-[#647268]">
+                          {selectedFilterParent
+                            ? `No Explore subcategory items created inside "${selectedFilterParent.name}" yet.`
+                            : 'No categories found for this filter.'}
+                        </p>
+                        {selectedFilterParent && (
+                          <button
+                            type="button"
+                            onClick={() => openCreateCategoryModal(selectedFilterParent.id)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D]"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add First Explore Item to {selectedFilterParent.name}</span>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredCategoriesView.map((c) => {
+                          const parentCat = c.parent_id
+                            ? categories.find((p) => p.id === c.parent_id)
+                            : null;
+                          const sameParentSiblings = categories
+                            .filter((x) => (x.parent_id || '') === (c.parent_id || ''))
+                            .sort(
+                              (a, b) =>
+                                Number(a.display_order ?? 999) - Number(b.display_order ?? 999) ||
+                                String(a.name || '').localeCompare(String(b.name || ''))
+                            );
+                          const siblingIndex = sameParentSiblings.findIndex((s) => s.id === c.id);
+                          const keywordList = String(c.filter_keywords || '')
+                            .split(',')
+                            .map((k) => k.trim())
+                            .filter(Boolean);
+
+                          return (
+                            <div
+                              key={c.id}
+                              className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col justify-between gap-3"
+                            >
+                              <div className="space-y-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="relative shrink-0">
+                                      {c.image_url ? (
+                                        <img
+                                          src={c.image_url}
+                                          alt={c.name}
+                                          className="w-12 h-12 rounded-full object-cover border-2 border-[#D8C7B5] bg-white"
+                                        />
+                                      ) : (
+                                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-[#D8C7B5] bg-white flex items-center justify-center text-[10px] font-bold text-[#8E9B92]">
+                                          No Pic
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <h3 className="font-golden font-bold text-sm text-[#1A3B2B] truncate">
+                                        {c.name}
+                                      </h3>
+                                      <span
+                                        className={`inline-block text-[10px] font-semibold ${
+                                          parentCat ? 'text-[#285A3C]' : 'text-[#736455]'
+                                        }`}
+                                      >
+                                        {parentCat
+                                          ? `Explore item in ${parentCat.name}`
+                                          : 'Top-Level Collection'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleToggleCategoryActive(c)}
+                                    title="Click to toggle storefront visibility"
+                                    className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 transition-colors ${
+                                      c.is_active
+                                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                        : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                                    }`}
+                                  >
+                                    {c.is_active ? (
+                                      <>
+                                        <Eye className="w-2.5 h-2.5" />
+                                        <span>Active</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <EyeOff className="w-2.5 h-2.5" />
+                                        <span>Hidden</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+
+                                <p className="text-[11px] text-[#647268] line-clamp-2">
+                                  {c.description || 'Curated collection category'}
+                                </p>
+
+                                {keywordList.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {keywordList.slice(0, 4).map((kw, idx) => (
+                                      <span
+                                        key={`${c.id}-kw-${idx}`}
+                                        className="px-1.5 py-0.5 rounded bg-white border border-[#E8DCCF] text-[10px] text-[#4F6355]"
+                                      >
+                                        {kw}
+                                      </span>
+                                    ))}
+                                    {keywordList.length > 4 && (
+                                      <span className="text-[10px] text-[#8E9B92]">
+                                        +{keywordList.length - 4} more
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
+
+                                <div className="flex items-center justify-between text-[10px] text-[#8E9B92]">
+                                  <span className="font-mono truncate">/{c.slug}</span>
+                                  <span className="shrink-0">Order: #{c.display_order}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E8DCCF]">
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={siblingIndex <= 0}
+                                    onClick={() =>
+                                      void handleMoveCategoryOrder(c, 'up', sameParentSiblings)
+                                    }
+                                    aria-label={`Move ${c.name} earlier`}
+                                    title="Move earlier"
+                                    className="p-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[#1A3B2B] hover:bg-[#D0E9C0]/30 disabled:opacity-35"
+                                  >
+                                    <ArrowUp className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={
+                                      siblingIndex === -1 ||
+                                      siblingIndex >= sameParentSiblings.length - 1
+                                    }
+                                    onClick={() =>
+                                      void handleMoveCategoryOrder(c, 'down', sameParentSiblings)
+                                    }
+                                    aria-label={`Move ${c.name} later`}
+                                    title="Move later"
+                                    className="p-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[#1A3B2B] hover:bg-[#D0E9C0]/30 disabled:opacity-35"
+                                  >
+                                    <ArrowDown className="w-3 h-3" />
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditCategoryModal(c)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteCategoryTarget(c)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-semibold text-rose-700 hover:bg-rose-100"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                            <span
-                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${c.is_active
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
-                                }`}
-                            >
-                              {c.is_active ? 'Active' : 'Hidden'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-[#647268] line-clamp-2">
-                            {c.description || 'Curated collection category'}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SUB-TAB 2: EXPLORE BAR & DYNAMIC FILTERS BUILDER */}
+                {categoriesSubTab === 'builder' && (
+                  <div className="space-y-6">
+                    {/* Scope Selector Card */}
+                    <div className="bg-white rounded-2xl border border-[#D8C7B5] p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                          Explore Categories & Filters Configuration Scope
+                        </h2>
+                        <p className="text-xs text-[#647268]">
+                          Customize the global defaults for every collection page, or pick a specific collection (like Sarees or Lehengas) to override its Explore bar and Filters sidebar independently
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          aria-label="Select configuration scope"
+                          value={configScopeSlug}
+                          onChange={(e) => setConfigScopeSlug(e.target.value)}
+                          className="p-2.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] text-xs font-semibold text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                        >
+                          {scopeOptions.map((opt) => (
+                            <option key={opt.slug} value={opt.slug}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        {hasScopeOverride && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetScopeOverrides(configScopeSlug)}
+                            className="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                          >
+                            Reset Override
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Panel A: Explore Categories Strip Config */}
+                    <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8DCCF] pb-3">
+                        <div>
+                          <h3 className="font-golden text-base font-bold text-[#1A3B2B]">
+                            1. &quot;Explore Categories&quot; Bar Settings
+                          </h3>
+                          <p className="text-xs text-[#647268]">
+                            {isGlobalBuilderScope
+                              ? 'Controls the circular Explore strip title, visibility, and "All" reset pill across collection pages'
+                              : `Override how the Explore strip appears specifically on "/${configScopeSlug}"`}
                           </p>
-                          <div className="flex items-center justify-between text-[10px] text-[#8E9B92]">
-                            <span className="font-mono">/{c.slug}</span>
-                            <span>Order: {c.display_order}</span>
-                          </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8DCCF]">
-                          <button
-                            type="button"
-                            onClick={() => openEditCategoryModal(c)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-[#D8C7B5] text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteCategoryTarget(c)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-semibold text-rose-700 hover:bg-rose-100"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Delete</span>
-                          </button>
+                        {!isGlobalBuilderScope && (
+                          <span className="px-2.5 py-1 rounded-full bg-[#D0E9C0]/60 text-[#1A3B2B] text-[10px] font-bold uppercase tracking-wider">
+                            Collection Override: /{configScopeSlug}
+                          </span>
+                        )}
+                      </div>
+
+                      {isGlobalBuilderScope ? (
+                        <div className="space-y-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <label
+                                htmlFor="exp-global-title"
+                                className="font-semibold text-[#1A3B2B] block"
+                              >
+                                Section Title Heading
+                              </label>
+                              <input
+                                id="exp-global-title"
+                                type="text"
+                                value={exploreConfigForm.title}
+                                onChange={(e) =>
+                                  setExploreConfigForm((prev) => ({
+                                    ...prev,
+                                    title: e.target.value,
+                                  }))
+                                }
+                                placeholder="Explore Categories"
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label
+                                htmlFor="exp-all-label"
+                                className="font-semibold text-[#1A3B2B] block"
+                              >
+                                &quot;All&quot; Reset Pill Label
+                              </label>
+                              <input
+                                id="exp-all-label"
+                                type="text"
+                                value={exploreConfigForm.allPillLabel}
+                                onChange={(e) =>
+                                  setExploreConfigForm((prev) => ({
+                                    ...prev,
+                                    allPillLabel: e.target.value,
+                                  }))
+                                }
+                                placeholder="All"
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              />
+                            </div>
+
+                            <div className="flex items-end pb-1">
+                              <label className="inline-flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[#D8C7B5] bg-[#FAF5EE] w-full cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={exploreConfigForm.showAllPill}
+                                  onChange={(e) =>
+                                    setExploreConfigForm((prev) => ({
+                                      ...prev,
+                                      showAllPill: e.target.checked,
+                                    }))
+                                  }
+                                  className="accent-[#285A3C]"
+                                />
+                                <span className="font-semibold text-[#1A3B2B]">
+                                  Show &quot;All&quot; Reset Pill
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                            {[
+                              { key: 'enabled', label: 'Master Enable Explore Strip' },
+                              { key: 'showOnShopAll', label: 'Show on Shop All' },
+                              { key: 'showOnCollections', label: 'Show on Collections' },
+                              { key: 'showOnNewArrivals', label: 'Show on New Arrivals' },
+                              { key: 'showOnBestsellers', label: 'Show on Bestsellers' },
+                            ].map((toggle) => (
+                              <label
+                                key={toggle.key}
+                                className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean((exploreConfigForm as any)[toggle.key])}
+                                  onChange={(e) =>
+                                    setExploreConfigForm((prev) => ({
+                                      ...prev,
+                                      [toggle.key]: e.target.checked,
+                                    }))
+                                  }
+                                  className="accent-[#285A3C]"
+                                />
+                                <span className="font-medium text-[#1A3B2B]">{toggle.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                          <div className="space-y-1">
+                            <label className="font-semibold text-[#1A3B2B] block">
+                              Explore Bar Visibility
+                            </label>
+                            <select
+                              value={
+                                activeScopeExploreOv.enabled === undefined
+                                  ? 'inherit'
+                                  : activeScopeExploreOv.enabled
+                                    ? 'show'
+                                    : 'hide'
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateExploreScopeOverride(configScopeSlug, {
+                                  enabled:
+                                    val === 'inherit' ? undefined : val === 'show',
+                                });
+                              }}
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            >
+                              <option value="inherit">Inherit Global Setting</option>
+                              <option value="show">Force Show</option>
+                              <option value="hide">Force Hide</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="font-semibold text-[#1A3B2B] block">
+                              Section Heading Override
+                            </label>
+                            <input
+                              type="text"
+                              value={activeScopeExploreOv.title || ''}
+                              onChange={(e) =>
+                                updateExploreScopeOverride(configScopeSlug, {
+                                  title: e.target.value,
+                                })
+                              }
+                              placeholder={`Inherit: ${exploreConfigForm.title}`}
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="font-semibold text-[#1A3B2B] block">
+                              &quot;All&quot; Reset Pill Visibility
+                            </label>
+                            <select
+                              value={
+                                activeScopeExploreOv.showAllPill === undefined
+                                  ? 'inherit'
+                                  : activeScopeExploreOv.showAllPill
+                                    ? 'show'
+                                    : 'hide'
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateExploreScopeOverride(configScopeSlug, {
+                                  showAllPill:
+                                    val === 'inherit' ? undefined : val === 'show',
+                                });
+                              }}
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            >
+                              <option value="inherit">Inherit Global Setting</option>
+                              <option value="show">Show &quot;All&quot; Pill</option>
+                              <option value="hide">Hide &quot;All&quot; Pill</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="font-semibold text-[#1A3B2B] block">
+                              &quot;All&quot; Pill Label Override
+                            </label>
+                            <input
+                              type="text"
+                              value={activeScopeExploreOv.allPillLabel || ''}
+                              onChange={(e) =>
+                                updateExploreScopeOverride(configScopeSlug, {
+                                  allPillLabel: e.target.value,
+                                })
+                              }
+                              placeholder={`Inherit: ${exploreConfigForm.allPillLabel}`}
+                              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Panel B: Dynamic Filters Sidebar Builder */}
+                    <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8DCCF] pb-3">
+                        <div>
+                          <h3 className="font-golden text-base font-bold text-[#1A3B2B]">
+                            2. Collection &quot;Filters&quot; Sidebar Builder
+                          </h3>
+                          <p className="text-xs text-[#647268]">
+                            {isGlobalBuilderScope
+                              ? 'Rename sidebar & filter headings, reorder groups, curate custom options or auto-detect from products, and create custom tag filter groups'
+                              : `Override sidebar visibility, headings, and per-group options specifically on "/${configScopeSlug}"`}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {isGlobalBuilderScope ? (
+                        <div className="space-y-5 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                              <label
+                                htmlFor="flt-sidebar-title"
+                                className="font-semibold text-[#1A3B2B] block"
+                              >
+                                Sidebar Heading Title
+                              </label>
+                              <input
+                                id="flt-sidebar-title"
+                                type="text"
+                                value={filtersConfigForm.sidebarTitle}
+                                onChange={(e) =>
+                                  setFiltersConfigForm((prev) => ({
+                                    ...prev,
+                                    sidebarTitle: e.target.value,
+                                  }))
+                                }
+                                placeholder="Filters"
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              />
+                            </div>
+
+                            <div className="flex items-end">
+                              <label className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] w-full cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={filtersConfigForm.enabled}
+                                  onChange={(e) =>
+                                    setFiltersConfigForm((prev) => ({
+                                      ...prev,
+                                      enabled: e.target.checked,
+                                    }))
+                                  }
+                                  className="accent-[#285A3C]"
+                                />
+                                <span className="font-semibold text-[#1A3B2B]">
+                                  Enable Filters Sidebar
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="flex items-end">
+                              <label className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] w-full cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={filtersConfigForm.showClearAll}
+                                  onChange={(e) =>
+                                    setFiltersConfigForm((prev) => ({
+                                      ...prev,
+                                      showClearAll: e.target.checked,
+                                    }))
+                                  }
+                                  className="accent-[#285A3C]"
+                                />
+                                <span className="font-semibold text-[#1A3B2B]">
+                                  Show &quot;Clear All&quot; Link
+                                </span>
+                              </label>
+                            </div>
+
+                            <div className="flex items-end">
+                              <label className="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] w-full cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={filtersConfigForm.showSortDropdown}
+                                  onChange={(e) =>
+                                    setFiltersConfigForm((prev) => ({
+                                      ...prev,
+                                      showSortDropdown: e.target.checked,
+                                    }))
+                                  }
+                                  className="accent-[#285A3C]"
+                                />
+                                <span className="font-semibold text-[#1A3B2B]">
+                                  Show &quot;Sort By&quot; Dropdown
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Ordered Global Filter Groups */}
+                          <div className="space-y-3">
+                            {sortedFilterGroups.map((group, idx) => {
+                              const detectedValues = detectCatalogValuesForFilterGroup(group);
+                              return (
+                                <div
+                                  key={group.id}
+                                  className={`p-4 rounded-xl border space-y-3 transition-colors ${
+                                    group.enabled
+                                      ? 'border-[#BCD8AA] bg-[#FAF5EE]'
+                                      : 'border-[#E8DCCF] bg-[#FAF5EE]/50 opacity-85'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          disabled={idx === 0}
+                                          onClick={() => moveFilterGroupOrder(group.id, 'up')}
+                                          aria-label={`Move ${group.label} filter up`}
+                                          className="p-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[#1A3B2B] hover:bg-[#D0E9C0]/30 disabled:opacity-35"
+                                        >
+                                          <ArrowUp className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={idx === sortedFilterGroups.length - 1}
+                                          onClick={() => moveFilterGroupOrder(group.id, 'down')}
+                                          aria-label={`Move ${group.label} filter down`}
+                                          className="p-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[#1A3B2B] hover:bg-[#D0E9C0]/30 disabled:opacity-35"
+                                        >
+                                          <ArrowDown className="w-3 h-3" />
+                                        </button>
+                                      </div>
+
+                                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={group.enabled}
+                                          onChange={(e) =>
+                                            updateFilterGroup(group.id, {
+                                              enabled: e.target.checked,
+                                            })
+                                          }
+                                          className="accent-[#285A3C]"
+                                        />
+                                        <span className="font-bold text-[#1A3B2B]">
+                                          {group.enabled ? 'Visible' : 'Hidden'}
+                                        </span>
+                                      </label>
+
+                                      <span className="px-2 py-0.5 rounded-full bg-white border border-[#D8C7B5] text-[10px] font-mono uppercase text-[#647268]">
+                                        {group.type}
+                                      </span>
+                                    </div>
+
+                                    {group.type === 'tag' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteCustomTagFilterGroup(group.id)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-[11px] font-semibold text-rose-700 hover:bg-rose-100"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                        <span>Delete Group</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    <div className="space-y-1">
+                                      <label className="font-semibold text-[#1A3B2B] block">
+                                        Filter Group Label
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={group.label}
+                                        onChange={(e) =>
+                                          updateFilterGroup(group.id, { label: e.target.value })
+                                        }
+                                        className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                      />
+                                    </div>
+
+                                    {group.type === 'price_range' ? (
+                                      <>
+                                        <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+                                          <div className="space-y-1">
+                                            <label className="font-semibold text-[#1A3B2B] block">
+                                              Min Price (₹)
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              value={group.minPrice ?? 500}
+                                              onChange={(e) =>
+                                                updateFilterGroup(group.id, {
+                                                  minPrice: Math.max(0, Number(e.target.value)),
+                                                })
+                                              }
+                                              className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="font-semibold text-[#1A3B2B] block">
+                                              Max Cap (₹, 0 = Auto)
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              value={group.maxPrice ?? 0}
+                                              onChange={(e) =>
+                                                updateFilterGroup(group.id, {
+                                                  maxPrice: Math.max(0, Number(e.target.value)),
+                                                })
+                                              }
+                                              className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="font-semibold text-[#1A3B2B] block">
+                                              Slider Step (₹)
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min={50}
+                                              step={50}
+                                              value={group.step ?? 500}
+                                              onChange={(e) =>
+                                                updateFilterGroup(group.id, {
+                                                  step: Math.max(50, Number(e.target.value)),
+                                                })
+                                              }
+                                              className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                            />
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="space-y-1">
+                                          <label className="font-semibold text-[#1A3B2B] block">
+                                            Options Source Mode
+                                          </label>
+                                          <select
+                                            value={group.optionSource}
+                                            onChange={(e) =>
+                                              updateFilterGroup(group.id, {
+                                                optionSource: e.target.value as 'auto' | 'custom',
+                                              })
+                                            }
+                                            className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                          >
+                                            <option value="auto">Auto-detect from products</option>
+                                            <option value="custom">Curated Custom List</option>
+                                          </select>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="font-semibold text-[#1A3B2B] block">
+                                            Hidden / Excluded Options (CSV)
+                                          </label>
+                                          <CommaListInput
+                                            values={group.hiddenOptions}
+                                            onChange={(nextHidden) =>
+                                              updateFilterGroup(group.id, {
+                                                hiddenOptions: nextHidden,
+                                              })
+                                            }
+                                            placeholder="e.g. Sample Option"
+                                            className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                          />
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {group.type !== 'price_range' && group.optionSource === 'custom' && (
+                                    <div className="space-y-1.5 pt-1">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <label className="font-semibold text-[#1A3B2B]">
+                                          Curated Filter Checkboxes (comma-separated)
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const merged = Array.from(
+                                              new Set([...group.customOptions, ...detectedValues])
+                                            );
+                                            updateFilterGroup(group.id, { customOptions: merged });
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-white border border-[#BCD8AA] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                                        >
+                                          + Import Values from Catalog ({detectedValues.length})
+                                        </button>
+                                      </div>
+                                      <CommaListInput
+                                        values={group.customOptions}
+                                        onChange={(nextOpts) =>
+                                          updateFilterGroup(group.id, { customOptions: nextOpts })
+                                        }
+                                        placeholder="Pure Mulberry Silk, Organza, Chanderi..."
+                                        className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {group.type !== 'price_range' && detectedValues.length > 0 && (
+                                    <p className="text-[11px] text-[#647268]">
+                                      Live catalog values:{' '}
+                                      <span className="text-[#1A3B2B] font-medium">
+                                        {detectedValues.slice(0, 8).join(', ')}
+                                        {detectedValues.length > 8
+                                          ? ` (+${detectedValues.length - 8} more)`
+                                          : ''}
+                                      </span>
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Add Custom Tag Filter Group */}
+                          <div className="p-4 rounded-xl border border-dashed border-[#BCD8AA] bg-[#D0E9C0]/20 flex flex-wrap items-end gap-3">
+                            <div className="flex-1 min-w-[220px] space-y-1">
+                              <label
+                                htmlFor="new-custom-filter-label"
+                                className="font-semibold text-[#1A3B2B] block"
+                              >
+                                Create New Custom Tag / Attribute Filter Group
+                              </label>
+                              <input
+                                id="new-custom-filter-label"
+                                type="text"
+                                value={customTagLabelInput}
+                                onChange={(e) => setCustomTagLabelInput(e.target.value)}
+                                placeholder="e.g. Zari Finish, Collection Tag, Border Style"
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAddCustomTagFilterGroup}
+                              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>Add Custom Filter Group</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="font-semibold text-[#1A3B2B] block">
+                                Sidebar Visibility on /{configScopeSlug}
+                              </label>
+                              <select
+                                value={
+                                  activeScopeFilterOv.enabled === undefined
+                                    ? 'inherit'
+                                    : activeScopeFilterOv.enabled
+                                      ? 'show'
+                                      : 'hide'
+                                }
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  updateFilterScopeOverride(configScopeSlug, {
+                                    enabled: val === 'inherit' ? undefined : val === 'show',
+                                  });
+                                }}
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              >
+                                <option value="inherit">Inherit Global Setting</option>
+                                <option value="show">Force Show Sidebar</option>
+                                <option value="hide">Hide Filters Sidebar</option>
+                              </select>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="font-semibold text-[#1A3B2B] block">
+                                Sidebar Heading Override
+                              </label>
+                              <input
+                                type="text"
+                                value={activeScopeFilterOv.sidebarTitle || ''}
+                                onChange={(e) =>
+                                  updateFilterScopeOverride(configScopeSlug, {
+                                    sidebarTitle: e.target.value,
+                                  })
+                                }
+                                placeholder={`Inherit: ${filtersConfigForm.sidebarTitle}`}
+                                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {sortedFilterGroups.map((group) => {
+                              const gOv = activeScopeFilterOv.groupOverrides?.[group.id] || {};
+                              return (
+                                <div
+                                  key={`${configScopeSlug}-${group.id}`}
+                                  className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] space-y-3"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <strong className="text-[#1A3B2B]">{group.label}</strong>
+                                      <span className="px-2 py-0.5 rounded-full bg-white border border-[#D8C7B5] text-[10px] font-mono uppercase text-[#647268]">
+                                        {group.type}
+                                      </span>
+                                    </div>
+                                    <span className="text-[11px] text-[#647268]">
+                                      Global default: {group.enabled ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="space-y-1">
+                                      <label className="font-semibold text-[#1A3B2B] block">
+                                        Group Visibility
+                                      </label>
+                                      <select
+                                        value={
+                                          gOv.enabled === undefined
+                                            ? 'inherit'
+                                            : gOv.enabled
+                                              ? 'show'
+                                              : 'hide'
+                                        }
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          updateFilterGroupOverride(configScopeSlug, group.id, {
+                                            enabled:
+                                              val === 'inherit' ? undefined : val === 'show',
+                                          });
+                                        }}
+                                        className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                      >
+                                        <option value="inherit">
+                                          Inherit Global ({group.enabled ? 'On' : 'Off'})
+                                        </option>
+                                        <option value="show">Force Show</option>
+                                        <option value="hide">Force Hide</option>
+                                      </select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <label className="font-semibold text-[#1A3B2B] block">
+                                        Heading Override
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={gOv.label || ''}
+                                        onChange={(e) =>
+                                          updateFilterGroupOverride(configScopeSlug, group.id, {
+                                            label: e.target.value,
+                                          })
+                                        }
+                                        placeholder={`Inherit: ${group.label}`}
+                                        className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                      />
+                                    </div>
+
+                                    {group.type === 'price_range' ? (
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <label className="font-semibold text-[#1A3B2B] block">
+                                            Min ₹ Override
+                                          </label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            value={gOv.minPrice ?? ''}
+                                            placeholder={String(group.minPrice ?? 500)}
+                                            onChange={(e) =>
+                                              updateFilterGroupOverride(configScopeSlug, group.id, {
+                                                minPrice:
+                                                  e.target.value === ''
+                                                    ? undefined
+                                                    : Math.max(0, Number(e.target.value)),
+                                              })
+                                            }
+                                            className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="font-semibold text-[#1A3B2B] block">
+                                            Max ₹ Override
+                                          </label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            value={gOv.maxPrice ?? ''}
+                                            placeholder="Auto"
+                                            onChange={(e) =>
+                                              updateFilterGroupOverride(configScopeSlug, group.id, {
+                                                maxPrice:
+                                                  e.target.value === ''
+                                                    ? undefined
+                                                    : Math.max(0, Number(e.target.value)),
+                                              })
+                                            }
+                                            className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <label className="font-semibold text-[#1A3B2B] block">
+                                          Custom Options Override (CSV)
+                                        </label>
+                                        <CommaListInput
+                                          values={gOv.customOptions || []}
+                                          onChange={(opts) =>
+                                            updateFilterGroupOverride(configScopeSlug, group.id, {
+                                              customOptions: opts,
+                                            })
+                                          }
+                                          placeholder="Leave blank to inherit global"
+                                          className="w-full p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-3 border-t border-[#E8DCCF]">
+                        <button
+                          type="button"
+                          disabled={savingExploreAndFilters}
+                          onClick={() => void handleSaveExploreAndFilters()}
+                          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] disabled:opacity-60 shadow-xs"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>
+                            {savingExploreAndFilters
+                              ? 'Saving Explore & Filters...'
+                              : 'Save Explore & Filters Config'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -3736,6 +5243,44 @@ export const AdminDashboardPage: React.FC = () => {
             {/* TAB: CMS, SETTINGS & BANNERS */}
             {activeTab === 'cms' && (
               <div className="space-y-8">
+                {/* 0. Shortcut to Explore Categories & Dynamic Filters Builder */}
+                <div className="bg-[#D0E9C0]/35 rounded-2xl border border-[#BCD8AA] p-5 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <SlidersHorizontal className="w-5 h-5 text-[#285A3C] shrink-0 mt-0.5" />
+                    <div>
+                      <h2 className="font-golden text-base font-bold text-[#1A3B2B]">
+                        Explore Categories Strip & Collection Filters Builder
+                      </h2>
+                      <p className="text-xs text-[#4F6355]">
+                        Rename &quot;Explore Categories&quot; or &quot;Filters&quot;, upload category photos, add filter groups, or configure per-collection overrides
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('categories');
+                        setCategoriesSubTab('items');
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-[#285A3C] bg-white text-xs font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE] transition-colors"
+                    >
+                      Edit Explore Names & Photos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('categories');
+                        setCategoriesSubTab('builder');
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] transition-colors shadow-xs"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span>Open Explore & Filters Builder</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* 1. Storefront & Shipping Settings */}
                 <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
                   <div className="flex items-start gap-3">
@@ -4715,6 +6260,54 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label htmlFor="prod-subcategory" className="font-semibold text-[#1A3B2B] block">
+                Explore Subcategory Label
+              </label>
+              <input
+                id="prod-subcategory"
+                name="specificationsSubCategory"
+                type="text"
+                list="subcategory-suggestions"
+                value={productForm.specificationsSubCategory}
+                onChange={(e) =>
+                  setProductForm({
+                    ...productForm,
+                    specificationsSubCategory: e.target.value,
+                  })
+                }
+                placeholder="e.g. Kanjivaram Silk, Bridal Lehengas, Kurtis"
+                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+              />
+              <datalist id="subcategory-suggestions">
+                {knownSubcategoryNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="prod-tags" className="font-semibold text-[#1A3B2B] block">
+                Custom Filter Tags (comma-separated)
+              </label>
+              <input
+                id="prod-tags"
+                name="specificationsTagsText"
+                type="text"
+                value={productForm.specificationsTagsText}
+                onChange={(e) =>
+                  setProductForm({
+                    ...productForm,
+                    specificationsTagsText: e.target.value,
+                  })
+                }
+                placeholder="e.g. Zari Border, Handloom, Muhurtham, Pastel"
+                className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+              />
+            </div>
+          </div>
+
           <fieldset className="space-y-1.5">
             <legend className="font-semibold text-[#1A3B2B]">Storefront Merchandising Badges</legend>
             <div className="flex flex-wrap gap-3 pt-1">
@@ -4744,9 +6337,50 @@ export const AdminDashboardPage: React.FC = () => {
           </fieldset>
 
           <div className="space-y-1.5">
-            <label htmlFor="prod-images" className="font-semibold text-[#1A3B2B] block">
-              Product Image URLs (one URL per line — first URL is primary image)
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor="prod-images" className="font-semibold text-[#1A3B2B] block">
+                Product Image URLs (one URL per line — first URL is primary image)
+              </label>
+              <label
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
+                  uploadingTarget === 'product-image' ? 'opacity-60 pointer-events-none' : ''
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>
+                  {uploadingTarget === 'product-image' ? 'Uploading...' : 'Upload Photo'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  className="sr-only"
+                  disabled={uploadingTarget === 'product-image'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    void handleUploadSingleImage(
+                      file,
+                      'product-images',
+                      'catalog',
+                      'product-image',
+                      (url) =>
+                        setProductForm((prev) => {
+                          const existing = prev.imagesText
+                            .split(/\r?\n|,/)
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                          const isOnlyDefault =
+                            !editingProductId &&
+                            existing.length === 1 &&
+                            existing[0] === DEFAULT_PRODUCT_FORM.imagesText;
+                          const nextLines = isOnlyDefault ? [url] : [...existing, url];
+                          return { ...prev, imagesText: nextLines.join('\n') };
+                        })
+                    );
+                  }}
+                />
+              </label>
+            </div>
             <textarea
               id="prod-images"
               name="imagesText"
@@ -5200,7 +6834,13 @@ export const AdminDashboardPage: React.FC = () => {
               >
                 <option value="">Top-Level Category</option>
                 {categories
-                  .filter((c) => c.id !== editingCategoryId && !c.parent_id)
+                  .filter(
+                    (c) =>
+                      c.id !== editingCategoryId &&
+                      (!c.parent_id ||
+                        ['kurtis', 'festive'].includes(c.slug) ||
+                        categories.some((child) => child.parent_id === c.id))
+                  )
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -5226,10 +6866,40 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="cat-image" className="font-semibold text-[#1A3B2B] block">
-              Image URL
-            </label>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor="cat-image" className="font-semibold text-[#1A3B2B] block">
+                Category / Explore Pill Image URL
+              </label>
+              <label
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
+                  uploadingTarget === 'category-image' ? 'opacity-60 pointer-events-none' : ''
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>
+                  {uploadingTarget === 'category-image' ? 'Uploading...' : 'Upload Photo'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  disabled={uploadingTarget === 'category-image'}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    void handleUploadSingleImage(
+                      file,
+                      'category-images',
+                      'categories',
+                      'category-image',
+                      (url) => setCategoryForm((prev) => ({ ...prev, image_url: url }))
+                    );
+                  }}
+                />
+              </label>
+            </div>
+
             <input
               id="cat-image"
               name="image_url"
@@ -5242,6 +6912,74 @@ export const AdminDashboardPage: React.FC = () => {
               placeholder="/assets/categories/sarees.jpg"
               className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
             />
+
+            {/* Live Explore Pill & Homepage Arch Preview */}
+            <div className="p-3 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] flex flex-wrap items-center gap-5">
+              <div className="flex flex-col items-center gap-1.5 w-[104px] text-center">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#647268]">
+                  Explore Pill
+                </span>
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#285A3C] p-0.5 bg-white">
+                  {categoryForm.image_url ? (
+                    <img
+                      src={categoryForm.image_url}
+                      alt={categoryForm.name || 'Explore preview'}
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-[#E8DCCF]/50 flex items-center justify-center text-[10px] text-[#8E9B92]">
+                      No Img
+                    </div>
+                  )}
+                </div>
+                <span className="text-[11px] font-semibold leading-tight text-[#1A3B2B] line-clamp-2">
+                  {categoryForm.name || 'Category Name'}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#647268]">
+                  Homepage Arch
+                </span>
+                <div className="w-16 h-20 rounded-t-full overflow-hidden border border-[#D8C7B5] bg-white">
+                  {categoryForm.image_url ? (
+                    <img
+                      src={categoryForm.image_url}
+                      alt={categoryForm.name || 'Arch preview'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#E8DCCF]/50 flex items-center justify-center text-[10px] text-[#8E9B92]">
+                      No Img
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="flex-1 min-w-[160px] text-[11px] text-[#647268] leading-relaxed">
+                This live preview mirrors how the category appears inside the &quot;Explore Categories&quot; bar and Homepage Category strip.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="cat-keywords" className="font-semibold text-[#1A3B2B] block">
+              Filter Matching Keywords (comma-separated, optional)
+            </label>
+            <input
+              id="cat-keywords"
+              name="filter_keywords"
+              type="text"
+              value={categoryForm.filter_keywords}
+              onChange={(e) =>
+                setCategoryForm({ ...categoryForm, filter_keywords: e.target.value })
+              }
+              placeholder="e.g. kanchipuram, kanjivaram, mulberry silk"
+              className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+            />
+            <p className="text-[10px] text-[#647268]">
+              Controls which products appear when a shopper clicks this Explore pill (matches title, fabric, occasion, weave, or subcategory).
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -5809,10 +7547,44 @@ export const AdminDashboardPage: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="banner-img-desktop" className="font-semibold text-[#1A3B2B] block">
-                Desktop Image URL *
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="banner-img-desktop" className="font-semibold text-[#1A3B2B] block">
+                  Desktop Image URL *
+                </label>
+                <label
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[10px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
+                    uploadingTarget === 'banner-desktop' ? 'opacity-60 pointer-events-none' : ''
+                  }`}
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>
+                    {uploadingTarget === 'banner-desktop' ? 'Uploading...' : 'Upload Desktop'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={uploadingTarget === 'banner-desktop'}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      void handleUploadSingleImage(
+                        file,
+                        'homepage-banners',
+                        'desktop',
+                        'banner-desktop',
+                        (url) =>
+                          setBannerForm((prev) => ({
+                            ...prev,
+                            desktop_image_url: url,
+                            mobile_image_url: prev.mobile_image_url || url,
+                          }))
+                      );
+                    }}
+                  />
+                </label>
+              </div>
               <input
                 id="banner-img-desktop"
                 name="desktop_image_url"
@@ -5829,10 +7601,43 @@ export const AdminDashboardPage: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="banner-img-mobile" className="font-semibold text-[#1A3B2B] block">
-                Mobile Image URL *
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="banner-img-mobile" className="font-semibold text-[#1A3B2B] block">
+                  Mobile Image URL *
+                </label>
+                <label
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[10px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
+                    uploadingTarget === 'banner-mobile' ? 'opacity-60 pointer-events-none' : ''
+                  }`}
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>
+                    {uploadingTarget === 'banner-mobile' ? 'Uploading...' : 'Upload Mobile'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={uploadingTarget === 'banner-mobile'}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      void handleUploadSingleImage(
+                        file,
+                        'homepage-banners',
+                        'mobile',
+                        'banner-mobile',
+                        (url) =>
+                          setBannerForm((prev) => ({
+                            ...prev,
+                            mobile_image_url: url,
+                          }))
+                      );
+                    }}
+                  />
+                </label>
+              </div>
               <input
                 id="banner-img-mobile"
                 name="mobile_image_url"

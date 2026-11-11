@@ -1,6 +1,8 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import {
   DEFAULT_SITE_SETTINGS,
+  normalizeExploreCategoriesConfig,
+  normalizeCollectionFiltersConfig,
   type Product,
   type Category,
   type ServiceBenefit,
@@ -29,8 +31,10 @@ interface RawCategoryRow {
   id: string;
   name: string;
   slug: string;
+  description?: string | null;
   parent_id: string | null;
   image_url: string | null;
+  filter_keywords?: string | null;
   display_order: number | null;
   is_active: boolean | null;
 }
@@ -52,6 +56,58 @@ function collectDescendantIds(
     ids.push(...collectDescendantIds(child.id, allCats, excludeSlugs));
   }
   return ids;
+}
+
+function buildSubcategoryOrParts(subCat: RawCategoryRow, allCats: RawCategoryRow[]): string[] {
+  const subIds = collectDescendantIds(subCat.id, allCats);
+  const parts = new Set<string>([`category_id.in.(${subIds.join(',')})`]);
+
+  const cleanName = sanitizeFilterTerm(subCat.name);
+  if (cleanName) {
+    parts.add(`specifications->>subCategory.ilike.%${cleanName}%`);
+    parts.add(`title.ilike.%${cleanName}%`);
+  }
+
+  const keywordTokens = new Set<string>();
+  const explicitKeywords = (subCat.filter_keywords || '')
+    .split(',')
+    .map((k) => sanitizeFilterTerm(k))
+    .filter((k) => k.length >= 3);
+
+  if (explicitKeywords.length > 0) {
+    // When admin defines filter_keywords, use them exclusively alongside exact name/subIds
+    // so broad adjectives like "Festive" or "Silk" don't override specific targets (e.g. Festive Sarees).
+    for (const tok of explicitKeywords) {
+      keywordTokens.add(tok);
+    }
+  } else {
+    const cleanRootWord = sanitizeFilterTerm(
+      subCat.name.replace(/\b(sarees?|kurthis?|kurtis?|sets?|styles?|collection|wear)\b/gi, '')
+    );
+    if (cleanRootWord.length >= 3) keywordTokens.add(cleanRootWord);
+
+    const cleanSlugRoot = sanitizeFilterTerm(
+      subCat.slug
+        .replace(/-/g, ' ')
+        .replace(/\b(sarees?|kurthis?|kurtis?|sets?|styles?|collection|wear)\b/gi, '')
+    );
+    if (cleanSlugRoot.length >= 3) keywordTokens.add(cleanSlugRoot);
+  }
+
+  for (const tok of keywordTokens) {
+    parts.add(`title.ilike.%${tok}%`);
+    parts.add(`fabric.ilike.%${tok}%`);
+    parts.add(`occasion.ilike.%${tok}%`);
+    parts.add(`weaving_style.ilike.%${tok}%`);
+    parts.add(`specifications->>subCategory.ilike.%${tok}%`);
+    parts.add(`specifications->>tags.ilike.%${tok}%`);
+  }
+
+  if (subCat.slug === 'festive') {
+    parts.add('is_festive.eq.true');
+  }
+
+  return Array.from(parts);
 }
 
 // Convert Supabase database product row + media + variants to Frontend Product model
@@ -163,7 +219,7 @@ export const productService = {
       if (needsCategoryLookup) {
         const { data: catRows, error: catErr } = await supabase
           .from('categories')
-          .select('id, name, slug, parent_id, image_url, display_order, is_active')
+          .select('id, name, slug, description, parent_id, image_url, filter_keywords, display_order, is_active')
           .eq('is_active', true);
 
         if (!catErr && catRows) {
@@ -171,33 +227,44 @@ export const productService = {
         }
       }
 
-      if (filters.subCategorySlug) {
-        const subCat = allCats.find((c) => c.slug === filters.subCategorySlug);
-        if (subCat) {
-          const subIds = collectDescendantIds(subCat.id, allCats);
-          const cleanName = sanitizeFilterTerm(subCat.name);
-          const cleanRootWord = sanitizeFilterTerm(subCat.name.replace(/sarees?|kurthis?|kurtis?|sets?|styles?|collection|wear/gi, ''));
-          const orParts = [`category_id.in.(${subIds.join(',')})`];
-          if (cleanName) {
-            orParts.push(`specifications->>subCategory.ilike.%${cleanName}%`);
-            orParts.push(`title.ilike.%${cleanName}%`);
+      // Always scope to the active collection (categorySlug) first when provided
+      // so selecting a subcategory (e.g. "Organza Sarees") inside Sarees never leaks
+      // Organza Lehengas or Shararas into Sarees.
+      if (filters.categorySlug && filters.categorySlug !== 'all' && filters.categorySlug !== 'festive') {
+        const cat = allCats.find((c) => c.slug === filters.categorySlug);
+        if (cat) {
+          const excludeSlugs = cat.slug === 'lehengas' ? new Set(['festive']) : new Set<string>();
+          const catIds = collectDescendantIds(cat.id, allCats, excludeSlugs);
+
+          if (cat.slug === 'kurtis') {
+            query = query.or(
+              [
+                `category_id.in.(${catIds.join(',')})`,
+                'specifications->>subCategory.ilike.%kurti%',
+                'specifications->>subCategory.ilike.%kurthi%',
+              ].join(',')
+            );
+          } else if (cat.slug === 'silk-sarees') {
+            query = query.or(
+              [
+                `category_id.in.(${catIds.join(',')})`,
+                'specifications->>subCategory.ilike.%Silk Saree%',
+                'and(fabric.ilike.%Silk%,title.ilike.%Saree%)',
+              ].join(',')
+            );
+          } else {
+            query = query.in('category_id', catIds);
           }
-          if (cleanRootWord && cleanRootWord.length >= 3) {
-            orParts.push(`title.ilike.%${cleanRootWord}%`);
-            orParts.push(`fabric.ilike.%${cleanRootWord}%`);
-            orParts.push(`occasion.ilike.%${cleanRootWord}%`);
-          }
-          query = query.or(orParts.join(','));
         } else {
           return { products: [], total: 0 };
         }
-      } else if (filters.categorySlug && filters.categorySlug !== 'all' && filters.categorySlug !== 'festive') {
-        const cat = allCats.find((c) => c.slug === filters.categorySlug);
-        if (cat) {
-          // Keep 'festive' collection items distinct from pure Lehengas unless directly filtering festive
-          const excludeSlugs = cat.slug === 'lehengas' ? new Set(['festive']) : new Set<string>();
-          const catIds = collectDescendantIds(cat.id, allCats, excludeSlugs);
-          query = query.in('category_id', catIds);
+      }
+
+      if (filters.subCategorySlug) {
+        const subCat = allCats.find((c) => c.slug === filters.subCategorySlug);
+        if (subCat) {
+          const orParts = buildSubcategoryOrParts(subCat, allCats);
+          query = query.or(orParts.join(','));
         } else {
           return { products: [], total: 0 };
         }
@@ -350,14 +417,20 @@ export const productService = {
         id: cat.id,
         name: cat.name,
         slug: cat.slug,
+        description: cat.description || undefined,
+        parentId: cat.parent_id,
+        displayOrder: cat.display_order ?? 99,
         imageUrl: cat.image_url || '/assets/categories/cat_sarees_arch.jpg',
+        filterKeywords: cat.filter_keywords || undefined,
         subcategories: rows
           .filter((s) => s.parent_id === cat.id)
           .sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99))
           .map((s) => ({
+            id: s.id,
             name: s.name,
             slug: s.slug,
             imageUrl: s.image_url || undefined,
+            filterKeywords: s.filter_keywords || undefined,
           })),
       }));
     } catch (err) {
@@ -386,14 +459,20 @@ export const productService = {
         id: target.id,
         name: target.name,
         slug: target.slug,
+        description: target.description || undefined,
+        parentId: target.parent_id,
+        displayOrder: target.display_order ?? 99,
         imageUrl: target.image_url || '/assets/categories/cat_sarees_arch.jpg',
+        filterKeywords: target.filter_keywords || undefined,
         subcategories: rows
           .filter((s) => s.parent_id === target.id)
           .sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99))
           .map((s) => ({
+            id: s.id,
             name: s.name,
             slug: s.slug,
             imageUrl: s.image_url || undefined,
+            filterKeywords: s.filter_keywords || undefined,
           })),
       };
     } catch (err) {
@@ -605,6 +684,8 @@ export const productService = {
         facebookUrl: str('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl, true),
         youtubeUrl: str('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl, true),
         footerCopyright: str('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright),
+        exploreCategoriesConfig: normalizeExploreCategoriesConfig(map.get('explore_categories_config')),
+        collectionFiltersConfig: normalizeCollectionFiltersConfig(map.get('collection_filters_config')),
       };
     } catch (err) {
       console.error('Failed to fetch site settings:', err);

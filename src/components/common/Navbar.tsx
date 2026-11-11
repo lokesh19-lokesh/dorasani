@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useStore } from '../../context/StoreContext';
 
-const NAV_ITEMS = [
-  { name: 'Home', path: '/' },
-  { name: 'Shop All', path: '/shop' },
+const DEFAULT_COLLECTION_NAV_ITEMS = [
   { name: 'Sarees', path: '/collections/sarees' },
   { name: 'Kurthis', path: '/collections/kurtis' },
   { name: 'Ethnic Wear', path: '/collections/ethnic-wear' },
@@ -12,17 +11,37 @@ const NAV_ITEMS = [
   { name: 'Festive Collection', path: '/collections/festive' },
   { name: 'New Arrivals', path: '/collections/new-arrivals' },
   { name: 'Bestsellers', path: '/collections/bestsellers' },
-  { name: 'Mythology & Heritage', path: '/heritage' },
-  { name: 'About Us', path: '/about' },
-  { name: 'Contact', path: '/contact' },
 ];
 
 export const Navbar: React.FC = () => {
+  const { storeCategories } = useStore();
+
+  const navItems = useMemo(() => {
+    const dynamicCollections =
+      storeCategories.length > 0
+        ? storeCategories
+            .filter((c) => c.slug !== 'silk-sarees')
+            .map((c) => ({
+              name: c.name,
+              path: `/collections/${c.slug}`,
+            }))
+        : DEFAULT_COLLECTION_NAV_ITEMS;
+
+    return [
+      { name: 'Home', path: '/' },
+      { name: 'Shop All', path: '/shop' },
+      ...dynamicCollections,
+      { name: 'Mythology & Heritage', path: '/heritage' },
+      { name: 'About Us', path: '/about' },
+      { name: 'Contact', path: '/contact' },
+    ];
+  }, [storeCategories]);
+
   return (
     <nav aria-label="Primary" className="hidden lg:block bg-transparent py-2 xl:py-2.5 relative z-10 w-full border-t border-[#96c89b]/60">
       <div className="max-w-[1360px] mx-auto px-4 flex justify-center">
         <ul className="flex items-center justify-center flex-nowrap whitespace-nowrap gap-x-1.5 lg:gap-x-2.5 xl:gap-x-4 2xl:gap-x-5">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <li key={item.path} className="shrink-0">
               <NavLink
                 to={item.path}

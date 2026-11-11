@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { SlidersHorizontal, ChevronDown, X, ChevronRight, ChevronLeft } from 'lucide-react';
-import type { Product, SortOption } from '../../types';
+import { SlidersHorizontal, ChevronDown, X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import type { Category, FilterGroupConfig, Product, SortOption } from '../../types';
+import { useStore } from '../../context/StoreContext';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
 import { SeoHead } from '../common/SeoHead';
@@ -9,9 +10,11 @@ import { buildCollectionPageGraph } from '../../utils/seo';
 import { productService } from '../../services/productService';
 
 interface SubCategory {
+  id?: string;
   name: string;
   slug: string;
   imageUrl?: string;
+  filterKeywords?: string;
 }
 
 export interface CollectionSeoMeta {
@@ -44,6 +47,94 @@ interface CollectionTemplateProps {
 
 const ITEMS_PER_PAGE = 12;
 
+function extractGroupRawOptions(group: FilterGroupConfig, products: Product[]): string[] {
+  switch (group.type) {
+    case 'fabric':
+      return Array.from(
+        new Set(products.map((p) => p.fabric?.trim()).filter(Boolean) as string[])
+      ).sort();
+    case 'occasion':
+      return Array.from(
+        new Set(products.map((p) => p.occasion?.trim()).filter(Boolean) as string[])
+      ).sort();
+    case 'weave':
+      return Array.from(
+        new Set(products.map((p) => p.weave?.trim()).filter(Boolean) as string[])
+      ).sort();
+    case 'color': {
+      const names = new Set<string>();
+      for (const p of products) {
+        for (const c of p.colors || []) {
+          if (c?.name?.trim()) names.add(c.name.trim());
+        }
+      }
+      return Array.from(names).sort();
+    }
+    case 'availability':
+      return ['In Stock Only', 'New Arrivals', 'Bestsellers', 'Festive Edit'];
+    case 'discount':
+      return ['10% or more', '20% or more', '30% or more'];
+    case 'tag': {
+      const tags = new Set<string>();
+      for (const p of products) {
+        if (p.subCategory?.trim()) tags.add(p.subCategory.trim());
+        for (const t of p.tags || []) {
+          if (t?.trim()) tags.add(t.trim());
+        }
+      }
+      return Array.from(tags).sort();
+    }
+    default:
+      return [];
+  }
+}
+
+function productMatchesGroupValue(
+  product: Product,
+  group: FilterGroupConfig,
+  val: string
+): boolean {
+  const target = val.trim().toLowerCase();
+  if (!target) return true;
+
+  switch (group.type) {
+    case 'fabric':
+      return (product.fabric || '').trim().toLowerCase() === target;
+    case 'occasion':
+      return (product.occasion || '').trim().toLowerCase() === target;
+    case 'weave':
+      return (product.weave || '').trim().toLowerCase() === target;
+    case 'color':
+      return (product.colors || []).some(
+        (c) => (c?.name || '').trim().toLowerCase() === target
+      );
+    case 'availability':
+      if (target.includes('stock')) return Boolean(product.inStock);
+      if (target.includes('new')) return Boolean(product.isNew);
+      if (target.includes('best')) return Boolean(product.isBestseller);
+      if (target.includes('festive')) return Boolean(product.isFestive);
+      return true;
+    case 'discount': {
+      const minPct = parseInt(target, 10);
+      if (!Number.isFinite(minPct)) return true;
+      return (product.discountPercent ?? 0) >= minPct;
+    }
+    case 'tag': {
+      const haystacks = [
+        ...(product.tags || []),
+        product.subCategory || '',
+        product.title || '',
+        product.fabric || '',
+        product.occasion || '',
+        product.weave || '',
+      ];
+      return haystacks.some((h) => h.toLowerCase().includes(target));
+    }
+    default:
+      return true;
+  }
+}
+
 export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   title,
   subtitle,
@@ -62,26 +153,93 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
   bannerImage,
   seo,
 }) => {
+  const { siteSettings, storeCategories } = useStore();
   const [liveProducts, setLiveProducts] = useState<Product[]>(products);
   const [liveSubCategories, setLiveSubCategories] = useState<SubCategory[] | undefined>(
     subCategories
   );
+  const [liveCategoryMeta, setLiveCategoryMeta] = useState<Category | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedSubCategorySlug, setSelectedSubCategorySlug] = useState<string | null>(null);
 
-  const [selectedFabric, setSelectedFabric] = useState<string[]>([]);
-  const [selectedOccasion, setSelectedOccasion] = useState<string[]>([]);
-  const [maxPrice, setMaxPrice] = useState<number>(30000);
+  const [selectedGroupValues, setSelectedGroupValues] = useState<Record<string, string[]>>({});
+  const [userMaxPrice, setUserMaxPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
+  // Canonical key used by admin per-collection overrides
+  const collectionKey = isNew
+    ? 'new-arrivals'
+    : isBestseller
+    ? 'bestsellers'
+    : isFestive || categorySlug === 'festive'
+    ? 'festive'
+    : categorySlug || 'all';
+
+  // Merge Explore Categories global config + per-collection override
+  const exploreConfig = siteSettings.exploreCategoriesConfig;
+  const exploreOverride = exploreConfig.categoryOverrides?.[collectionKey] || {};
+  const defaultExploreVisible = isNew
+    ? exploreConfig.showOnNewArrivals
+    : isBestseller
+    ? exploreConfig.showOnBestsellers
+    : collectionKey === 'all'
+    ? exploreConfig.showOnShopAll
+    : exploreConfig.showOnCollections;
+
+  const isExploreVisible =
+    exploreConfig.enabled &&
+    (exploreOverride.enabled !== undefined ? exploreOverride.enabled : defaultExploreVisible);
+  const exploreTitle = exploreOverride.title || exploreConfig.title || 'Explore Categories';
+  const showAllPill =
+    exploreOverride.showAllPill !== undefined
+      ? exploreOverride.showAllPill
+      : exploreConfig.showAllPill;
+  const allPillLabel = exploreOverride.allPillLabel || exploreConfig.allPillLabel || 'All';
+
+  // Merge Collection Filters global config + per-collection override
+  const filtersConfig = siteSettings.collectionFiltersConfig;
+  const filterOverride = filtersConfig.categoryOverrides?.[collectionKey] || {};
+  const isFiltersSidebarVisible =
+    filtersConfig.enabled &&
+    (filterOverride.enabled !== undefined ? filterOverride.enabled : true);
+  const sidebarTitle = filterOverride.sidebarTitle || filtersConfig.sidebarTitle || 'Filters';
+
+  const resolvedGroups = useMemo(() => {
+    const disabledIds = new Set(filterOverride.disabledGroupIds || []);
+    return [...filtersConfig.groups]
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((g) => {
+        const gOv = filterOverride.groupOverrides?.[g.id];
+        const enabled =
+          gOv?.enabled !== undefined
+            ? gOv.enabled
+            : !disabledIds.has(g.id) && g.enabled;
+        const hasCustomOv = Array.isArray(gOv?.customOptions) && gOv.customOptions.length > 0;
+        return {
+          ...g,
+          enabled,
+          label: gOv?.label || g.label,
+          optionSource: hasCustomOv ? 'custom' : g.optionSource,
+          customOptions: hasCustomOv ? (gOv?.customOptions as string[]) : g.customOptions,
+          minPrice: gOv?.minPrice !== undefined ? gOv.minPrice : g.minPrice,
+          maxPrice: gOv?.maxPrice !== undefined ? gOv.maxPrice : g.maxPrice,
+        };
+      })
+      .filter((g) => g.enabled);
+  }, [filtersConfig.groups, filterOverride]);
+
+  const priceGroup = useMemo(
+    () => resolvedGroups.find((g) => g.type === 'price_range'),
+    [resolvedGroups]
+  );
+
   // Reset subcategory & filters when switching collection route
   useEffect(() => {
     setSelectedSubCategorySlug(null);
-    setSelectedFabric([]);
-    setSelectedOccasion([]);
-    setMaxPrice(30000);
+    setSelectedGroupValues({});
+    setUserMaxPrice(null);
     setSortBy('featured');
     setCurrentPage(1);
   }, [categorySlug, isFestive, isNew, isBestseller]);
@@ -103,12 +261,6 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       .then((res) => {
         if (!isMounted) return;
         setLiveProducts(res.products);
-        const highestPrice = res.products.reduce(
-          (max, p) => (p.price > max ? p.price : max),
-          30000
-        );
-        const roundedMax = Math.ceil(highestPrice / 1000) * 1000;
-        setMaxPrice((prev) => (prev < roundedMax ? roundedMax : prev));
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -119,70 +271,123 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     };
   }, [categorySlug, selectedSubCategorySlug, isFestive, isNew, isBestseller]);
 
-  // Fetch subcategories (or top showcase categories when on /shop) dynamically
+  // Keep Explore Categories synchronized with live DB categories & admin updates
   useEffect(() => {
     let isMounted = true;
+
     if (categorySlug && categorySlug !== 'all') {
+      const cached = storeCategories.find((c) => c.slug === categorySlug);
+      if (cached) {
+        setLiveCategoryMeta(cached);
+        setLiveSubCategories(
+          cached.subcategories && cached.subcategories.length > 0
+            ? cached.subcategories
+            : undefined
+        );
+      }
+
       productService.getCategoryBySlug(categorySlug).then((cat) => {
         if (!isMounted) return;
+        setLiveCategoryMeta(cat);
         if (cat && cat.subcategories && cat.subcategories.length > 0) {
           setLiveSubCategories(cat.subcategories);
         } else {
           setLiveSubCategories(undefined);
         }
       });
-    } else if (categorySlug === 'all') {
-      productService.getCategories().then((cats) => {
-        if (!isMounted) return;
+    } else {
+      setLiveCategoryMeta(null);
+      if (storeCategories.length > 0) {
         setLiveSubCategories(
-          cats
+          storeCategories
             .filter((c) => c.slug !== 'new-arrivals' && c.slug !== 'bestsellers')
             .map((c) => ({
+              id: c.id,
               name: c.name,
               slug: c.slug,
               imageUrl: c.imageUrl,
+              filterKeywords: c.filterKeywords,
             }))
         );
-      });
+      } else {
+        productService.getCategories().then((cats) => {
+          if (!isMounted) return;
+          setLiveSubCategories(
+            cats
+              .filter((c) => c.slug !== 'new-arrivals' && c.slug !== 'bestsellers')
+              .map((c) => ({
+                id: c.id,
+                name: c.name,
+                slug: c.slug,
+                imageUrl: c.imageUrl,
+                filterKeywords: c.filterKeywords,
+              }))
+          );
+        });
+      }
     }
+
     return () => {
       isMounted = false;
     };
-  }, [categorySlug]);
+  }, [categorySlug, storeCategories]);
 
-  // Derive available fabric and occasion filters dynamically from loaded products
-  const fabrics = useMemo(() => {
-    return Array.from(
-      new Set(liveProducts.map((p) => p.fabric?.trim()).filter(Boolean) as string[])
-    ).sort();
-  }, [liveProducts]);
-
-  const occasions = useMemo(() => {
-    return Array.from(
-      new Set(liveProducts.map((p) => p.occasion?.trim()).filter(Boolean) as string[])
-    ).sort();
-  }, [liveProducts]);
-
+  // Compute dynamic price range bounds
+  const priceMinBound = priceGroup?.minPrice ?? 500;
+  const priceStep = priceGroup?.step && priceGroup.step > 0 ? priceGroup.step : 500;
   const ceilingPrice = useMemo(() => {
+    if (priceGroup?.maxPrice && priceGroup.maxPrice > 0) {
+      return Math.max(priceMinBound + priceStep, priceGroup.maxPrice);
+    }
     const maxFound = liveProducts.reduce((m, p) => Math.max(m, p.price), 30000);
-    return Math.max(30000, Math.ceil(maxFound / 1000) * 1000);
-  }, [liveProducts]);
+    return Math.max(priceMinBound + 1000, 30000, Math.ceil(maxFound / 1000) * 1000);
+  }, [liveProducts, priceGroup, priceMinBound, priceStep]);
 
-  // Filtering logic
+  const effectiveMaxPrice =
+    userMaxPrice !== null ? Math.max(priceMinBound, Math.min(userMaxPrice, ceilingPrice)) : ceilingPrice;
+
+  // Compute dynamic options for every non-price enabled filter group
+  const groupOptionsMap = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const group of resolvedGroups) {
+      if (group.type === 'price_range') continue;
+      const hidden = new Set((group.hiddenOptions || []).map((x) => x.toLowerCase()));
+      const base =
+        group.optionSource === 'custom' && group.customOptions.length > 0
+          ? group.customOptions
+          : extractGroupRawOptions(group, liveProducts);
+
+      const deduped: string[] = [];
+      const seen = new Set<string>();
+      for (const opt of base) {
+        const clean = opt.trim();
+        const key = clean.toLowerCase();
+        if (!clean || hidden.has(key) || seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(clean);
+      }
+      out[group.id] = deduped;
+    }
+    return out;
+  }, [resolvedGroups, liveProducts]);
+
+  // Filtering logic across all enabled dynamic groups
   const filteredProducts = useMemo(() => {
     return liveProducts.filter((p) => {
-      if (selectedFabric.length > 0 && !selectedFabric.includes(p.fabric)) {
+      if (priceGroup && p.price > effectiveMaxPrice) {
         return false;
       }
-      if (selectedOccasion.length > 0 && !selectedOccasion.includes(p.occasion)) {
-        return false;
-      }
-      if (p.price > maxPrice) {
-        return false;
+      for (const group of resolvedGroups) {
+        if (group.type === 'price_range') continue;
+        const picked = selectedGroupValues[group.id] || [];
+        if (picked.length > 0) {
+          const matchesAny = picked.some((val) => productMatchesGroupValue(p, group, val));
+          if (!matchesAny) return false;
+        }
       }
       return true;
     });
-  }, [liveProducts, selectedFabric, selectedOccasion, maxPrice]);
+  }, [liveProducts, priceGroup, effectiveMaxPrice, resolvedGroups, selectedGroupValues]);
 
   // Sorting logic
   const sortedProducts = useMemo(() => {
@@ -210,20 +415,45 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     return sortedProducts.slice(start, start + ITEMS_PER_PAGE);
   }, [sortedProducts, safeCurrentPage]);
 
+  const toggleGroupValue = (groupId: string, option: string) => {
+    setSelectedGroupValues((prev) => {
+      const current = prev[groupId] || [];
+      const exists = current.includes(option);
+      const next = exists ? current.filter((x) => x !== option) : [...current, option];
+      return { ...prev, [groupId]: next };
+    });
+    setCurrentPage(1);
+  };
+
   const clearAllFilters = () => {
     setSelectedSubCategorySlug(null);
-    setSelectedFabric([]);
-    setSelectedOccasion([]);
-    setMaxPrice(ceilingPrice);
+    setSelectedGroupValues({});
+    setUserMaxPrice(null);
     setSortBy('featured');
     setCurrentPage(1);
   };
 
+  const isPriceFiltered = Boolean(
+    priceGroup && userMaxPrice !== null && userMaxPrice < ceilingPrice
+  );
+  const activeGroupFilterCount = Object.values(selectedGroupValues).reduce(
+    (sum, arr) => sum + (arr?.length || 0),
+    0
+  );
   const activeFilterCount =
     (selectedSubCategorySlug ? 1 : 0) +
-    selectedFabric.length +
-    selectedOccasion.length +
-    (maxPrice < ceilingPrice ? 1 : 0);
+    activeGroupFilterCount +
+    (isPriceFiltered ? 1 : 0);
+
+  // Sync last breadcrumb label with live DB category name when available
+  const resolvedBreadcrumbs = useMemo(() => {
+    if (!liveCategoryMeta?.name || breadcrumbs.length === 0) return breadcrumbs;
+    return breadcrumbs.map((crumb, idx) =>
+      idx === breadcrumbs.length - 1 && !crumb.path
+        ? { ...crumb, name: liveCategoryMeta.name }
+        : crumb
+    );
+  }, [breadcrumbs, liveCategoryMeta?.name]);
 
   const collectionJsonLd = useMemo(() => {
     if (!seo) return undefined;
@@ -232,10 +462,10 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       name: title,
       description: seo.description,
       image: seo.ogImage || desktopBanner || bannerImage,
-      breadcrumbs,
+      breadcrumbs: resolvedBreadcrumbs,
       products: sortedProducts,
     });
-  }, [seo, title, desktopBanner, bannerImage, breadcrumbs, sortedProducts]);
+  }, [seo, title, desktopBanner, bannerImage, resolvedBreadcrumbs, sortedProducts]);
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
@@ -258,7 +488,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           tag={bannerTag}
           title={title}
           subtitle={subtitle}
-          breadcrumbs={breadcrumbs}
+          breadcrumbs={resolvedBreadcrumbs}
           textPosition={textPosition}
           highlights={highlights}
         />
@@ -267,7 +497,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           <div className="max-w-7xl mx-auto space-y-4">
             <nav aria-label="Breadcrumb">
               <ol className="flex items-center space-x-1.5 text-xs text-[#4F6355]">
-                {breadcrumbs.map((crumb, idx) => (
+                {resolvedBreadcrumbs.map((crumb, idx) => (
                   <li key={crumb.name} className="inline-flex items-center gap-1.5">
                     {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#C99632]" aria-hidden="true" />}
                     {crumb.path ? (
@@ -296,16 +526,46 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         </div>
       )}
 
-      {/* Sub-categories horizontal bar (dynamically fetched & interactive) */}
-      {liveSubCategories && liveSubCategories.length > 0 && (
+      {/* Dynamic Explore Categories horizontal bar (100% admin configurable) */}
+      {isExploreVisible && liveSubCategories && liveSubCategories.length > 0 && (
         <div className="bg-[#FAF5EE]/70 border-b border-[#D8C7B5] py-3.5 px-4 sm:px-8 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="text-[11px] font-bold tracking-[0.2em] text-[#1A3B2B] uppercase flex items-center gap-1.5 shrink-0">
               <span className="text-[#C99632]">✦</span>
-              <span>Explore Categories</span>
+              <span>{exploreTitle}</span>
               <span className="text-[#C99632]">✦</span>
             </div>
-            <div className="overflow-x-auto no-scrollbar flex items-center gap-4 sm:gap-6 py-1">
+            <div className="overflow-x-auto no-scrollbar flex items-start gap-4 sm:gap-6 py-1">
+              {showAllPill && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSubCategorySlug(null);
+                    setCurrentPage(1);
+                  }}
+                  className="flex flex-col items-center shrink-0 cursor-pointer group focus:outline-none"
+                >
+                  <div
+                    className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border-2 shadow-xs transition-all flex items-center justify-center ${
+                      selectedSubCategorySlug === null
+                        ? 'border-[#18482C] ring-2 ring-[#285A3C]/40 scale-105 bg-[#18482C] text-white'
+                        : 'border-[#D8C7B5] bg-white text-[#285A3C] group-hover:border-[#285A3C]'
+                    }`}
+                  >
+                    <Sparkles className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <span
+                    className={`text-[11px] mt-1.5 text-center max-w-[104px] sm:max-w-[116px] line-clamp-2 leading-tight ${
+                      selectedSubCategorySlug === null
+                        ? 'font-bold text-[#18482C]'
+                        : 'font-medium text-[#1A3B2B] group-hover:text-[#285A3C]'
+                    }`}
+                  >
+                    {allPillLabel}
+                  </span>
+                </button>
+              )}
+
               {liveSubCategories.map((sub) => {
                 const isSelected = selectedSubCategorySlug === sub.slug;
                 return (
@@ -319,7 +579,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                     className="flex flex-col items-center shrink-0 cursor-pointer group focus:outline-none"
                   >
                     <div
-                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border-2 shadow-xs transition-all ${
+                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full overflow-hidden border-2 shadow-xs transition-all bg-[#FAF5EE] ${
                         isSelected
                           ? 'border-[#18482C] ring-2 ring-[#285A3C]/40 scale-105'
                           : 'border-[#D8C7B5] group-hover:border-[#285A3C]'
@@ -332,7 +592,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                           loading="lazy"
                           width={120}
                           height={120}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                          className="w-full h-full object-cover object-top transition-transform group-hover:scale-110"
                         />
                       ) : (
                         <div className="w-full h-full bg-[#D0E9C0]/50 flex items-center justify-center text-[#285A3C] font-bold text-xs">
@@ -341,7 +601,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                       )}
                     </div>
                     <span
-                      className={`text-[11px] mt-1.5 text-center max-w-[84px] line-clamp-1 ${
+                      className={`text-[11px] mt-1.5 text-center max-w-[104px] sm:max-w-[116px] line-clamp-2 leading-tight ${
                         isSelected
                           ? 'font-bold text-[#18482C]'
                           : 'font-medium text-[#1A3B2B] group-hover:text-[#285A3C]'
@@ -360,160 +620,142 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       {/* 2. Main Content: Sidebar Filters + Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         {/* Mobile Filter & Sort Bar */}
-        <div className="lg:hidden flex items-center justify-between pb-4 border-b border-[#D8C7B5] mb-6">
-          <button
-            type="button"
-            onClick={() => setIsMobileFilterOpen(true)}
-            className="flex items-center gap-2 text-xs font-semibold text-[#1A3B2B] bg-[#F5EFE6] px-3.5 py-2 rounded-md border border-[#BCD8AA]"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-[#285A3C]" />
-            <span>Filters {activeFilterCount > 0 && `(${activeFilterCount})`}</span>
-          </button>
+        <div className="lg:hidden flex items-center justify-between pb-4 border-b border-[#D8C7B5] mb-6 gap-2">
+          {isFiltersSidebarVisible && resolvedGroups.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className="flex items-center gap-2 text-xs font-semibold text-[#1A3B2B] bg-[#F5EFE6] px-3.5 py-2 rounded-md border border-[#BCD8AA]"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#285A3C]" />
+              <span>{sidebarTitle} {activeFilterCount > 0 && `(${activeFilterCount})`}</span>
+            </button>
+          ) : (
+            <span />
+          )}
 
           <span className="text-xs text-[#4F6355]">
             {loading ? 'Loading...' : `${sortedProducts.length} Products`}
           </span>
 
-          <div className="relative">
-            <select
-              aria-label="Sort products"
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as SortOption);
-                setCurrentPage(1);
-              }}
-              className="text-xs bg-[#F5EFE6] border border-[#BCD8AA] rounded-md px-3 py-2 pr-7 text-[#1A3B2B] font-medium appearance-none focus:outline-none"
-            >
-              <option value="featured">Sort: Featured</option>
-              <option value="popular">Sort: Popular</option>
-              <option value="price-low-high">Price: Low to High</option>
-              <option value="price-high-low">Price: High to Low</option>
-              <option value="newest">Newest First</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-[#4F6355] absolute right-2 top-2.5 pointer-events-none" />
-          </div>
+          {filtersConfig.showSortDropdown && (
+            <div className="relative">
+              <select
+                aria-label="Sort products"
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value as SortOption);
+                  setCurrentPage(1);
+                }}
+                className="text-xs bg-[#F5EFE6] border border-[#BCD8AA] rounded-md px-3 py-2 pr-7 text-[#1A3B2B] font-medium appearance-none focus:outline-none"
+              >
+                <option value="featured">Sort: Featured</option>
+                <option value="popular">Sort: Popular</option>
+                <option value="price-low-high">Price: Low to High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="newest">Newest First</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-[#4F6355] absolute right-2 top-2.5 pointer-events-none" />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Desktop Filter Sidebar */}
-          <aside
-            aria-label="Collection filters"
-            className="hidden lg:block lg:col-span-3 bg-white p-5 rounded-xl border border-[#D8C7B5] shadow-xs space-y-6 sticky top-24"
-          >
-            <div className="flex items-center justify-between border-b border-[#E8DCCF] pb-3">
-              <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] tracking-wider uppercase">
-                Filters
-              </h2>
-              {activeFilterCount > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAllFilters}
-                  className="text-xs text-[#285A3C] hover:underline font-semibold"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-
-            {/* Price Range */}
-            <div className="space-y-2">
-              <label
-                htmlFor="desktop-max-price"
-                className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block"
-              >
-                Price Range
-              </label>
-              <div className="flex justify-between text-xs text-[#4F6355]">
-                <span>₹500</span>
-                <span>₹{maxPrice.toLocaleString('en-IN')}</span>
+          {/* Desktop Filter Sidebar (Dynamic) */}
+          {isFiltersSidebarVisible && resolvedGroups.length > 0 && (
+            <aside
+              aria-label="Collection filters"
+              className="hidden lg:block lg:col-span-3 bg-white p-5 rounded-xl border border-[#D8C7B5] shadow-xs space-y-6 sticky top-24"
+            >
+              <div className="flex items-center justify-between border-b border-[#E8DCCF] pb-3">
+                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] tracking-wider uppercase">
+                  {sidebarTitle}
+                </h2>
+                {filtersConfig.showClearAll && activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-xs text-[#285A3C] hover:underline font-semibold"
+                  >
+                    Clear All
+                  </button>
+                )}
               </div>
-              <input
-                id="desktop-max-price"
-                type="range"
-                min="500"
-                max={ceilingPrice}
-                step="500"
-                value={maxPrice}
-                onChange={(e) => {
-                  setMaxPrice(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="w-full accent-[#285A3C] cursor-pointer"
-              />
-            </div>
 
-            {/* Dynamic Fabric Filters */}
-            {fabrics.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block">
-                  Fabric
-                </span>
-                <div className="space-y-1.5 text-xs text-[#4F6355]">
-                  {fabrics.map((f) => (
-                    <label
-                      key={f}
-                      className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]"
-                    >
+              {resolvedGroups.map((group) => {
+                if (group.type === 'price_range') {
+                  return (
+                    <div key={group.id} className="space-y-2">
+                      <label
+                        htmlFor={`desktop-filter-${group.id}`}
+                        className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block"
+                      >
+                        {group.label}
+                      </label>
+                      <div className="flex justify-between text-xs text-[#4F6355]">
+                        <span>₹{priceMinBound.toLocaleString('en-IN')}</span>
+                        <span>₹{effectiveMaxPrice.toLocaleString('en-IN')}</span>
+                      </div>
                       <input
-                        type="checkbox"
-                        checked={selectedFabric.includes(f)}
+                        id={`desktop-filter-${group.id}`}
+                        type="range"
+                        min={priceMinBound}
+                        max={ceilingPrice}
+                        step={priceStep}
+                        value={effectiveMaxPrice}
                         onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedFabric([...selectedFabric, f]);
-                          } else {
-                            setSelectedFabric(selectedFabric.filter((item) => item !== f));
-                          }
+                          const next = Number(e.target.value);
+                          setUserMaxPrice(next >= ceilingPrice ? null : next);
                           setCurrentPage(1);
                         }}
-                        className="accent-[#285A3C] rounded"
+                        className="w-full accent-[#285A3C] cursor-pointer"
                       />
-                      <span>{f}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
+                    </div>
+                  );
+                }
 
-            {/* Dynamic Occasion Filters */}
-            {occasions.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block">
-                  Occasion
-                </span>
-                <div className="space-y-1.5 text-xs text-[#4F6355]">
-                  {occasions.map((occ) => (
-                    <label
-                      key={occ}
-                      className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedOccasion.includes(occ)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedOccasion([...selectedOccasion, occ]);
-                          } else {
-                            setSelectedOccasion(
-                              selectedOccasion.filter((item) => item !== occ)
-                            );
-                          }
-                          setCurrentPage(1);
-                        }}
-                        className="accent-[#285A3C] rounded"
-                      />
-                      <span>{occ}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </aside>
+                const options = groupOptionsMap[group.id] || [];
+                if (options.length === 0) return null;
+                const picked = selectedGroupValues[group.id] || [];
+
+                return (
+                  <div key={group.id} className="space-y-2">
+                    <span className="text-xs font-bold text-[#1A3B2B] tracking-wide uppercase block">
+                      {group.label}
+                    </span>
+                    <div className="space-y-1.5 text-xs text-[#4F6355] max-h-48 overflow-y-auto pr-1">
+                      {options.map((opt) => (
+                        <label
+                          key={opt}
+                          className="flex items-center gap-2 cursor-pointer hover:text-[#285A3C]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={picked.includes(opt)}
+                            onChange={() => toggleGroupValue(group.id, opt)}
+                            className="accent-[#285A3C] rounded"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </aside>
+          )}
 
           {/* Products Grid Area */}
-          <div className="lg:col-span-9 space-y-6">
-            {/* Top Bar (Showing count & Sort dropdown) */}
-            <div className="hidden lg:flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
-              <div className="flex items-center gap-3 text-xs text-[#4F6355] font-medium">
+          <div
+            className={`${
+              isFiltersSidebarVisible && resolvedGroups.length > 0
+                ? 'lg:col-span-9'
+                : 'lg:col-span-12'
+            } space-y-6`}
+          >
+            {/* Top Bar (Showing count, active chips & Sort dropdown) */}
+            <div className="hidden lg:flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#D8C7B5]">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#4F6355] font-medium">
                 <span>
                   {loading
                     ? 'Loading collection...'
@@ -537,28 +779,56 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                     <X className="w-3 h-3" />
                   </button>
                 )}
+                {isPriceFiltered && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMaxPrice(null);
+                      setCurrentPage(1);
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F5EFE6] border border-[#D8C7B5] text-[#1A3B2B] font-semibold"
+                  >
+                    <span>Up to ₹{effectiveMaxPrice.toLocaleString('en-IN')}</span>
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+                {resolvedGroups.map((group) =>
+                  (selectedGroupValues[group.id] || []).map((val) => (
+                    <button
+                      key={`${group.id}-${val}`}
+                      type="button"
+                      onClick={() => toggleGroupValue(group.id, val)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#D0E9C0]/60 text-[#1A3B2B] font-semibold"
+                    >
+                      <span>{val}</span>
+                      <X className="w-3 h-3" />
+                    </button>
+                  ))
+                )}
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <label htmlFor="desktop-sort-select" className="text-[#4F6355]">
-                  Sort by:
-                </label>
-                <select
-                  id="desktop-sort-select"
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value as SortOption);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-white border border-[#BCD8AA] rounded px-3 py-1.5 text-xs text-[#1A3B2B] font-medium focus:outline-none focus:border-[#285A3C]"
-                >
-                  <option value="featured">Featured</option>
-                  <option value="popular">Most Popular</option>
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
-                  <option value="newest">Newest First</option>
-                </select>
-              </div>
+              {filtersConfig.showSortDropdown && (
+                <div className="flex items-center gap-2 text-xs">
+                  <label htmlFor="desktop-sort-select" className="text-[#4F6355]">
+                    Sort by:
+                  </label>
+                  <select
+                    id="desktop-sort-select"
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value as SortOption);
+                      setCurrentPage(1);
+                    }}
+                    className="bg-white border border-[#BCD8AA] rounded px-3 py-1.5 text-xs text-[#1A3B2B] font-medium focus:outline-none focus:border-[#285A3C]"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="newest">Newest First</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Products Grid */}
@@ -578,7 +848,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                 </h2>
                 <p className="text-xs text-[#4F6355] mt-1">
                   {activeFilterCount > 0
-                    ? 'Try adjusting your category, fabric, or price filters.'
+                    ? 'Try adjusting your category, attribute, or price filters.'
                     : 'No active products are currently assigned to this collection.'}
                 </p>
                 {activeFilterCount > 0 && (
@@ -640,8 +910,8 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         </div>
       </div>
 
-      {/* Mobile Filter Drawer */}
-      {isMobileFilterOpen && (
+      {/* Mobile Filter Drawer (Dynamic) */}
+      {isMobileFilterOpen && isFiltersSidebarVisible && resolvedGroups.length > 0 && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
             className="fixed inset-0 bg-black/50"
@@ -649,7 +919,9 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
           />
           <div className="relative w-4/5 max-w-xs bg-white h-full ml-auto shadow-xl flex flex-col p-5 overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D8C7B5]">
-              <h2 className="font-bold text-sm text-[#1A3B2B]">Filters</h2>
+              <h2 className="font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
+                {sidebarTitle}
+              </h2>
               <button
                 type="button"
                 aria-label="Close filters"
@@ -660,77 +932,61 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
             </div>
 
             <div className="py-4 space-y-6 flex-1 text-xs">
-              <div>
-                <label
-                  htmlFor="mobile-max-price"
-                  className="font-bold block mb-2 text-[#1A3B2B]"
-                >
-                  Price: Up to ₹{maxPrice.toLocaleString('en-IN')}
-                </label>
-                <input
-                  id="mobile-max-price"
-                  type="range"
-                  min="500"
-                  max={ceilingPrice}
-                  step="500"
-                  value={maxPrice}
-                  onChange={(e) => {
-                    setMaxPrice(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="w-full accent-[#285A3C]"
-                />
-              </div>
-
-              {fabrics.length > 0 && (
-                <div>
-                  <span className="font-bold block mb-2 text-[#1A3B2B]">Fabric</span>
-                  {fabrics.map((f) => (
-                    <label key={f} className="flex items-center gap-2 py-1 text-[#4F6355]">
+              {resolvedGroups.map((group) => {
+                if (group.type === 'price_range') {
+                  return (
+                    <div key={group.id}>
+                      <label
+                        htmlFor={`mobile-filter-${group.id}`}
+                        className="font-bold block mb-2 text-[#1A3B2B] uppercase"
+                      >
+                        {group.label}: Up to ₹{effectiveMaxPrice.toLocaleString('en-IN')}
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={selectedFabric.includes(f)}
+                        id={`mobile-filter-${group.id}`}
+                        type="range"
+                        min={priceMinBound}
+                        max={ceilingPrice}
+                        step={priceStep}
+                        value={effectiveMaxPrice}
                         onChange={(e) => {
-                          if (e.target.checked) setSelectedFabric([...selectedFabric, f]);
-                          else
-                            setSelectedFabric(selectedFabric.filter((item) => item !== f));
+                          const next = Number(e.target.value);
+                          setUserMaxPrice(next >= ceilingPrice ? null : next);
                           setCurrentPage(1);
                         }}
-                        className="accent-[#285A3C]"
+                        className="w-full accent-[#285A3C]"
                       />
-                      <span>{f}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+                    </div>
+                  );
+                }
 
-              {occasions.length > 0 && (
-                <div>
-                  <span className="font-bold block mb-2 text-[#1A3B2B]">Occasion</span>
-                  {occasions.map((occ) => (
-                    <label key={occ} className="flex items-center gap-2 py-1 text-[#4F6355]">
-                      <input
-                        type="checkbox"
-                        checked={selectedOccasion.includes(occ)}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedOccasion([...selectedOccasion, occ]);
-                          else
-                            setSelectedOccasion(
-                              selectedOccasion.filter((item) => item !== occ)
-                            );
-                          setCurrentPage(1);
-                        }}
-                        className="accent-[#285A3C]"
-                      />
-                      <span>{occ}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+                const options = groupOptionsMap[group.id] || [];
+                if (options.length === 0) return null;
+                const picked = selectedGroupValues[group.id] || [];
+
+                return (
+                  <div key={group.id}>
+                    <span className="font-bold block mb-2 text-[#1A3B2B] uppercase">
+                      {group.label}
+                    </span>
+                    {options.map((opt) => (
+                      <label key={opt} className="flex items-center gap-2 py-1 text-[#4F6355]">
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(opt)}
+                          onChange={() => toggleGroupValue(group.id, opt)}
+                          className="accent-[#285A3C]"
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="space-y-2 pt-2 border-t border-[#E8DCCF]">
-              {activeFilterCount > 0 && (
+              {filtersConfig.showClearAll && activeFilterCount > 0 && (
                 <button
                   type="button"
                   onClick={clearAllFilters}

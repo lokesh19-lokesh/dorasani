@@ -15,6 +15,7 @@ import { KidsWearPage } from './pages/KidsWearPage';
 import { FestivePage } from './pages/FestivePage';
 import { NewArrivalsPage } from './pages/NewArrivalsPage';
 import { BestsellersPage } from './pages/BestsellersPage';
+import { DynamicCollectionPage } from './pages/DynamicCollectionPage';
 import { HeritagePage } from './pages/HeritagePage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
@@ -113,6 +114,10 @@ export const App: React.FC = () => {
 
             <Route path="collections/bestsellers" element={<BestsellersPage />} />
             <Route path="category/bestsellers" element={<BestsellersPage />} />
+
+            {/* Dynamic Route for Any Admin-Created Collection / Category */}
+            <Route path="collections/:slug" element={<DynamicCollectionPage />} />
+            <Route path="category/:slug" element={<DynamicCollectionPage />} />
 
             {/* Mythology, Temple Heritage & Brand Story */}
             <Route path="heritage" element={<HeritagePage />} />
