@@ -9891,34 +9891,45 @@ export const AdminDashboardPage: React.FC = () => {
                           Latest Delhivery Scan Events ({Math.min(5, scans.length)} of {scans.length})
                         </span>
                         <div className="space-y-1">
-                          {scans.slice(0, 5).map((sc: any, idx: number) => (
-                            <div
-                              key={`${sc.timestamp || ''}-${idx}`}
-                              className="p-2 rounded-lg bg-white border border-[#E8DCCF] flex flex-wrap items-center justify-between gap-2 text-[11px]"
-                            >
-                              <div className="min-w-0">
-                                <span className="font-semibold text-[#1A3B2B]">
-                                  {sc.status || 'Update'}
+                          {scans.slice(0, 5).map((sc: any, idx: number) => {
+                            const scanLabel = sc?.scan || sc?.Scan || sc?.status || 'Update';
+                            const scanLocation = sc?.location || sc?.ScannedLocation || '';
+                            const scanInstructions = sc?.instructions || sc?.Instructions || '';
+                            const rawTime = sc?.dateTime || sc?.ScanDateTime || sc?.timestamp || '';
+                            const parsedTime = rawTime ? new Date(rawTime) : null;
+                            const displayTime =
+                              sc?.formattedTime ||
+                              (parsedTime && !Number.isNaN(parsedTime.getTime())
+                                ? parsedTime.toLocaleString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : rawTime || '—');
+
+                            return (
+                              <div
+                                key={`${rawTime}-${scanLabel}-${idx}`}
+                                className="p-2 rounded-lg bg-white border border-[#E8DCCF] flex flex-wrap items-center justify-between gap-2 text-[11px]"
+                              >
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-[#1A3B2B]">
+                                    {scanLabel}
+                                  </span>
+                                  {scanLocation && (
+                                    <span className="text-[#4F6355]"> • {scanLocation}</span>
+                                  )}
+                                  {scanInstructions && (
+                                    <p className="text-[10px] text-[#647268]">{scanInstructions}</p>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-mono text-[#647268] shrink-0">
+                                  {displayTime}
                                 </span>
-                                {sc.location && (
-                                  <span className="text-[#4F6355]"> • {sc.location}</span>
-                                )}
-                                {sc.instructions && (
-                                  <p className="text-[10px] text-[#647268]">{sc.instructions}</p>
-                                )}
                               </div>
-                              <span className="text-[10px] font-mono text-[#647268] shrink-0">
-                                {sc.timestamp
-                                  ? new Date(sc.timestamp).toLocaleString('en-IN', {
-                                      day: '2-digit',
-                                      month: 'short',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })
-                                  : '—'}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
