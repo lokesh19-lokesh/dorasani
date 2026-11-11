@@ -1,4 +1,5 @@
 import type { Product, ProductReview, SiteSettings } from '../types';
+import { getProductTypeLabel } from '../types';
 
 export const SITE_ORIGIN = 'https://dorasanicollections.com';
 export const SITE_NAME = 'DORASANI';
@@ -255,11 +256,19 @@ export function buildProductPageGraph(
   );
 
   const isSareeProduct =
-    product.categorySlug === 'sarees' || /saree/i.test(product.title || '');
+    product.productType === 'saree' ||
+    product.categorySlug === 'sarees' ||
+    /saree/i.test(product.title || '');
   const showSareeLength =
     Boolean(product.length) && (isSareeProduct || !/6\.3\s*m/i.test(product.length || ''));
+  const typeLabel = getProductTypeLabel(product.productType, settings.productTypes);
 
   const additionalProperties = [
+    product.productType && {
+      '@type': 'PropertyValue',
+      name: 'Product Type',
+      value: typeLabel,
+    },
     product.fabric && {
       '@type': 'PropertyValue',
       name: 'Fabric',

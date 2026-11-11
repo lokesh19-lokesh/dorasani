@@ -20,7 +20,13 @@ import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
 import { productService } from '../services/productService';
 import { buildProductPageGraph } from '../utils/seo';
-import type { Product, ProductReview } from '../types';
+import {
+  LOW_STOCK_THRESHOLD,
+  getProductTypeLabel,
+  getStockStatusMeta,
+  type Product,
+  type ProductReview,
+} from '../types';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -150,7 +156,17 @@ export const ProductDetailPage: React.FC = () => {
   }
 
   const isWishlisted = isInWishlist(product.id);
-  const maxAllowedQty = Math.max(1, product.stock || 1);
+  const stockMeta = getStockStatusMeta(
+    product.stock,
+    product.inStock ? 'active' : 'out_of_stock'
+  );
+  const isAvailable = product.inStock && !stockMeta.isOutOfStock;
+  const maxAllowedQty = isAvailable ? stockMeta.qty : 0;
+  const typeLabel = getProductTypeLabel(product.productType, siteSettings.productTypes);
+  const isSaree =
+    product.productType === 'saree' ||
+    product.categorySlug === 'sarees' ||
+    /saree/i.test(product.title || '');
   const totalReviewCount = Math.max(product.reviewsCount || 0, reviews.length);
 
   const featureBadges = [
@@ -168,19 +184,19 @@ export const ProductDetailPage: React.FC = () => {
       : '/shop';
 
   const handleAddToCart = () => {
-    if (!product.inStock) {
+    if (!isAvailable) {
       showToast('This item is currently out of stock.', 'info');
       return;
     }
-    addToCart(product, selectedColor, quantity);
+    addToCart(product, selectedColor, Math.min(quantity, maxAllowedQty));
   };
 
   const handleBuyNow = () => {
-    if (!product.inStock) {
+    if (!isAvailable) {
       showToast('This item is currently out of stock.', 'info');
       return;
     }
-    addToCart(product, selectedColor, quantity);
+    addToCart(product, selectedColor, Math.min(quantity, maxAllowedQty));
     navigate('/checkout');
   };
 
@@ -473,7 +489,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="flex items-center border border-[#BCD8AA] rounded bg-white text-xs">
                 <button
                   type="button"
-                  disabled={!product.inStock || quantity <= 1}
+                  disabled={!isAvailable || quantity <= 1}
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30 disabled:opacity-40"
                   aria-label="Decrease quantity"
@@ -481,11 +497,11 @@ export const ProductDetailPage: React.FC = () => {
                   -
                 </button>
                 <span className="px-3 py-2 font-bold text-sm min-w-[28px] text-center text-[#1A3B2B]">
-                  {quantity}
+                  {isAvailable ? Math.min(quantity, maxAllowedQty) : 0}
                 </span>
                 <button
                   type="button"
-                  disabled={!product.inStock || quantity >= maxAllowedQty}
+                  disabled={!isAvailable || quantity >= maxAllowedQty}
                   onClick={() => setQuantity(Math.min(maxAllowedQty, quantity + 1))}
                   className="px-3 py-2 text-[#4F6355] hover:bg-[#D0E9C0]/30 disabled:opacity-40"
                   aria-label="Increase quantity"
@@ -494,15 +510,22 @@ export const ProductDetailPage: React.FC = () => {
                 </button>
               </div>
 
-              {product.inStock ? (
-                <div className="flex items-center gap-1.5 text-xs text-[#285A3C] font-semibold bg-[#D0E9C0]/40 px-3 py-2 rounded border border-[#BCD8AA]">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>In Stock ({product.stock} ready to ship)</span>
+              {!isAvailable ? (
+                <div className="flex items-center gap-1.5 text-xs text-rose-700 font-semibold bg-rose-50 px-3 py-2 rounded border border-rose-200">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Currently Out of Stock (0 available)</span>
+                </div>
+              ) : stockMeta.isLowStock ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-800 font-semibold bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Low Stock — Only {stockMeta.qty} left ({stockMeta.shortageCount} quantity less than {LOW_STOCK_THRESHOLD})
+                  </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs text-rose-700 font-semibold bg-rose-50 px-3 py-2 rounded border border-rose-200">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>Currently Out of Stock</span>
+                <div className="flex items-center gap-1.5 text-xs text-[#285A3C] font-semibold bg-[#D0E9C0]/40 px-3 py-2 rounded border border-[#BCD8AA]">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>In Stock ({stockMeta.qty} ready to ship)</span>
                 </div>
               )}
             </div>
@@ -511,17 +534,17 @@ export const ProductDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 type="button"
-                disabled={!product.inStock}
+                disabled={!isAvailable}
                 onClick={handleAddToCart}
                 className="w-full border-2 border-[#285A3C] text-[#285A3C] hover:bg-[#D0E9C0]/30 disabled:opacity-45 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-xs"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>{product.inStock ? 'Add to Bag' : 'Out of Stock'}</span>
+                <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
               </button>
 
               <button
                 type="button"
-                disabled={!product.inStock}
+                disabled={!isAvailable}
                 onClick={handleBuyNow}
                 className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-45 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-md"
               >
@@ -639,6 +662,15 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="space-y-3">
                   <p>{product.description || 'Crafted by skilled heritage artisans for DORASANI.'}</p>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs pt-1">
+                    {typeLabel && (
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Product Type:</dt>{' '}
+                          <dd className="inline">{typeLabel}</dd>
+                        </div>
+                      </div>
+                    )}
                     {product.fabric && (
                       <div className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
@@ -666,21 +698,21 @@ export const ProductDetailPage: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    <div className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
-                      <div>
-                        <dt className="font-semibold text-[#1A3B2B] inline">Blouse Piece:</dt>{' '}
-                        <dd className="inline">
-                          {product.blouseIncluded
-                            ? 'Included (Unstitched matching piece)'
-                            : 'Not included / Styled separately'}
-                        </dd>
+                    {(isSaree || product.blouseIncluded) && (
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
+                        <div>
+                          <dt className="font-semibold text-[#1A3B2B] inline">Blouse Piece:</dt>{' '}
+                          <dd className="inline">
+                            {product.blouseIncluded
+                              ? 'Included (Unstitched matching piece)'
+                              : 'Not included / Styled separately'}
+                          </dd>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {product.length &&
-                      (product.categorySlug === 'sarees' ||
-                        /saree/i.test(product.title) ||
-                        !/6\.3\s*m/i.test(product.length)) && (
+                      (isSaree || !/6\.3\s*m/i.test(product.length)) && (
                       <div className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-[#285A3C] shrink-0 mt-0.5" aria-hidden="true" />
                         <div>

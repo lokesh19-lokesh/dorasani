@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown, X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
-import type { Category, FilterGroupConfig, Product, SortOption } from '../../types';
+import type {
+  Category,
+  FilterGroupConfig,
+  Product,
+  ProductTypeOption,
+  SortOption,
+} from '../../types';
+import { getProductTypeLabel } from '../../types';
 import { useStore } from '../../context/StoreContext';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
@@ -47,7 +54,11 @@ interface CollectionTemplateProps {
 
 const ITEMS_PER_PAGE = 12;
 
-function extractGroupRawOptions(group: FilterGroupConfig, products: Product[]): string[] {
+function extractGroupRawOptions(
+  group: FilterGroupConfig,
+  products: Product[],
+  productTypes: ProductTypeOption[] = []
+): string[] {
   switch (group.type) {
     case 'fabric':
       return Array.from(
@@ -56,6 +67,15 @@ function extractGroupRawOptions(group: FilterGroupConfig, products: Product[]): 
     case 'occasion':
       return Array.from(
         new Set(products.map((p) => p.occasion?.trim()).filter(Boolean) as string[])
+      ).sort();
+    case 'product_type':
+      return Array.from(
+        new Set(
+          products
+            .map((p) => p.productType?.trim())
+            .filter(Boolean)
+            .map((t) => getProductTypeLabel(t, productTypes))
+        )
       ).sort();
     case 'weave':
       return Array.from(
@@ -92,7 +112,8 @@ function extractGroupRawOptions(group: FilterGroupConfig, products: Product[]): 
 function productMatchesGroupValue(
   product: Product,
   group: FilterGroupConfig,
-  val: string
+  val: string,
+  productTypes: ProductTypeOption[] = []
 ): boolean {
   const target = val.trim().toLowerCase();
   if (!target) return true;
@@ -102,6 +123,11 @@ function productMatchesGroupValue(
       return (product.fabric || '').trim().toLowerCase() === target;
     case 'occasion':
       return (product.occasion || '').trim().toLowerCase() === target;
+    case 'product_type': {
+      const rawVal = (product.productType || '').trim().toLowerCase();
+      const labelVal = getProductTypeLabel(product.productType, productTypes).trim().toLowerCase();
+      return rawVal === target || labelVal === target;
+    }
     case 'weave':
       return (product.weave || '').trim().toLowerCase() === target;
     case 'color':
@@ -355,7 +381,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       const base =
         group.optionSource === 'custom' && group.customOptions.length > 0
           ? group.customOptions
-          : extractGroupRawOptions(group, liveProducts);
+          : extractGroupRawOptions(group, liveProducts, siteSettings.productTypes);
 
       const deduped: string[] = [];
       const seen = new Set<string>();
@@ -369,7 +395,7 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
       out[group.id] = deduped;
     }
     return out;
-  }, [resolvedGroups, liveProducts]);
+  }, [resolvedGroups, liveProducts, siteSettings.productTypes]);
 
   // Filtering logic across all enabled dynamic groups
   const filteredProducts = useMemo(() => {
@@ -381,13 +407,22 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
         if (group.type === 'price_range') continue;
         const picked = selectedGroupValues[group.id] || [];
         if (picked.length > 0) {
-          const matchesAny = picked.some((val) => productMatchesGroupValue(p, group, val));
+          const matchesAny = picked.some((val) =>
+            productMatchesGroupValue(p, group, val, siteSettings.productTypes)
+          );
           if (!matchesAny) return false;
         }
       }
       return true;
     });
-  }, [liveProducts, priceGroup, effectiveMaxPrice, resolvedGroups, selectedGroupValues]);
+  }, [
+    liveProducts,
+    priceGroup,
+    effectiveMaxPrice,
+    resolvedGroups,
+    selectedGroupValues,
+    siteSettings.productTypes,
+  ]);
 
   // Sorting logic
   const sortedProducts = useMemo(() => {

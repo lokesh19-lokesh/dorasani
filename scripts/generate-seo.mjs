@@ -725,7 +725,7 @@ async function loadLiveCatalog() {
       fetchSupabaseJson(
         supabaseUrl,
         supabaseKey,
-        'products?select=id,title,slug,sku,price_inr,mrp_inr,fabric,weaving_style,occasion,saree_length,blouse_included,care_instructions,is_new,is_bestseller,is_festive,in_stock,stock_quantity,rating,reviews_count,updated_at,short_description,description,categories(name,slug),product_media(url,is_primary,display_order)&status=eq.active&order=created_at.desc'
+        'products?select=id,title,slug,sku,price_inr,mrp_inr,fabric,weaving_style,occasion,saree_length,blouse_included,care_instructions,is_new,is_bestseller,is_festive,in_stock,stock_quantity,rating,reviews_count,updated_at,short_description,description,categories(name,slug),product_media(url,is_primary,display_order)&status=in.(active,out_of_stock)&order=created_at.desc'
       ),
       fetchSupabaseJson(
         supabaseUrl,

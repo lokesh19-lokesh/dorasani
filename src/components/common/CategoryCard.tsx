@@ -21,12 +21,20 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
           isFestive ? 'aspect-[3/4.4]' : 'aspect-[3/4]'
         }`}
       >
-        <img
-          src={category.imageUrl}
-          alt={category.name}
-          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-106"
-          loading="lazy"
-        />
+        {category.imageUrl ? (
+          <img
+            src={category.imageUrl}
+            alt={category.name}
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-106"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-b from-[#FAF5EE] to-[#E8DCCF]/75 flex flex-col items-center justify-center p-2 text-center">
+            <span className="font-serif-royal text-2xl sm:text-3xl font-bold text-[#285A3C] tracking-wider">
+              {(category.name || 'D').charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
@@ -42,7 +50,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
             </span>
           </div>
         ) : (
-          <span className="text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors whitespace-nowrap">
+          <span className="text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors line-clamp-1 max-w-[115px] sm:max-w-[130px]">
             {category.name}
           </span>
         )}

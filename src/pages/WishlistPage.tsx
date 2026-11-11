@@ -4,6 +4,7 @@ import { ShoppingBag, Share2, Trash2, ArrowRight } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { useStore } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
+import { getStockStatusMeta } from '../types';
 
 export const WishlistPage: React.FC = () => {
   const { wishlist, removeFromWishlist, addToCart, moveAllToBag, showToast } = useStore();
@@ -92,7 +93,14 @@ export const WishlistPage: React.FC = () => {
 
               {/* Wishlist Product Cards Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-                {wishlist.map((item) => (
+                {wishlist.map((item) => {
+                  const stockMeta = getStockStatusMeta(
+                    item.product.stock,
+                    item.product.inStock ? 'active' : 'out_of_stock'
+                  );
+                  const isAvailable = item.product.inStock && !stockMeta.isOutOfStock;
+
+                  return (
                   <div
                     key={item.id}
                     className="bg-white rounded-lg border border-[#D8C7B5] overflow-hidden flex flex-col justify-between group shadow-xs hover:shadow-md transition-all relative"
@@ -138,13 +146,22 @@ export const WishlistPage: React.FC = () => {
                             ₹{item.product.mrp.toLocaleString('en-IN')}
                           </span>
                         </div>
+                        {!isAvailable ? (
+                          <p className="text-[10px] font-semibold text-rose-700 mt-1">
+                            Out of Stock
+                          </p>
+                        ) : stockMeta.isLowStock ? (
+                          <p className="text-[10px] font-semibold text-amber-700 mt-1">
+                            Only {stockMeta.qty} left ({stockMeta.shortageCount} less than 3)
+                          </p>
+                        ) : null}
                       </div>
 
                       {/* Add to Bag action button */}
                       <div className="flex items-center gap-1.5 pt-2 border-t border-[#F5EAE2]">
                         <button
                           type="button"
-                          disabled={!item.product.inStock}
+                          disabled={!isAvailable}
                           onClick={() => {
                             addToCart(item.product);
                             removeFromWishlist(item.product.id);
@@ -152,7 +169,7 @@ export const WishlistPage: React.FC = () => {
                           className="flex-1 bg-[#FAF5EE] hover:bg-[#285A3C] text-[#285A3C] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-[#BCD8AA]"
                         >
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>{item.product.inStock ? 'Add to Bag' : 'Out of Stock'}</span>
+                          <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
                         </button>
                         <button
                           type="button"
@@ -165,7 +182,8 @@ export const WishlistPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

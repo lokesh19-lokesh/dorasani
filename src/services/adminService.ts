@@ -143,6 +143,7 @@ function emptyMetrics() {
     totalProducts: 0,
     activeProducts: 0,
     outOfStockProducts: 0,
+    lowStockProducts: 0,
     pendingOrders: 0,
     processingOrders: 0,
     deliveredOrders: 0,
@@ -232,7 +233,14 @@ export const adminService = {
 
       const activeProducts = products.filter((p) => p.status === 'active').length;
       const outOfStockProducts = products.filter(
-        (p) => !p.in_stock || (p.stock_quantity ?? 0) <= 0
+        (p) => p.status === 'out_of_stock' || !p.in_stock || (p.stock_quantity ?? 0) <= 0
+      ).length;
+      const lowStockProducts = products.filter(
+        (p) =>
+          p.status !== 'archived' &&
+          p.status !== 'draft' &&
+          (p.stock_quantity ?? 0) > 0 &&
+          (p.stock_quantity ?? 0) < 3
       ).length;
 
       return {
@@ -249,6 +257,7 @@ export const adminService = {
         totalProducts: products.length,
         activeProducts,
         outOfStockProducts,
+        lowStockProducts,
         pendingOrders,
         processingOrders,
         deliveredOrders,
@@ -295,8 +304,13 @@ export const adminService = {
         ? Math.round(((mrp - price) / mrp) * 100)
         : 0;
 
-    const status =
-      input.status || (stockQty > 0 ? 'active' : 'out_of_stock');
+    let status = input.status || (stockQty > 0 ? 'active' : 'out_of_stock');
+    if (stockQty <= 0 && status === 'active') {
+      status = 'out_of_stock';
+    } else if (stockQty > 0 && status === 'out_of_stock') {
+      status = 'active';
+    }
+    const inStock = stockQty > 0 && status !== 'out_of_stock';
 
     const { data: prod, error } = await supabase
       .from('products')
@@ -322,7 +336,7 @@ export const adminService = {
         blouse_description: input.blouse_description?.trim() || null,
         status,
         stock_quantity: stockQty,
-        in_stock: stockQty > 0,
+        in_stock: inStock,
         is_featured: Boolean(input.is_featured),
         is_new: Boolean(input.is_new),
         is_bestseller: Boolean(input.is_bestseller),
@@ -426,17 +440,32 @@ export const adminService = {
     }
 
     let stockDelta = 0;
-    let prevStock = existing.stock_quantity ?? 0;
+    const prevStock = existing.stock_quantity ?? 0;
     let nextStock = prevStock;
 
     if (rawFields.stock_quantity !== undefined) {
       nextStock = Math.max(0, Number(rawFields.stock_quantity));
       stockDelta = nextStock - prevStock;
       payload.stock_quantity = nextStock;
-      payload.in_stock = nextStock > 0;
-      if (payload.status === undefined) {
-        if (nextStock <= 0 && existing.status === 'active') payload.status = 'out_of_stock';
-        else if (nextStock > 0 && existing.status === 'out_of_stock') payload.status = 'active';
+
+      let targetStatus = payload.status !== undefined ? payload.status : existing.status;
+      if (nextStock <= 0 && targetStatus === 'active') {
+        targetStatus = 'out_of_stock';
+      } else if (nextStock > 0 && targetStatus === 'out_of_stock') {
+        targetStatus = 'active';
+      }
+      payload.status = targetStatus;
+      payload.in_stock = nextStock > 0 && targetStatus !== 'out_of_stock';
+    } else if (payload.status !== undefined) {
+      if (payload.status === 'out_of_stock') {
+        payload.in_stock = false;
+      } else if (payload.status === 'active') {
+        if (prevStock <= 0) {
+          payload.status = 'out_of_stock';
+          payload.in_stock = false;
+        } else {
+          payload.in_stock = true;
+        }
       }
     }
 

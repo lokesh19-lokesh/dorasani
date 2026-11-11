@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
@@ -16,7 +16,35 @@ export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
   const [subscribing, setSubscribing] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const { showToast, siteSettings } = useStore();
+  const { showToast, siteSettings, storeCategories } = useStore();
+
+  const shopLinks = useMemo(() => {
+    const dynamic =
+      storeCategories.length > 0
+        ? storeCategories
+            .filter((c) => c.slug !== 'silk-sarees')
+            .map((c) => ({
+              label: c.name,
+              path: `/collections/${c.slug}`,
+              slug: c.slug,
+            }))
+        : [
+            { label: 'Sarees Collection', path: '/collections/sarees', slug: 'sarees' },
+            { label: 'Kurthis & Tunics', path: '/collections/kurtis', slug: 'kurtis' },
+            { label: 'Ethnic Wear', path: '/collections/ethnic-wear', slug: 'ethnic-wear' },
+            { label: 'Lehengas', path: '/collections/lehengas', slug: 'lehengas' },
+            { label: 'Kids Wear', path: '/collections/kids-wear', slug: 'kids-wear' },
+            { label: 'Festive Edit', path: '/collections/festive', slug: 'festive' },
+          ];
+    const seen = new Set(dynamic.map((d) => d.slug));
+    if (!seen.has('new-arrivals')) {
+      dynamic.push({ label: 'New Arrivals', path: '/collections/new-arrivals', slug: 'new-arrivals' });
+    }
+    if (!seen.has('bestsellers')) {
+      dynamic.push({ label: 'Bestsellers', path: '/collections/bestsellers', slug: 'bestsellers' });
+    }
+    return dynamic;
+  }, [storeCategories]);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,14 +243,13 @@ export const Footer: React.FC = () => {
               Shop
             </h3>
             <ul className="space-y-2.5 text-[#143D24]">
-              <li><Link to="/collections/sarees" className="hover:text-[#000000] font-medium transition-colors">Sarees Collection</Link></li>
-              <li><Link to="/collections/kurtis" className="hover:text-[#000000] font-medium transition-colors">Kurthis & Tunics</Link></li>
-              <li><Link to="/collections/ethnic-wear" className="hover:text-[#000000] font-medium transition-colors">Ethnic Wear</Link></li>
-              <li><Link to="/collections/lehengas" className="hover:text-[#000000] font-medium transition-colors">Lehengas</Link></li>
-              <li><Link to="/collections/kids-wear" className="hover:text-[#000000] font-medium transition-colors">Kids Wear</Link></li>
-              <li><Link to="/collections/festive" className="hover:text-[#000000] font-medium transition-colors">Festive Edit</Link></li>
-              <li><Link to="/collections/new-arrivals" className="hover:text-[#000000] font-medium transition-colors">New Arrivals</Link></li>
-              <li><Link to="/collections/bestsellers" className="hover:text-[#000000] font-medium transition-colors">Bestsellers</Link></li>
+              {shopLinks.map((item) => (
+                <li key={item.path}>
+                  <Link to={item.path} className="hover:text-[#000000] font-medium transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -317,12 +344,11 @@ export const Footer: React.FC = () => {
             </button>
             {openSections['shop'] && (
               <ul className="mt-3 space-y-2 text-xs text-[#143D24] pl-2 font-medium">
-                <li><Link to="/collections/sarees">Sarees</Link></li>
-                <li><Link to="/collections/ethnic-wear">Ethnic Wear</Link></li>
-                <li><Link to="/collections/lehengas">Lehengas</Link></li>
-                <li><Link to="/collections/festive">Festive Collection</Link></li>
-                <li><Link to="/collections/new-arrivals">New Arrivals</Link></li>
-                <li><Link to="/collections/bestsellers">Bestsellers</Link></li>
+                {shopLinks.map((item) => (
+                  <li key={item.path}>
+                    <Link to={item.path}>{item.label}</Link>
+                  </li>
+                ))}
               </ul>
             )}
           </div>

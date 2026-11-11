@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, Tag, ShieldCheck, ArrowRight, Check, ShoppingBag } from 'lucide-react';
+import { Trash2, Tag, ShieldCheck, ArrowRight, Check, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
+import { getStockStatusMeta } from '../types';
 
 export const CartPage: React.FC = () => {
   const {
@@ -27,6 +28,14 @@ export const CartPage: React.FC = () => {
   const navigate = useNavigate();
 
   const selectedItems = cart.filter((i) => i.selected);
+  const stockIssueItems = selectedItems.filter((item) => {
+    const meta = getStockStatusMeta(
+      item.product.stock,
+      item.product.inStock ? 'active' : 'out_of_stock'
+    );
+    return meta.isOutOfStock || item.quantity > meta.qty;
+  });
+  const hasStockIssues = stockIssueItems.length > 0;
 
   const handleApplyCode = async (rawCode: string) => {
     const clean = rawCode.trim();
@@ -113,6 +122,12 @@ export const CartPage: React.FC = () => {
                     item.product.fabric || item.product.category,
                     item.product.blouseIncluded ? 'With Blouse Piece' : null,
                   ].filter(Boolean);
+                  const stockMeta = getStockStatusMeta(
+                    item.product.stock,
+                    item.product.inStock ? 'active' : 'out_of_stock'
+                  );
+                  const isAvailable = item.product.inStock && !stockMeta.isOutOfStock;
+                  const exceedsStock = isAvailable && item.quantity > stockMeta.qty;
 
                   return (
                     <div
@@ -143,13 +158,21 @@ export const CartPage: React.FC = () => {
                             {item.product.title}
                           </Link>
                           <p className="text-[11px] text-[#4F6355]">{metaParts.join(' | ')}</p>
-                          {item.product.inStock ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#285A3C] bg-[#D0E9C0]/40 px-2 py-0.5 rounded border border-[#BCD8AA]">
-                              <Check className="w-3 h-3" /> In Stock
+                          {!isAvailable ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                              <AlertCircle className="w-3 h-3" /> Out of Stock
+                            </span>
+                          ) : exceedsStock ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                              <AlertCircle className="w-3 h-3" /> Only {stockMeta.qty} available — reduce quantity
+                            </span>
+                          ) : stockMeta.isLowStock ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              <AlertCircle className="w-3 h-3" /> Only {stockMeta.qty} left ({stockMeta.shortageCount} less than 3)
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              Out of Stock
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#285A3C] bg-[#D0E9C0]/40 px-2 py-0.5 rounded border border-[#BCD8AA]">
+                              <Check className="w-3 h-3" /> In Stock ({stockMeta.qty} available)
                             </span>
                           )}
                         </div>
@@ -181,8 +204,9 @@ export const CartPage: React.FC = () => {
                           </span>
                           <button
                             type="button"
+                            disabled={!isAvailable || item.quantity >= stockMeta.qty}
                             onClick={() => updateQuantity(item.id, 1)}
-                            className="px-2.5 py-1 text-[#4F6355] hover:bg-[#D0E9C0]/30"
+                            className="px-2.5 py-1 text-[#4F6355] hover:bg-[#D0E9C0]/30 disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Increase quantity"
                           >
                             +
@@ -310,11 +334,23 @@ export const CartPage: React.FC = () => {
                   <p className="text-[10px] text-[#8E9B92] text-right">Inclusive of all taxes</p>
                 </div>
 
+                {hasStockIssues && (
+                  <div
+                    role="alert"
+                    className="rounded-lg bg-rose-50 border border-rose-200 px-3 py-2.5 text-[11px] text-rose-800 flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-700" />
+                    <span>
+                      Please uncheck or adjust items that are out of stock or exceed available quantity before proceeding to checkout.
+                    </span>
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  disabled={selectedItems.length === 0}
+                  disabled={selectedItems.length === 0 || hasStockIssues}
                   onClick={() => navigate('/checkout')}
-                  className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-45 text-white py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2 group"
+                  className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-45 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2 group"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

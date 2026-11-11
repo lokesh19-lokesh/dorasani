@@ -10,6 +10,7 @@ export interface Product {
   category: string;
   categorySlug: string;
   subCategory?: string;
+  productType?: string;
   fabric: string;
   occasion: string;
   weave?: string;
@@ -34,6 +35,125 @@ export interface Product {
     name: string;
     hex: string;
   }[];
+}
+
+export const LOW_STOCK_THRESHOLD = 3;
+
+export interface StockStatusMeta {
+  qty: number;
+  isOutOfStock: boolean;
+  isLowStock: boolean;
+  shortageCount: number;
+  adminStatusLabel: string;
+  adminShortMessage: string;
+  storefrontBadge: string | null;
+  storefrontDetailMessage: string;
+}
+
+export function getStockStatusMeta(
+  stock: number | undefined | null,
+  status?: string | null
+): StockStatusMeta {
+  const safeQty = Math.max(0, Math.round(Number(stock ?? 0) || 0));
+  const isOut = status === 'out_of_stock' || safeQty <= 0;
+
+  if (isOut) {
+    return {
+      qty: safeQty,
+      isOutOfStock: true,
+      isLowStock: false,
+      shortageCount: LOW_STOCK_THRESHOLD,
+      adminStatusLabel: 'Out of Stock',
+      adminShortMessage:
+        'Out of Stock (0 quantity) — automatically marked as Out of Stock',
+      storefrontBadge: 'OUT OF STOCK',
+      storefrontDetailMessage: 'Currently Out of Stock',
+    };
+  }
+
+  if (safeQty < LOW_STOCK_THRESHOLD) {
+    const shortageCount = LOW_STOCK_THRESHOLD - safeQty;
+    const unitWord = safeQty === 1 ? 'unit' : 'units';
+    return {
+      qty: safeQty,
+      isOutOfStock: false,
+      isLowStock: true,
+      shortageCount,
+      adminStatusLabel: `Low Stock (${shortageCount} less)`,
+      adminShortMessage: `Low Stock: ${safeQty} ${unitWord} available (${shortageCount} quantity less than minimum ${LOW_STOCK_THRESHOLD})`,
+      storefrontBadge: `ONLY ${safeQty} LEFT`,
+      storefrontDetailMessage: `Low Stock — Only ${safeQty} left (${shortageCount} less than ${LOW_STOCK_THRESHOLD})`,
+    };
+  }
+
+  return {
+    qty: safeQty,
+    isOutOfStock: false,
+    isLowStock: false,
+    shortageCount: 0,
+    adminStatusLabel: 'Healthy',
+    adminShortMessage: `In Stock (${safeQty} units available)`,
+    storefrontBadge: null,
+    storefrontDetailMessage: `In Stock (${safeQty} ready to ship)`,
+  };
+}
+
+export interface ProductTypeOption {
+  value: string;
+  label: string;
+}
+
+export const DEFAULT_PRODUCT_TYPES: ProductTypeOption[] = [
+  { value: 'saree', label: 'Saree' },
+  { value: 'lehenga', label: 'Lehenga' },
+  { value: 'ethnic_wear', label: 'Ethnic Wear / Salwar / Anarkali' },
+  { value: 'kurti', label: 'Kurti / Tunic' },
+  { value: 'dress', label: 'Ethnic Dress' },
+  { value: 'kids_wear', label: 'Kids Wear' },
+  { value: 'fabric', label: 'Blouse / Fabric' },
+];
+
+export function formatProductTypeValue(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/(^_|_$)/g, '');
+}
+
+export function normalizeProductTypes(raw: unknown): ProductTypeOption[] {
+  if (!Array.isArray(raw)) {
+    return DEFAULT_PRODUCT_TYPES.map((t) => ({ ...t }));
+  }
+
+  const out: ProductTypeOption[] = [];
+  const seen = new Set<string>();
+
+  for (const item of raw) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const obj = item as Record<string, unknown>;
+    const label = typeof obj.label === 'string' ? obj.label.trim() : '';
+    const rawVal = typeof obj.value === 'string' ? obj.value.trim() : '';
+    const value = formatProductTypeValue(rawVal || label);
+    if (!value || !label || seen.has(value)) continue;
+    seen.add(value);
+    out.push({ value, label });
+  }
+
+  return out.length > 0 ? out : DEFAULT_PRODUCT_TYPES.map((t) => ({ ...t }));
+}
+
+export function getProductTypeLabel(
+  value?: string | null,
+  typesList: ProductTypeOption[] = DEFAULT_PRODUCT_TYPES
+): string {
+  const clean = String(value || '').trim();
+  if (!clean) return 'Saree';
+  const hit = typesList.find((t) => t.value.toLowerCase() === clean.toLowerCase());
+  if (hit) return hit.label;
+  return clean
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export interface Category {
@@ -90,6 +210,7 @@ export type FilterGroupType =
   | 'price_range'
   | 'fabric'
   | 'occasion'
+  | 'product_type'
   | 'weave'
   | 'color'
   | 'availability'
@@ -169,11 +290,21 @@ export const DEFAULT_FILTER_GROUPS: FilterGroupConfig[] = [
     hiddenOptions: [],
   },
   {
+    id: 'product_type',
+    type: 'product_type',
+    label: 'Product Type',
+    enabled: true,
+    displayOrder: 4,
+    optionSource: 'auto',
+    customOptions: [],
+    hiddenOptions: [],
+  },
+  {
     id: 'weave',
     type: 'weave',
     label: 'Weaving Style',
     enabled: false,
-    displayOrder: 4,
+    displayOrder: 5,
     optionSource: 'auto',
     customOptions: [],
     hiddenOptions: [],
@@ -183,7 +314,7 @@ export const DEFAULT_FILTER_GROUPS: FilterGroupConfig[] = [
     type: 'color',
     label: 'Color',
     enabled: false,
-    displayOrder: 5,
+    displayOrder: 6,
     optionSource: 'auto',
     customOptions: [],
     hiddenOptions: [],
@@ -193,7 +324,7 @@ export const DEFAULT_FILTER_GROUPS: FilterGroupConfig[] = [
     type: 'availability',
     label: 'Availability',
     enabled: false,
-    displayOrder: 6,
+    displayOrder: 7,
     optionSource: 'custom',
     customOptions: ['In Stock Only', 'New Arrivals', 'Bestsellers', 'Festive Edit'],
     hiddenOptions: [],
@@ -203,7 +334,7 @@ export const DEFAULT_FILTER_GROUPS: FilterGroupConfig[] = [
     type: 'discount',
     label: 'Discount',
     enabled: false,
-    displayOrder: 7,
+    displayOrder: 8,
     optionSource: 'custom',
     customOptions: ['10% or more', '20% or more', '30% or more'],
     hiddenOptions: [],
@@ -300,6 +431,7 @@ export interface SiteSettings {
   facebookUrl: string;
   youtubeUrl: string;
   footerCopyright: string;
+  productTypes: ProductTypeOption[];
   exploreCategoriesConfig: ExploreCategoriesConfig;
   collectionFiltersConfig: CollectionFiltersConfig;
 }
@@ -384,6 +516,7 @@ export function normalizeCollectionFiltersConfig(raw: unknown): CollectionFilter
     'price_range',
     'fabric',
     'occasion',
+    'product_type',
     'weave',
     'color',
     'availability',
@@ -545,6 +678,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   facebookUrl: 'https://facebook.com',
   youtubeUrl: 'https://youtube.com',
   footerCopyright: '© 2026 DORASANI. All rights reserved.',
+  productTypes: DEFAULT_PRODUCT_TYPES,
   exploreCategoriesConfig: DEFAULT_EXPLORE_CATEGORIES_CONFIG,
   collectionFiltersConfig: DEFAULT_COLLECTION_FILTERS_CONFIG,
 };

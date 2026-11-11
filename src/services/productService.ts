@@ -3,6 +3,7 @@ import {
   DEFAULT_SITE_SETTINGS,
   normalizeExploreCategoriesConfig,
   normalizeCollectionFiltersConfig,
+  normalizeProductTypes,
   type Product,
   type Category,
   type ServiceBenefit,
@@ -13,6 +14,7 @@ import {
 export interface ProductFilters {
   categorySlug?: string;
   subCategorySlug?: string;
+  productTypes?: string[];
   fabric?: string[];
   occasion?: string[];
   minPrice?: number;
@@ -150,7 +152,8 @@ export function mapDatabaseToProduct(row: any, media: any[] = [], variants: any[
       ? Math.round(((mrp - price) / mrp) * 100)
       : 0;
 
-  const stock = Number(row.stock_quantity ?? 0);
+  const stock = Math.max(0, Number(row.stock_quantity ?? 0));
+  const rowStatus = String(row.status || 'active');
 
   return {
     id: row.id,
@@ -164,6 +167,7 @@ export function mapDatabaseToProduct(row: any, media: any[] = [], variants: any[
     category: row.categories?.name || (row.product_type === 'lehenga' ? 'Lehengas' : 'Collections'),
     categorySlug: row.categories?.slug || 'all',
     subCategory: typeof specs.subCategory === 'string' ? specs.subCategory : undefined,
+    productType: row.product_type || 'saree',
     fabric: row.fabric || '',
     occasion: row.occasion || '',
     weave: row.weaving_style || '',
@@ -179,7 +183,7 @@ export function mapDatabaseToProduct(row: any, media: any[] = [], variants: any[
     colors,
     sizes: Array.isArray(specs.sizes) && specs.sizes.length > 0 ? specs.sizes : ['Free Size'],
     stock,
-    inStock: Boolean(row.in_stock) && stock > 0,
+    inStock: rowStatus !== 'out_of_stock' && Boolean(row.in_stock) && stock > 0,
     isNew: Boolean(row.is_new),
     isFeatured: Boolean(row.is_featured),
     isBestseller: Boolean(row.is_bestseller),
@@ -207,7 +211,7 @@ export const productService = {
         `,
           { count: 'exact' }
         )
-        .eq('status', 'active');
+        .in('status', ['active', 'out_of_stock']);
 
       const needsCategoryLookup = Boolean(
         (filters.categorySlug && filters.categorySlug !== 'all') ||
@@ -252,6 +256,9 @@ export const productService = {
                 'and(fabric.ilike.%Silk%,title.ilike.%Saree%)',
               ].join(',')
             );
+          } else if (cat.parent_id !== null) {
+            const orParts = buildSubcategoryOrParts(cat, allCats);
+            query = query.or(orParts.join(','));
           } else {
             query = query.in('category_id', catIds);
           }
@@ -284,6 +291,9 @@ export const productService = {
       if (filters.isBestseller) query = query.eq('is_bestseller', true);
       if (filters.isFeatured) query = query.eq('is_featured', true);
 
+      if (filters.productTypes && filters.productTypes.length > 0) {
+        query = query.in('product_type', filters.productTypes);
+      }
       if (filters.fabric && filters.fabric.length > 0) {
         query = query.in('fabric', filters.fabric);
       }
@@ -298,7 +308,7 @@ export const productService = {
         const cleanSearch = sanitizeFilterTerm(filters.search);
         if (cleanSearch) {
           query = query.or(
-            `title.ilike.%${cleanSearch}%,fabric.ilike.%${cleanSearch}%,occasion.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%`
+            `title.ilike.%${cleanSearch}%,subtitle.ilike.%${cleanSearch}%,product_type.ilike.%${cleanSearch}%,fabric.ilike.%${cleanSearch}%,occasion.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%`
           );
         }
       }
@@ -420,7 +430,7 @@ export const productService = {
         description: cat.description || undefined,
         parentId: cat.parent_id,
         displayOrder: cat.display_order ?? 99,
-        imageUrl: cat.image_url || '/assets/categories/cat_sarees_arch.jpg',
+        imageUrl: cat.image_url || '',
         filterKeywords: cat.filter_keywords || undefined,
         subcategories: rows
           .filter((s) => s.parent_id === cat.id)
@@ -462,7 +472,7 @@ export const productService = {
         description: target.description || undefined,
         parentId: target.parent_id,
         displayOrder: target.display_order ?? 99,
-        imageUrl: target.image_url || '/assets/categories/cat_sarees_arch.jpg',
+        imageUrl: target.image_url || '',
         filterKeywords: target.filter_keywords || undefined,
         subcategories: rows
           .filter((s) => s.parent_id === target.id)
@@ -684,6 +694,7 @@ export const productService = {
         facebookUrl: str('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl, true),
         youtubeUrl: str('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl, true),
         footerCopyright: str('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright),
+        productTypes: normalizeProductTypes(map.get('product_types')),
         exploreCategoriesConfig: normalizeExploreCategoriesConfig(map.get('explore_categories_config')),
         collectionFiltersConfig: normalizeCollectionFiltersConfig(map.get('collection_filters_config')),
       };

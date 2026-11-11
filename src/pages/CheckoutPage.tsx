@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
+import { getStockStatusMeta } from '../types';
 
 const FIELD_ORDER: { key: string; elementId: string }[] = [
   { key: 'fullName', elementId: 'checkout-full-name' },
@@ -36,6 +37,14 @@ export const CheckoutPage: React.FC = () => {
   } = useStore();
 
   const selectedCartItems = cart.filter((i) => i.selected);
+  const stockBlockedItems = selectedCartItems.filter((item) => {
+    const meta = getStockStatusMeta(
+      item.product.stock,
+      item.product.inStock ? 'active' : 'out_of_stock'
+    );
+    return meta.isOutOfStock || item.quantity > meta.qty;
+  });
+  const hasStockBlockedItems = stockBlockedItems.length > 0;
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -146,6 +155,23 @@ export const CheckoutPage: React.FC = () => {
     e.preventDefault();
     setSubmitError(null);
     setPaymentNotice(null);
+
+    if (hasStockBlockedItems) {
+      const blockedNames = stockBlockedItems
+        .map((i) => {
+          const meta = getStockStatusMeta(
+            i.product.stock,
+            i.product.inStock ? 'active' : 'out_of_stock'
+          );
+          return meta.isOutOfStock
+            ? `${i.product.title} (Out of Stock)`
+            : `${i.product.title} (only ${meta.qty} left)`;
+        })
+        .join(', ');
+      setSubmitError(`Cannot place order because of stock changes: ${blockedNames}. Please update your cart first.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     const nextErrors: Record<string, string> = {
       fullName: validateSingleField('fullName', fullName),
@@ -334,6 +360,26 @@ export const CheckoutPage: React.FC = () => {
         >
           {/* Left Column: Form Details */}
           <div className="lg:col-span-8 space-y-6">
+            {hasStockBlockedItems && (
+              <div
+                role="alert"
+                className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-700" />
+                  <span className="leading-relaxed">
+                    One or more items in your bag are out of stock or exceed current inventory. Please update your cart before placing this order.
+                  </span>
+                </div>
+                <Link
+                  to="/cart"
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-rose-300 text-rose-800 font-semibold hover:bg-rose-100/60 transition-colors"
+                >
+                  Edit Cart
+                </Link>
+              </div>
+            )}
+
             {paymentNotice && (
               <div
                 role={paymentNotice.type === 'error' ? 'alert' : 'status'}
@@ -923,24 +969,41 @@ export const CheckoutPage: React.FC = () => {
               </div>
 
               <div className="space-y-2.5 max-h-56 overflow-y-auto divide-y divide-[#F5EAE2]">
-                {selectedCartItems.map((item) => (
-                  <div key={item.id} className="pt-2 flex items-center justify-between text-xs gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <img
-                        src={item.product.primaryImage}
-                        alt={item.product.title}
-                        className="w-10 h-12 object-cover rounded border border-[#D8C7B5] shrink-0"
-                      />
-                      <div className="truncate">
-                        <p className="font-semibold text-[#1A3B2B] truncate">{item.product.title}</p>
-                        <p className="text-[10px] text-[#4F6355]">Qty: {item.quantity}</p>
+                {selectedCartItems.map((item) => {
+                  const stockMeta = getStockStatusMeta(
+                    item.product.stock,
+                    item.product.inStock ? 'active' : 'out_of_stock'
+                  );
+                  const isAvailable = item.product.inStock && !stockMeta.isOutOfStock;
+                  const exceedsStock = isAvailable && item.quantity > stockMeta.qty;
+
+                  return (
+                    <div key={item.id} className="pt-2 flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={item.product.primaryImage}
+                          alt={item.product.title}
+                          className="w-10 h-12 object-cover rounded border border-[#D8C7B5] shrink-0"
+                        />
+                        <div className="truncate">
+                          <p className="font-semibold text-[#1A3B2B] truncate">{item.product.title}</p>
+                          <p className="text-[10px] text-[#4F6355]">
+                            Qty: {item.quantity}
+                            {!isAvailable && (
+                              <span className="ml-1.5 text-rose-700 font-semibold">• Out of Stock</span>
+                            )}
+                            {exceedsStock && (
+                              <span className="ml-1.5 text-rose-700 font-semibold">• Only {stockMeta.qty} left</span>
+                            )}
+                          </p>
+                        </div>
                       </div>
+                      <span className="font-bold text-[#1A3B2B] shrink-0">
+                        ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                      </span>
                     </div>
-                    <span className="font-bold text-[#1A3B2B] shrink-0">
-                      ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="space-y-2 text-xs text-[#4F6355] pt-3 border-t border-[#D8C7B5]">
@@ -971,8 +1034,8 @@ export const CheckoutPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 text-white py-3.5 px-4 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2 min-h-[48px]"
+                disabled={isSubmitting || hasStockBlockedItems}
+                className="w-full bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-60 disabled:cursor-not-allowed text-white py-3.5 px-4 rounded-lg font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2 min-h-[48px]"
               >
                 <Lock className="w-4 h-4 shrink-0" />
                 <span>{getSubmitButtonLabel()}</span>

@@ -55,14 +55,21 @@ import {
   DEFAULT_SITE_SETTINGS,
   DEFAULT_EXPLORE_CATEGORIES_CONFIG,
   DEFAULT_COLLECTION_FILTERS_CONFIG,
+  DEFAULT_PRODUCT_TYPES,
+  LOW_STOCK_THRESHOLD,
+  formatProductTypeValue,
   normalizeExploreCategoriesConfig,
   normalizeCollectionFiltersConfig,
+  normalizeProductTypes,
+  getProductTypeLabel,
+  getStockStatusMeta,
   type ExploreCategoriesConfig,
   type ExploreCategoryOverride,
   type CollectionFiltersConfig,
   type CategoryFilterOverride,
   type CategoryFilterGroupOverride,
   type FilterGroupConfig,
+  type ProductTypeOption,
   type SiteSettings,
   type UserRole,
 } from '../../types';
@@ -84,16 +91,6 @@ const slugify = (val: string) =>
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
-
-const PRODUCT_TYPES = [
-  { value: 'saree', label: 'Saree' },
-  { value: 'lehenga', label: 'Lehenga' },
-  { value: 'ethnic_wear', label: 'Ethnic Wear / Salwar / Anarkali' },
-  { value: 'kurti', label: 'Kurti / Tunic' },
-  { value: 'dress', label: 'Ethnic Dress' },
-  { value: 'kids_wear', label: 'Kids Wear' },
-  { value: 'fabric', label: 'Blouse / Fabric' },
-];
 
 const PRODUCT_STATUSES = [
   { value: 'active', label: 'Active' },
@@ -487,6 +484,7 @@ export const AdminDashboardPage: React.FC = () => {
     totalProducts: 0,
     activeProducts: 0,
     outOfStockProducts: 0,
+    lowStockProducts: 0,
     pendingOrders: 0,
     processingOrders: 0,
     deliveredOrders: 0,
@@ -557,6 +555,23 @@ export const AdminDashboardPage: React.FC = () => {
   const [savingCategory, setSavingCategory] = useState(false);
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<any | null>(null);
   const [deletingCategory, setDeletingCategory] = useState(false);
+
+  // Dynamic Product Types & Inline Product Modal Creation State
+  const [productTypesList, setProductTypesList] =
+    useState<ProductTypeOption[]>(DEFAULT_PRODUCT_TYPES);
+  const [newTypeLabelInput, setNewTypeLabelInput] = useState('');
+  const [editingTypeValue, setEditingTypeValue] = useState<string | null>(null);
+  const [editingTypeLabel, setEditingTypeLabel] = useState('');
+  const [savingProductTypes, setSavingProductTypes] = useState(false);
+
+  const [showInlineCatDrawer, setShowInlineCatDrawer] = useState(false);
+  const [inlineCatName, setInlineCatName] = useState('');
+  const [inlineCatParentId, setInlineCatParentId] = useState('');
+  const [savingInlineCat, setSavingInlineCat] = useState(false);
+
+  const [showInlineTypeDrawer, setShowInlineTypeDrawer] = useState(false);
+  const [inlineTypeLabel, setInlineTypeLabel] = useState('');
+  const [savingInlineType, setSavingInlineType] = useState(false);
 
   // Explore Bar & Collection Filters Builder State
   const [exploreConfigForm, setExploreConfigForm] = useState<ExploreCategoriesConfig>(
@@ -681,6 +696,18 @@ export const AdminDashboardPage: React.FC = () => {
         const nextFiltersCfg = normalizeCollectionFiltersConfig(
           readVal('collection_filters_config', DEFAULT_COLLECTION_FILTERS_CONFIG)
         );
+        const mergedTypes = normalizeProductTypes(
+          readVal('product_types', DEFAULT_PRODUCT_TYPES)
+        );
+        const knownTypeVals = new Set(mergedTypes.map((t) => t.value));
+        for (const p of pRes.products || []) {
+          const val = formatProductTypeValue(String(p?.product_type || ''));
+          if (val && !knownTypeVals.has(val)) {
+            knownTypeVals.add(val);
+            mergedTypes.push({ value: val, label: getProductTypeLabel(val, mergedTypes) });
+          }
+        }
+        setProductTypesList(mergedTypes);
 
         const nextSettings: SiteSettings = {
           storeName: String(readVal('store_name', DEFAULT_SITE_SETTINGS.storeName)),
@@ -707,6 +734,7 @@ export const AdminDashboardPage: React.FC = () => {
           codEnabled,
           exploreCategoriesConfig: nextExploreCfg,
           collectionFiltersConfig: nextFiltersCfg,
+          productTypes: mergedTypes,
         };
 
         setSettingsForm({
@@ -715,6 +743,17 @@ export const AdminDashboardPage: React.FC = () => {
         });
         setExploreConfigForm(nextExploreCfg);
         setFiltersConfigForm(nextFiltersCfg);
+      } else {
+        const mergedTypes = [...DEFAULT_PRODUCT_TYPES];
+        const knownTypeVals = new Set(mergedTypes.map((t) => t.value));
+        for (const p of pRes.products || []) {
+          const val = formatProductTypeValue(String(p?.product_type || ''));
+          if (val && !knownTypeVals.has(val)) {
+            knownTypeVals.add(val);
+            mergedTypes.push({ value: val, label: getProductTypeLabel(val, mergedTypes) });
+          }
+        }
+        setProductTypesList(mergedTypes);
       }
     } catch (err: any) {
       console.error('Error loading admin data:', err);
@@ -827,9 +866,15 @@ export const AdminDashboardPage: React.FC = () => {
     setEditingProductSpecs({});
     setProductSlugTouched(false);
     setProductFormError(null);
+    setShowInlineCatDrawer(false);
+    setInlineCatName('');
+    setInlineCatParentId('');
+    setShowInlineTypeDrawer(false);
+    setInlineTypeLabel('');
     setProductForm({
       ...DEFAULT_PRODUCT_FORM,
       category_id: categories[0]?.id || '',
+      product_type: productTypesList[0]?.value || 'saree',
     });
     setProductModalOpen(true);
   };
@@ -850,6 +895,18 @@ export const AdminDashboardPage: React.FC = () => {
     setEditingProductId(p.id);
     setProductSlugTouched(true);
     setProductFormError(null);
+    setShowInlineCatDrawer(false);
+    setInlineCatName('');
+    setInlineCatParentId('');
+    setShowInlineTypeDrawer(false);
+    setInlineTypeLabel('');
+    const qty = Math.max(0, Number(p.stock_quantity ?? 0));
+    const resolvedStatus =
+      qty <= 0 && p.status === 'active'
+        ? 'out_of_stock'
+        : qty > 0 && p.status === 'out_of_stock'
+          ? 'active'
+          : p.status || (qty > 0 ? 'active' : 'out_of_stock');
     setProductForm({
       title: p.title || '',
       slug: p.slug || '',
@@ -859,8 +916,8 @@ export const AdminDashboardPage: React.FC = () => {
       product_type: p.product_type || 'saree',
       price_inr: Number(p.price_inr ?? 0),
       mrp_inr: Number(p.mrp_inr ?? p.price_inr ?? 0),
-      stock_quantity: Number(p.stock_quantity ?? 0),
-      status: p.status || 'active',
+      stock_quantity: qty,
+      status: resolvedStatus,
       fabric: p.fabric || '',
       occasion: p.occasion || '',
       weaving_style: p.weaving_style || '',
@@ -924,17 +981,24 @@ export const AdminDashboardPage: React.FC = () => {
       .map((t) => t.trim())
       .filter(Boolean);
 
+    const finalStatus =
+      stock <= 0 && productForm.status === 'active'
+        ? 'out_of_stock'
+        : stock > 0 && productForm.status === 'out_of_stock'
+          ? 'active'
+          : productForm.status;
+
     const payload: AdminProductInput = {
       title: cleanTitle,
       slug: cleanSlug,
       sku: productForm.sku.trim() || undefined,
       subtitle: productForm.subtitle.trim() || undefined,
       category_id: productForm.category_id || null,
-      product_type: productForm.product_type || 'saree',
+      product_type: productForm.product_type || productTypesList[0]?.value || 'saree',
       price_inr: price,
       mrp_inr: mrp,
       stock_quantity: stock,
-      status: productForm.status,
+      status: finalStatus,
       fabric: productForm.fabric.trim() || undefined,
       occasion: productForm.occasion.trim() || undefined,
       weaving_style: productForm.weaving_style.trim() || undefined,
@@ -970,13 +1034,174 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
-  const handleQuickProductStatus = async (productId: string, nextStatus: string) => {
+  const handleQuickProductStatus = async (p: any, nextStatus: string) => {
+    const qty = Number(p.stock_quantity ?? 0);
+    if (nextStatus === 'active' && qty <= 0) {
+      showToast(
+        `"${p.title}" has 0 stock and stays Out of Stock until stock is added.`,
+        'info'
+      );
+      return;
+    }
     try {
-      await adminService.updateProduct(productId, { status: nextStatus });
+      await adminService.updateProduct(p.id, { status: nextStatus });
       showToast(`Product status updated to ${nextStatus.replace(/_/g, ' ')}.`);
       await loadData();
     } catch (err: any) {
       showToast('Failed to update status: ' + err.message, 'error');
+    }
+  };
+
+  // ==================== INLINE CATEGORY & PRODUCT TYPE HANDLERS ====================
+  const persistProductTypes = async (nextTypes: ProductTypeOption[], toastMsg: string) => {
+    setSavingProductTypes(true);
+    try {
+      await adminService.updateSettingsBatch({ product_types: nextTypes });
+      setProductTypesList(nextTypes);
+      await refreshSiteSettings();
+      showToast(toastMsg);
+    } catch (err: any) {
+      showToast('Failed to save product types: ' + (err?.message || 'Error'), 'error');
+      throw err;
+    } finally {
+      setSavingProductTypes(false);
+    }
+  };
+
+  const handleCreateInlineCategory = async () => {
+    const cleanName = inlineCatName.trim();
+    const cleanSlug = slugify(cleanName);
+    if (!cleanName || !cleanSlug) {
+      showToast('Enter a valid category name.', 'error');
+      return;
+    }
+    const existing = categories.find((c) => c.slug === cleanSlug);
+    if (existing) {
+      setProductForm((prev) => ({ ...prev, category_id: existing.id }));
+      setShowInlineCatDrawer(false);
+      setInlineCatName('');
+      setInlineCatParentId('');
+      showToast(`Selected existing category "${existing.name}".`, 'info');
+      return;
+    }
+    setSavingInlineCat(true);
+    try {
+      const siblingCount = categories.filter(
+        (c) => (c.parent_id || '') === (inlineCatParentId || '')
+      ).length;
+      const created = await adminService.createCategory({
+        name: cleanName,
+        slug: cleanSlug,
+        parent_id: inlineCatParentId || null,
+        display_order: siblingCount + 1,
+        is_active: true,
+      });
+      await Promise.all([loadData(), refreshStoreCategories()]);
+      if (created?.id) {
+        setProductForm((prev) => ({ ...prev, category_id: created.id }));
+      }
+      setShowInlineCatDrawer(false);
+      setInlineCatName('');
+      setInlineCatParentId('');
+      showToast(`Category "${cleanName}" created and live on storefront!`);
+    } catch (err: any) {
+      showToast('Failed to create category: ' + (err?.message || 'Error'), 'error');
+    } finally {
+      setSavingInlineCat(false);
+    }
+  };
+
+  const handleCreateInlineProductType = async () => {
+    const cleanLabel = inlineTypeLabel.trim();
+    const cleanVal = formatProductTypeValue(cleanLabel);
+    if (!cleanLabel || !cleanVal) {
+      showToast('Enter a valid Product Type label (e.g. Dupatta / Stole).', 'error');
+      return;
+    }
+    const existing = productTypesList.find(
+      (t) => t.value === cleanVal || t.label.toLowerCase() === cleanLabel.toLowerCase()
+    );
+    if (existing) {
+      setProductForm((prev) => ({ ...prev, product_type: existing.value }));
+      setShowInlineTypeDrawer(false);
+      setInlineTypeLabel('');
+      showToast(`Selected existing Product Type "${existing.label}".`, 'info');
+      return;
+    }
+    setSavingInlineType(true);
+    try {
+      const nextTypes = [...productTypesList, { value: cleanVal, label: cleanLabel }];
+      await persistProductTypes(nextTypes, `Product Type "${cleanLabel}" added!`);
+      setProductForm((prev) => ({ ...prev, product_type: cleanVal }));
+      setShowInlineTypeDrawer(false);
+      setInlineTypeLabel('');
+    } catch {
+      // handled in persistProductTypes
+    } finally {
+      setSavingInlineType(false);
+    }
+  };
+
+  const handleAddProductTypeInTab = async () => {
+    const cleanLabel = newTypeLabelInput.trim();
+    const cleanVal = formatProductTypeValue(cleanLabel);
+    if (!cleanLabel || !cleanVal) {
+      showToast('Enter a Product Type name first (e.g. Dupatta / Half Saree).', 'error');
+      return;
+    }
+    if (
+      productTypesList.some(
+        (t) => t.value === cleanVal || t.label.toLowerCase() === cleanLabel.toLowerCase()
+      )
+    ) {
+      showToast('That Product Type already exists.', 'info');
+      return;
+    }
+    try {
+      const nextTypes = [...productTypesList, { value: cleanVal, label: cleanLabel }];
+      await persistProductTypes(nextTypes, `Added Product Type "${cleanLabel}"!`);
+      setNewTypeLabelInput('');
+    } catch {
+      // handled in persistProductTypes
+    }
+  };
+
+  const handleSaveRenamedProductType = async (valueKey: string) => {
+    const cleanLabel = editingTypeLabel.trim();
+    if (!cleanLabel) {
+      showToast('Product Type label cannot be empty.', 'error');
+      return;
+    }
+    try {
+      const nextTypes = productTypesList.map((t) =>
+        t.value === valueKey ? { ...t, label: cleanLabel } : t
+      );
+      await persistProductTypes(nextTypes, `Renamed Product Type to "${cleanLabel}".`);
+      setEditingTypeValue(null);
+      setEditingTypeLabel('');
+    } catch {
+      // handled in persistProductTypes
+    }
+  };
+
+  const handleDeleteProductType = async (opt: ProductTypeOption) => {
+    const usedCount = products.filter((p) => p.product_type === opt.value).length;
+    if (usedCount > 0) {
+      showToast(
+        `Cannot remove "${opt.label}" because ${usedCount} ${usedCount === 1 ? 'product uses' : 'products use'} it.`,
+        'info'
+      );
+      return;
+    }
+    if (productTypesList.length <= 1) {
+      showToast('At least one Product Type must remain.', 'info');
+      return;
+    }
+    try {
+      const nextTypes = productTypesList.filter((t) => t.value !== opt.value);
+      await persistProductTypes(nextTypes, `Removed Product Type "${opt.label}".`);
+    } catch {
+      // handled in persistProductTypes
     }
   };
 
@@ -1234,8 +1459,18 @@ export const AdminDashboardPage: React.FC = () => {
 
   // ==================== EXPLORE BAR & DYNAMIC FILTERS BUILDER HANDLERS ====================
   const detectCatalogValuesForFilterGroup = (group: FilterGroupConfig): string[] => {
-    const activeProds = products.filter((p) => p.status === 'active');
+    const activeProds = products.filter(
+      (p) => p.status === 'active' || p.status === 'out_of_stock'
+    );
     switch (group.type) {
+      case 'product_type':
+        return Array.from(
+          new Set(
+            activeProds
+              .map((p) => getProductTypeLabel(p.product_type, productTypesList))
+              .filter(Boolean)
+          )
+        ).sort();
       case 'fabric':
         return Array.from(
           new Set(activeProds.map((p) => String(p.fabric || '').trim()).filter(Boolean))
@@ -2191,6 +2426,66 @@ export const AdminDashboardPage: React.FC = () => {
     (a, b) => a.displayOrder - b.displayOrder
   );
 
+  const productModalStockMeta = getStockStatusMeta(
+    productForm.stock_quantity,
+    productForm.status
+  );
+
+  const resultingModalStock = stockTarget
+    ? stockMode === 'exact'
+      ? Math.max(0, Math.round(stockAmount || 0))
+      : Math.max(0, Number(stockTarget.stock_quantity ?? 0) + Math.round(stockAmount || 0))
+    : 0;
+  const resultingModalStockMeta = getStockStatusMeta(resultingModalStock);
+
+  const renderGroupedCategoryOptions = () => {
+    const categoryIdSet = new Set(sortedCategories.map((c) => c.id));
+    const parentsWithKids = sortedCategories.filter((parent) =>
+      sortedCategories.some((child) => child.parent_id === parent.id)
+    );
+    const orphans = sortedCategories.filter(
+      (c) => Boolean(c.parent_id) && !categoryIdSet.has(c.parent_id)
+    );
+
+    return (
+      <>
+        {topLevelCategories.length > 0 && (
+          <optgroup label="Top-Level Collections">
+            {topLevelCategories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+                {cat.is_active === false ? ' (Hidden)' : ''}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {parentsWithKids.map((parent) => {
+          const children = sortedCategories.filter((c) => c.parent_id === parent.id);
+          return (
+            <optgroup key={parent.id} label={`${parent.name} Subcategories`}>
+              {children.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                  {cat.is_active === false ? ' (Hidden)' : ''}
+                </option>
+              ))}
+            </optgroup>
+          );
+        })}
+        {orphans.length > 0 && (
+          <optgroup label="Other Categories">
+            {orphans.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+                {cat.is_active === false ? ' (Hidden)' : ''}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF5EE] text-[#1A3B2B] font-poppins pb-20">
       <SeoHead
@@ -2350,9 +2645,18 @@ export const AdminDashboardPage: React.FC = () => {
                       {metrics.activeProducts} / {metrics.totalProducts}
                     </div>
                     <p className="text-[11px] text-[#647268]">
-                      {metrics.outOfStockProducts > 0
-                        ? `${metrics.outOfStockProducts} out of stock`
-                        : 'All items in stock'}
+                      {metrics.outOfStockProducts > 0 || metrics.lowStockProducts > 0
+                        ? [
+                            metrics.outOfStockProducts > 0
+                              ? `${metrics.outOfStockProducts} out of stock`
+                              : null,
+                            metrics.lowStockProducts > 0
+                              ? `${metrics.lowStockProducts} low stock (< ${LOW_STOCK_THRESHOLD})`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' • ')
+                        : `All items healthy (${LOW_STOCK_THRESHOLD}+ units)`}
                     </p>
                   </div>
 
@@ -2611,11 +2915,7 @@ export const AdminDashboardPage: React.FC = () => {
                       className="px-3 py-2 rounded-xl border border-[#D8C7B5] bg-white text-xs font-medium text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
                     >
                       <option value="all">All Categories ({products.length})</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
+                      {renderGroupedCategoryOptions()}
                     </select>
                   </div>
 
@@ -2687,66 +2987,92 @@ export const AdminDashboardPage: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E8DCCF]">
-                          {filteredProducts.map((p) => (
-                            <tr key={p.id} className="hover:bg-[#FAF5EE]/50">
-                              <th scope="row" className="p-3 font-normal text-left">
-                                <div className="flex items-center gap-3">
-                                  <img
-                                    src={
-                                      p.product_media?.[0]?.url ||
-                                      '/assets/products/kanjivaram_silk_saree.jpg'
-                                    }
-                                    alt={p.title}
-                                    className="w-10 h-12 object-cover rounded-md border border-[#D8C7B5] shrink-0"
-                                  />
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-[#1A3B2B]">{p.title}</p>
-                                    <p className="text-[10px] text-[#647268] font-mono">
-                                      {p.sku || p.slug}
-                                    </p>
+                          {filteredProducts.map((p) => {
+                            const rowStockMeta = getStockStatusMeta(p.stock_quantity, p.status);
+                            return (
+                              <tr key={p.id} className="hover:bg-[#FAF5EE]/50">
+                                <th scope="row" className="p-3 font-normal text-left">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={
+                                        p.product_media?.[0]?.url ||
+                                        '/assets/products/kanjivaram_silk_saree.jpg'
+                                      }
+                                      alt={p.title}
+                                      className="w-10 h-12 object-cover rounded-md border border-[#D8C7B5] shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-[#1A3B2B]">{p.title}</p>
+                                      <p className="text-[10px] text-[#647268] font-mono">
+                                        {p.sku || p.slug}
+                                      </p>
+                                    </div>
                                   </div>
-                                </div>
-                              </th>
-                              <td className="p-3">{p.categories?.name || p.product_type}</td>
-                              <td className="p-3 font-semibold">
-                                <div>
-                                  <span>₹{Number(p.price_inr).toLocaleString('en-IN')}</span>
-                                  {Number(p.mrp_inr) > Number(p.price_inr) && (
-                                    <span className="text-[10px] text-[#8E9B92] line-through ml-1.5">
-                                      ₹{Number(p.mrp_inr).toLocaleString('en-IN')}
+                                </th>
+                                <td className="p-3">
+                                  {p.categories?.name ||
+                                    getProductTypeLabel(p.product_type, productTypesList)}
+                                </td>
+                                <td className="p-3 font-semibold">
+                                  <div>
+                                    <span>₹{Number(p.price_inr).toLocaleString('en-IN')}</span>
+                                    {Number(p.mrp_inr) > Number(p.price_inr) && (
+                                      <span className="text-[10px] text-[#8E9B92] line-through ml-1.5">
+                                        ₹{Number(p.mrp_inr).toLocaleString('en-IN')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  {rowStockMeta.isOutOfStock ? (
+                                    <div className="space-y-0.5">
+                                      <span className="font-semibold text-rose-700 block">
+                                        0 units
+                                      </span>
+                                      <span className="inline-block px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">
+                                        Out of Stock
+                                      </span>
+                                    </div>
+                                  ) : rowStockMeta.isLowStock ? (
+                                    <div className="space-y-0.5">
+                                      <span className="font-semibold text-amber-800 block">
+                                        {rowStockMeta.qty} units
+                                      </span>
+                                      <span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-semibold">
+                                        {rowStockMeta.shortageCount} less than {LOW_STOCK_THRESHOLD}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="font-semibold text-[#1A3B2B]">
+                                      {rowStockMeta.qty} units
                                     </span>
                                   )}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <span
-                                  className={`font-semibold ${p.stock_quantity < 5 ? 'text-rose-600' : 'text-[#1A3B2B]'
-                                    }`}
-                                >
-                                  {p.stock_quantity} units
-                                </span>
-                              </td>
-                              <td className="p-3">
-                                <select
-                                  aria-label={`Status for ${p.title}`}
-                                  value={p.status || 'active'}
-                                  onChange={(e) =>
-                                    void handleQuickProductStatus(p.id, e.target.value)
-                                  }
-                                  className={`text-[11px] font-semibold rounded-lg px-2 py-1 border focus:outline-none ${p.status === 'active'
-                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                    : p.status === 'out_of_stock'
-                                      ? 'bg-rose-50 border-rose-200 text-rose-800'
-                                      : 'bg-amber-50 border-amber-200 text-amber-800'
-                                    }`}
-                                >
-                                  {PRODUCT_STATUSES.map((st) => (
-                                    <option key={st.value} value={st.value}>
-                                      {st.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
+                                </td>
+                                <td className="p-3">
+                                  <select
+                                    aria-label={`Status for ${p.title}`}
+                                    value={p.status || 'active'}
+                                    onChange={(e) =>
+                                      void handleQuickProductStatus(p, e.target.value)
+                                    }
+                                    className={`text-[11px] font-semibold rounded-lg px-2 py-1 border focus:outline-none ${p.status === 'active'
+                                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                      : p.status === 'out_of_stock'
+                                        ? 'bg-rose-50 border-rose-200 text-rose-800'
+                                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                                      }`}
+                                  >
+                                    {PRODUCT_STATUSES.map((st) => (
+                                      <option
+                                        key={st.value}
+                                        value={st.value}
+                                        disabled={st.value === 'active' && rowStockMeta.qty <= 0}
+                                      >
+                                        {st.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
                               <td className="p-3 text-right">
                                 <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                   <Link
@@ -2786,7 +3112,8 @@ export const AdminDashboardPage: React.FC = () => {
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -3104,71 +3431,77 @@ export const AdminDashboardPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#E8DCCF]">
-                        {filteredInventoryProducts.map((p) => (
-                          <tr key={p.id} className="hover:bg-[#FAF5EE]/50">
-                            <th scope="row" className="p-3 font-semibold text-[#1A3B2B]">
-                              {p.title}
-                            </th>
-                            <td className="p-3 text-[#647268] font-mono">{p.sku || p.slug}</td>
-                            <td className="p-3">{p.categories?.name || p.product_type}</td>
-                            <td className="p-3 font-bold text-base text-[#1A3B2B]">
-                              {p.stock_quantity}
-                            </td>
-                            <td className="p-3">
-                              {p.stock_quantity <= 0 ? (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">
-                                  Out of Stock
-                                </span>
-                              ) : p.stock_quantity < 5 ? (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
-                                  Low Stock
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                                  Healthy
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-3 text-right">
-                              <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
-                                <button
-                                  type="button"
-                                  disabled={(p.stock_quantity ?? 0) <= 0}
-                                  onClick={() =>
-                                    void handleAdjustStock(p.id, -1, 'manual_adjustment')
-                                  }
-                                  className="w-7 h-7 rounded border border-[#D8C7B5] bg-white font-bold text-xs hover:bg-[#FAF5EE] disabled:opacity-40"
-                                  title="Decrease stock by 1"
-                                >
-                                  -1
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleAdjustStock(p.id, 5, 'restock')}
-                                  className="px-2.5 py-1 rounded bg-[#D0E9C0] text-xs font-semibold text-[#1A3B2B] hover:bg-[#BCD8AA]"
-                                >
-                                  +5 Units
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleAdjustStock(p.id, 20, 'restock')}
-                                  className="px-2.5 py-1 rounded bg-[#285A3C] text-xs font-semibold text-white hover:bg-[#1E432D]"
-                                >
-                                  +20 Units
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openStockModal(p)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-[#D8C7B5] bg-white text-xs font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
-                                  title="Set exact stock count or logged adjustment"
-                                >
-                                  <SlidersHorizontal className="w-3 h-3 text-[#285A3C]" />
-                                  <span>Edit Stock</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredInventoryProducts.map((p) => {
+                          const invStockMeta = getStockStatusMeta(p.stock_quantity, p.status);
+                          return (
+                            <tr key={p.id} className="hover:bg-[#FAF5EE]/50">
+                              <th scope="row" className="p-3 font-semibold text-[#1A3B2B]">
+                                {p.title}
+                              </th>
+                              <td className="p-3 text-[#647268] font-mono">{p.sku || p.slug}</td>
+                              <td className="p-3">
+                                {p.categories?.name ||
+                                  getProductTypeLabel(p.product_type, productTypesList)}
+                              </td>
+                              <td className="p-3 font-bold text-base text-[#1A3B2B]">
+                                {invStockMeta.qty}
+                              </td>
+                              <td className="p-3">
+                                {invStockMeta.isOutOfStock ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">
+                                    Out of Stock
+                                  </span>
+                                ) : invStockMeta.isLowStock ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
+                                    Low Stock ({invStockMeta.shortageCount} less than {LOW_STOCK_THRESHOLD})
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                                    Healthy
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
+                                  <button
+                                    type="button"
+                                    disabled={invStockMeta.qty <= 0}
+                                    onClick={() =>
+                                      void handleAdjustStock(p.id, -1, 'manual_adjustment')
+                                    }
+                                    className="w-7 h-7 rounded border border-[#D8C7B5] bg-white font-bold text-xs hover:bg-[#FAF5EE] disabled:opacity-40"
+                                    title="Decrease stock by 1"
+                                  >
+                                    -1
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleAdjustStock(p.id, 5, 'restock')}
+                                    className="px-2.5 py-1 rounded bg-[#D0E9C0] text-xs font-semibold text-[#1A3B2B] hover:bg-[#BCD8AA]"
+                                  >
+                                    +5 Units
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleAdjustStock(p.id, 20, 'restock')}
+                                    className="px-2.5 py-1 rounded bg-[#285A3C] text-xs font-semibold text-white hover:bg-[#1E432D]"
+                                  >
+                                    +20 Units
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openStockModal(p)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-[#D8C7B5] bg-white text-xs font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                    title="Set exact stock count or logged adjustment"
+                                  >
+                                    <SlidersHorizontal className="w-3 h-3 text-[#285A3C]" />
+                                    <span>Edit Stock</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -3592,6 +3925,134 @@ export const AdminDashboardPage: React.FC = () => {
                         })}
                       </div>
                     )}
+
+                    {/* Product Types Manager (Live Sync with Add/Edit Product & Storefront Filters) */}
+                    <div className="pt-6 border-t border-[#E8DCCF] space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-golden text-base font-bold text-[#1A3B2B]">
+                            Product Types ({productTypesList.length})
+                          </h3>
+                          <p className="text-xs text-[#647268]">
+                            Create or rename product types (e.g. Dupatta, Half Saree, Blouse). Updates the Product form dropdown and storefront Product Type filter immediately.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            aria-label="New Product Type Name"
+                            value={newTypeLabelInput}
+                            onChange={(e) => setNewTypeLabelInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                void handleAddProductTypeInTab();
+                              }
+                            }}
+                            placeholder="e.g. Dupatta / Half Saree"
+                            className="px-3 py-2 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                          />
+                          <button
+                            type="button"
+                            disabled={savingProductTypes}
+                            onClick={() => void handleAddProductTypeInTab()}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white text-xs font-semibold hover:bg-[#1E432D] disabled:opacity-60 shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Type</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {productTypesList.map((pt) => {
+                          const prodCount = products.filter((p) => p.product_type === pt.value).length;
+                          const isEditing = editingTypeValue === pt.value;
+                          return (
+                            <div
+                              key={pt.value}
+                              className="p-3 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex items-center justify-between gap-2 text-xs"
+                            >
+                              <div className="min-w-0 flex-1 space-y-0.5">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="text"
+                                      value={editingTypeLabel}
+                                      onChange={(e) => setEditingTypeLabel(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          void handleSaveRenamedProductType(pt.value);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingTypeValue(null);
+                                        }
+                                      }}
+                                      aria-label={`Rename ${pt.label}`}
+                                      className="flex-1 min-w-0 px-2 py-1 rounded border border-[#285A3C] bg-white text-xs focus:outline-none"
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={savingProductTypes}
+                                      onClick={() => void handleSaveRenamedProductType(pt.value)}
+                                      className="px-2 py-1 rounded bg-[#285A3C] text-white text-[10px] font-semibold"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingTypeValue(null)}
+                                      className="px-2 py-1 rounded border border-[#D8C7B5] bg-white text-[10px] font-semibold"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="font-bold text-[#1A3B2B] truncate">{pt.label}</p>
+                                    <p className="text-[10px] text-[#647268] font-mono truncate">
+                                      key: {pt.value} • {prodCount}{' '}
+                                      {prodCount === 1 ? 'product' : 'products'}
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+
+                              {!isEditing && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingTypeValue(pt.value);
+                                      setEditingTypeLabel(pt.label);
+                                    }}
+                                    aria-label={`Rename ${pt.label}`}
+                                    className="p-1.5 rounded-lg bg-white border border-[#D8C7B5] text-[#1A3B2B] hover:bg-[#D0E9C0]/30"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingProductTypes || prodCount > 0}
+                                    onClick={() => void handleDeleteProductType(pt)}
+                                    title={
+                                      prodCount > 0
+                                        ? `Used by ${prodCount} products`
+                                        : 'Delete Product Type'
+                                    }
+                                    aria-label={`Delete ${pt.label}`}
+                                    className="p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -6047,9 +6508,21 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="prod-category" className="font-semibold text-[#1A3B2B] block">
-                Category
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="prod-category" className="font-semibold text-[#1A3B2B]">
+                  Category
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInlineCatDrawer((v) => !v);
+                    setShowInlineTypeDrawer(false);
+                  }}
+                  className="text-[11px] font-bold text-[#285A3C] hover:underline"
+                >
+                  {showInlineCatDrawer ? 'Close' : '+ Add Category'}
+                </button>
+              </div>
               <select
                 id="prod-category"
                 name="category_id"
@@ -6058,18 +6531,26 @@ export const AdminDashboardPage: React.FC = () => {
                 className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
               >
                 <option value="">Uncategorized</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {renderGroupedCategoryOptions()}
               </select>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="prod-type" className="font-semibold text-[#1A3B2B] block">
-                Product Type
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="prod-type" className="font-semibold text-[#1A3B2B]">
+                  Product Type
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInlineTypeDrawer((v) => !v);
+                    setShowInlineCatDrawer(false);
+                  }}
+                  className="text-[11px] font-bold text-[#285A3C] hover:underline"
+                >
+                  {showInlineTypeDrawer ? 'Close' : '+ Add Type'}
+                </button>
+              </div>
               <select
                 id="prod-type"
                 name="product_type"
@@ -6077,7 +6558,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onChange={(e) => setProductForm({ ...productForm, product_type: e.target.value })}
                 className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
               >
-                {PRODUCT_TYPES.map((t) => (
+                {productTypesList.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>
@@ -6085,6 +6566,94 @@ export const AdminDashboardPage: React.FC = () => {
               </select>
             </div>
           </div>
+
+          {showInlineCatDrawer && (
+            <div className="p-3.5 rounded-xl border border-[#BCD8AA] bg-[#D0E9C0]/25 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#1A3B2B]">
+                  Quick Add Category (Syncs Live to Storefront)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowInlineCatDrawer(false)}
+                  className="text-[#4F6355] hover:text-[#1A3B2B]"
+                  aria-label="Close quick add category"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Category Name (e.g. Gadwal Silk Sarees)"
+                  value={inlineCatName}
+                  onChange={(e) => setInlineCatName(e.target.value)}
+                  className="p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                />
+                <select
+                  aria-label="Parent Collection"
+                  value={inlineCatParentId}
+                  onChange={(e) => setInlineCatParentId(e.target.value)}
+                  className="p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                >
+                  <option value="">Top-Level Collection</option>
+                  {parentFilterCategories.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      Subcategory under {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={savingInlineCat || !inlineCatName.trim()}
+                  onClick={() => void handleCreateInlineCategory()}
+                  className="px-3 py-2 rounded-lg bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] disabled:opacity-50"
+                >
+                  {savingInlineCat ? 'Creating...' : 'Create & Select'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showInlineTypeDrawer && (
+            <div className="p-3.5 rounded-xl border border-[#BCD8AA] bg-[#D0E9C0]/25 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#1A3B2B]">
+                  Quick Add Product Type (Syncs to Storefront Filters)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowInlineTypeDrawer(false)}
+                  className="text-[#4F6355] hover:text-[#1A3B2B]"
+                  aria-label="Close quick add product type"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Product Type (e.g. Dupatta / Half Saree)"
+                  value={inlineTypeLabel}
+                  onChange={(e) => setInlineTypeLabel(e.target.value)}
+                  className="sm:col-span-2 p-2 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
+                />
+                <button
+                  type="button"
+                  disabled={savingInlineType || !inlineTypeLabel.trim()}
+                  onClick={() => void handleCreateInlineProductType()}
+                  className="px-3 py-2 rounded-lg bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D] disabled:opacity-50"
+                >
+                  {savingInlineType ? 'Saving...' : 'Add & Select'}
+                </button>
+              </div>
+              {inlineTypeLabel.trim() && (
+                <p className="text-[10px] text-[#4F6355] font-mono">
+                  Saved key: {formatProductTypeValue(inlineTypeLabel) || '—'}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
@@ -6134,36 +6703,82 @@ export const AdminDashboardPage: React.FC = () => {
                 min={0}
                 required
                 value={productForm.stock_quantity}
-                onChange={(e) =>
-                  setProductForm({ ...productForm, stock_quantity: Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const nextQty = raw === '' ? 0 : Math.max(0, Math.round(Number(raw)));
+                  setProductForm((prev) => ({
+                    ...prev,
+                    stock_quantity: nextQty,
+                    status:
+                      nextQty <= 0
+                        ? prev.status === 'active'
+                          ? 'out_of_stock'
+                          : prev.status
+                        : prev.status === 'out_of_stock'
+                          ? 'active'
+                          : prev.status,
+                  }));
+                }}
                 className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white focus:outline-none focus:border-[#285A3C]"
               />
             </div>
           </div>
 
+          {productModalStockMeta.isOutOfStock && (
+            <div
+              role="status"
+              className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center gap-2 font-medium"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-700" />
+              <span>
+                Stock Quantity is 0 — Status automatically set to <strong>Out of Stock</strong> (shoppers see &quot;OUT OF STOCK&quot; with purchase disabled).
+              </span>
+            </div>
+          )}
+
+          {!productModalStockMeta.isOutOfStock && productModalStockMeta.isLowStock && (
+            <div
+              role="status"
+              className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-2 font-medium"
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-700" />
+              <span>
+                Low Stock Alert: <strong>{productModalStockMeta.shortageCount}</strong>{' '}
+                quantity less than minimum threshold ({LOW_STOCK_THRESHOLD}). Add{' '}
+                {productModalStockMeta.shortageCount} more{' '}
+                {productModalStockMeta.shortageCount === 1 ? 'unit' : 'units'} to reach healthy stock.
+              </span>
+            </div>
+          )}
+
           <fieldset className="space-y-1.5">
             <legend className="font-semibold text-[#1A3B2B]">Visibility Status</legend>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {PRODUCT_STATUSES.map((st) => (
-                <label
-                  key={st.value}
-                  className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${productForm.status === st.value
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold'
-                    : 'border-[#D8C7B5] bg-white hover:bg-[#FAF5EE]'
-                    }`}
-                >
-                  <input
-                    type="radio"
-                    name="product_status"
-                    value={st.value}
-                    checked={productForm.status === st.value}
-                    onChange={(e) => setProductForm({ ...productForm, status: e.target.value })}
-                    className="accent-[#285A3C]"
-                  />
-                  <span>{st.label}</span>
-                </label>
-              ))}
+              {PRODUCT_STATUSES.map((st) => {
+                const blockedActive = st.value === 'active' && productModalStockMeta.isOutOfStock;
+                return (
+                  <label
+                    key={st.value}
+                    className={`flex items-center gap-2 p-2.5 rounded-lg border transition-colors ${blockedActive
+                      ? 'opacity-45 cursor-not-allowed border-[#E8DCCF] bg-[#FAF5EE]/60'
+                      : productForm.status === st.value
+                        ? 'border-[#285A3C] bg-[#D0E9C0]/30 font-semibold cursor-pointer'
+                        : 'border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] cursor-pointer'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="product_status"
+                      value={st.value}
+                      disabled={blockedActive}
+                      checked={productForm.status === st.value}
+                      onChange={(e) => setProductForm({ ...productForm, status: e.target.value })}
+                      className="accent-[#285A3C]"
+                    />
+                    <span>{st.label}</span>
+                  </label>
+                );
+              })}
             </div>
           </fieldset>
 
@@ -6588,13 +7203,36 @@ export const AdminDashboardPage: React.FC = () => {
             />
             <p className="text-[11px] text-[#647268]">
               Resulting stock:{' '}
-              <strong className="text-[#285A3C]">
-                {stockMode === 'exact'
-                  ? Math.max(0, Math.round(stockAmount || 0))
-                  : Math.max(0, Number(stockTarget?.stock_quantity ?? 0) + Math.round(stockAmount || 0))}{' '}
-                units
+              <strong
+                className={
+                  resultingModalStockMeta.isOutOfStock
+                    ? 'text-rose-700'
+                    : resultingModalStockMeta.isLowStock
+                      ? 'text-amber-700'
+                      : 'text-[#285A3C]'
+                }
+              >
+                {resultingModalStock} units
               </strong>
             </p>
+            {resultingModalStockMeta.isOutOfStock && (
+              <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-700" />
+                <span>
+                  Stock will be 0 — Product will automatically be marked <strong>Out of Stock</strong>.
+                </span>
+              </div>
+            )}
+            {!resultingModalStockMeta.isOutOfStock && resultingModalStockMeta.isLowStock && (
+              <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-700" />
+                <span>
+                  Low Stock Warning: <strong>{resultingModalStockMeta.shortageCount}</strong>{' '}
+                  quantity less than minimum {LOW_STOCK_THRESHOLD} (need{' '}
+                  {resultingModalStockMeta.shortageCount} more to reach {LOW_STOCK_THRESHOLD}).
+                </span>
+              </div>
+            )}
           </div>
 
           <fieldset className="space-y-1.5">

@@ -485,12 +485,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [hydrateAuthenticatedUser, showToast]);
 
   const addToCart = (product: Product, colorName?: string, quantity: number = 1) => {
-    if (!product.inStock) {
+    if (!product.inStock || (product.stock !== undefined && product.stock <= 0)) {
       showToast(`"${product.title}" is currently out of stock.`, 'info');
       return;
     }
     const color = colorName || product.colors[0]?.name || 'Standard';
     const maxStock = product.stock && product.stock > 0 ? product.stock : 999;
+    const existingItem = cart.find(
+      (item) => item.product.id === product.id && item.selectedColor === color
+    );
+    if (existingItem && existingItem.quantity >= maxStock) {
+      showToast(
+        `Only ${maxStock} ${maxStock === 1 ? 'unit' : 'units'} of "${product.title}" available in stock.`,
+        'info'
+      );
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find(
         (item) => item.product.id === product.id && item.selectedColor === color
@@ -525,6 +535,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateQuantity = (itemId: string, delta: number) => {
+    const target = cart.find((item) => item.id === itemId);
+    if (!target) return;
+
+    if (delta > 0) {
+      if (!target.product.inStock || (target.product.stock !== undefined && target.product.stock <= 0)) {
+        showToast(`"${target.product.title}" is currently out of stock.`, 'info');
+        return;
+      }
+      const maxStock =
+        target.product.stock && target.product.stock > 0 ? target.product.stock : 999;
+      if (target.quantity >= maxStock) {
+        showToast(
+          `Only ${maxStock} ${maxStock === 1 ? 'unit' : 'units'} of "${target.product.title}" available in stock.`,
+          'info'
+        );
+        return;
+      }
+      setCart((prev) =>
+        prev.map((item) =>
+          item.id === itemId
+            ? { ...item, quantity: Math.min(maxStock, item.quantity + delta) }
+            : item
+        )
+      );
+      return;
+    }
+
     setCart((prev) =>
       prev
         .map((item) => {
@@ -589,7 +626,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const moveAllToBag = () => {
-    const available = wishlist.filter((w) => w.product.inStock);
+    const available = wishlist.filter(
+      (w) => w.product.inStock && (w.product.stock === undefined || w.product.stock > 0)
+    );
     if (available.length === 0) {
       showToast('None of your wishlisted items are currently in stock.', 'info');
       return;

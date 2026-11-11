@@ -26,10 +26,12 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
   const menuSections = useMemo(() => {
     const dynamicCollections =
       storeCategories.length > 0
-        ? storeCategories.map((c) => ({
-            name: c.name,
-            path: `/collections/${c.slug}`,
-          }))
+        ? storeCategories
+            .filter((c) => c.slug !== 'silk-sarees')
+            .map((c) => ({
+              name: c.name,
+              path: `/collections/${c.slug}`,
+            }))
         : DEFAULT_MOBILE_COLLECTIONS;
 
     return [
