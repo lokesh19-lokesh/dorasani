@@ -39,6 +39,7 @@ import {
   ArrowUp,
   ArrowDown,
   EyeOff,
+  BarChart3,
 } from 'lucide-react';
 import {
   adminService,
@@ -51,6 +52,10 @@ import {
 import { authService } from '../../services/authService';
 import { useStore } from '../../context/StoreContext';
 import { SeoHead } from '../../components/common/SeoHead';
+import {
+  AdminAnalyticsPanel,
+  OverviewAnalyticsPulse,
+} from '../../components/admin/AdminAnalyticsPanel';
 import {
   DEFAULT_SITE_SETTINGS,
   DEFAULT_EXPLORE_CATEGORIES_CONFIG,
@@ -489,6 +494,7 @@ export const AdminDashboardPage: React.FC = () => {
     processingOrders: 0,
     deliveredOrders: 0,
     cancelledOrders: 0,
+    returnedOrders: 0,
     recentOrders: [],
   });
 
@@ -647,7 +653,7 @@ export const AdminDashboardPage: React.FC = () => {
       ] = await Promise.all([
         adminService.getDashboardMetrics(),
         adminService.getProducts(1, 250),
-        adminService.getOrders(1, 250),
+        adminService.getAllOrders(),
         adminService.getCategories(),
         adminService.getCoupons(),
         adminService.getBanners(),
@@ -2317,7 +2323,15 @@ export const AdminDashboardPage: React.FC = () => {
           p?.provider_payment_id?.toLowerCase().includes(q) ||
           p?.provider_order_id?.toLowerCase().includes(q)
       );
-    const matchesStatus = orderStatusFilter === 'all' || o.order_status === orderStatusFilter;
+    const matchesStatus =
+      orderStatusFilter === 'all' ||
+      (orderStatusFilter === 'in_progress'
+        ? ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery'].includes(
+            o.order_status
+          )
+        : orderStatusFilter === 'returned_refunded'
+        ? ['returned', 'refunded'].includes(o.order_status)
+        : o.order_status === orderStatusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -2573,7 +2587,7 @@ export const AdminDashboardPage: React.FC = () => {
               badge: (metrics.unreadMessages || 0) + (metrics.pendingReviews || 0),
             },
             { id: 'cms', label: 'Banners & CMS', icon: ImageIcon },
-            { id: 'reports', label: 'Reports & Export', icon: FileDown },
+            { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -2628,9 +2642,12 @@ export const AdminDashboardPage: React.FC = () => {
                     <div className="font-golden text-2xl sm:text-3xl font-bold text-[#1A3B2B]">
                       ₹{Number(metrics.totalSales || 0).toLocaleString('en-IN')}
                     </div>
-                    <p className="text-[11px] text-[#285A3C] font-semibold flex items-center gap-1">
+                    <p className="text-[11px] text-[#285A3C] font-semibold flex items-center gap-1 flex-wrap">
                       <TrendingUp className="w-3.5 h-3.5" />
-                      <span>{metrics.totalOrders} total confirmed orders</span>
+                      <span>
+                        {metrics.totalOrders} orders came
+                        {metrics.cancelledOrders > 0 ? ` • ${metrics.cancelledOrders} cancelled` : ' • 0 cancelled'}
+                      </span>
                     </p>
                   </div>
 
@@ -2671,7 +2688,10 @@ export const AdminDashboardPage: React.FC = () => {
                       {metrics.pendingOrders + metrics.processingOrders}
                     </div>
                     <p className="text-[11px] text-[#4F6355]">
-                      {metrics.deliveredOrders} delivered successfully
+                      {metrics.deliveredOrders} delivered •{' '}
+                      <span className={metrics.cancelledOrders > 0 ? 'text-rose-700 font-semibold' : ''}>
+                        {metrics.cancelledOrders} cancelled
+                      </span>
                     </p>
                   </div>
 
@@ -2790,6 +2810,16 @@ export const AdminDashboardPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Weekly / Monthly / Yearly Orders Came vs Cancelled Visual Pulse */}
+                <OverviewAnalyticsPulse
+                  orders={orders}
+                  onOpenFullReports={() => setActiveTab('reports')}
+                  onJumpToOrders={(status) => {
+                    setOrderStatusFilter(status || 'all');
+                    setActiveTab('orders');
+                  }}
+                />
 
                 {/* Recent Orders Overview */}
                 <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-4">
@@ -3143,25 +3173,28 @@ export const AdminDashboardPage: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-2">
                     {[
-                      'all',
-                      'confirmed',
-                      'processing',
-                      'packed',
-                      'shipped',
-                      'out_for_delivery',
-                      'delivered',
-                      'cancelled',
+                      { id: 'all', label: 'all' },
+                      { id: 'in_progress', label: 'in progress' },
+                      { id: 'pending', label: 'pending' },
+                      { id: 'confirmed', label: 'confirmed' },
+                      { id: 'processing', label: 'processing' },
+                      { id: 'packed', label: 'packed' },
+                      { id: 'shipped', label: 'shipped' },
+                      { id: 'out_for_delivery', label: 'out for delivery' },
+                      { id: 'delivered', label: 'delivered' },
+                      { id: 'cancelled', label: 'cancelled' },
+                      { id: 'returned_refunded', label: 'returned / refunded' },
                     ].map((status) => (
                       <button
-                        key={status}
+                        key={status.id}
                         type="button"
-                        onClick={() => setOrderStatusFilter(status)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${orderStatusFilter === status
+                        onClick={() => setOrderStatusFilter(status.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${orderStatusFilter === status.id
                           ? 'bg-[#285A3C] text-white'
                           : 'bg-white border border-[#D8C7B5] text-[#4F6355] hover:bg-[#FAF5EE]'
                           }`}
                       >
-                        {status.replace(/_/g, ' ')}
+                        {status.label}
                       </button>
                     ))}
                   </div>
@@ -6266,17 +6299,29 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* TAB: REPORTS & EXPORT */}
             {activeTab === 'reports' && (
-              <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-6">
-                <div>
-                  <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
-                    Export Production Reports
-                  </h2>
-                  <p className="text-xs text-[#647268]">
-                    Download official CSV exports of database records for accounting and inventory audits
-                  </p>
-                </div>
+              <div className="space-y-6">
+                <AdminAnalyticsPanel
+                  orders={orders}
+                  products={products}
+                  onExportCSV={exportToCSV}
+                  onJumpToOrders={(status) => {
+                    setOrderStatusFilter(status || 'all');
+                    setActiveTab('orders');
+                  }}
+                  onJumpToInventory={() => setActiveTab('inventory')}
+                />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-6">
+                  <div>
+                    <h2 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                      Export Production Reports
+                    </h2>
+                    <p className="text-xs text-[#647268]">
+                      Download official CSV exports of database records for accounting and inventory audits
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="p-6 rounded-2xl border border-[#D8C7B5] bg-[#FAF5EE] space-y-3 text-center">
                     <ShoppingBag className="w-8 h-8 text-[#285A3C] mx-auto" />
                     <h3 className="font-bold text-sm text-[#1A3B2B]">Orders Report</h3>
@@ -6402,6 +6447,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+              </div>
               </div>
             )}
           </>

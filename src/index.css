@@ -149,6 +149,14 @@ h6 {
   background: var(--color-primary);
 }
 
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Diamond Ornament Divider */
 .diamond-divider::before,
 .diamond-divider::after {
@@ -292,6 +300,7 @@ dialog::backdrop {
   .admin-responsive-table,
   .admin-responsive-table thead,
   .admin-responsive-table tbody,
+  .admin-responsive-table tfoot,
   .admin-responsive-table tr,
   .admin-responsive-table th,
   .admin-responsive-table td {
@@ -311,7 +320,8 @@ dialog::backdrop {
     background: #FFFFFF;
   }
 
-  .admin-responsive-table tbody th[scope="row"] {
+  .admin-responsive-table tbody th[scope="row"],
+  .admin-responsive-table tfoot th[scope="row"] {
     position: sticky;
     inset-block-start: 0;
     z-index: 2;
@@ -347,6 +357,8 @@ dialog::backdrop {
   .admin-responsive-table td:nth-child(5)::before { content: var(--label-5, ""); }
   .admin-responsive-table td:nth-child(6)::before { content: var(--label-6, ""); }
   .admin-responsive-table td:nth-child(7)::before { content: var(--label-7, ""); }
+  .admin-responsive-table td:nth-child(8)::before { content: var(--label-8, ""); }
+  .admin-responsive-table td:nth-child(9)::before { content: var(--label-9, ""); }
 }
 
 /* Post-interaction form validation feedback */

@@ -148,6 +148,7 @@ function emptyMetrics() {
     processingOrders: 0,
     deliveredOrders: 0,
     cancelledOrders: 0,
+    returnedOrders: 0,
     recentOrders: [] as any[],
   };
 }
@@ -230,6 +231,9 @@ export const adminService = {
       ).length;
       const deliveredOrders = orders.filter((o) => o.order_status === 'delivered').length;
       const cancelledOrders = orders.filter((o) => o.order_status === 'cancelled').length;
+      const returnedOrders = orders.filter(
+        (o) => o.order_status === 'returned' || o.order_status === 'refunded'
+      ).length;
 
       const activeProducts = products.filter((p) => p.status === 'active').length;
       const outOfStockProducts = products.filter(
@@ -262,6 +266,7 @@ export const adminService = {
         processingOrders,
         deliveredOrders,
         cancelledOrders,
+        returnedOrders,
         recentOrders: orders.slice(0, 10),
       };
     } catch (err) {
@@ -658,6 +663,28 @@ export const adminService = {
     const { data, count, error } = await query.range(from, from + limit - 1);
     if (error) throw error;
     return { orders: data || [], total: count || 0 };
+  },
+
+  async getAllOrders(statusFilter?: string) {
+    if (!isSupabaseConfigured) return { orders: [], total: 0 };
+    const pageSize = 500;
+    const allOrders: any[] = [];
+    let page = 1;
+    let totalCount = 0;
+
+    while (page <= 20) {
+      const res = await this.getOrders(page, pageSize, statusFilter);
+      totalCount = res.total;
+      if (res.orders.length > 0) {
+        allOrders.push(...res.orders);
+      }
+      if (res.orders.length < pageSize || allOrders.length >= totalCount) {
+        break;
+      }
+      page += 1;
+    }
+
+    return { orders: allOrders, total: totalCount || allOrders.length };
   },
 
   async updateOrderStatus(

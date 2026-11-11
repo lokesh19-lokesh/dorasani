@@ -38,17 +38,20 @@ export const Navbar: React.FC = () => {
   }, [storeCategories]);
 
   return (
-    <nav aria-label="Primary" className="hidden lg:block bg-transparent py-2 xl:py-2.5 relative z-10 w-full border-t border-[#96c89b]/60">
-      <div className="max-w-[1360px] mx-auto px-4 flex justify-center">
-        <ul className="flex items-center justify-center flex-wrap whitespace-nowrap gap-x-1.5 lg:gap-x-2.5 xl:gap-x-4 2xl:gap-x-5 gap-y-1">
+    <nav
+      aria-label="Primary"
+      className="hidden lg:block bg-transparent py-1.5 xl:py-2 relative z-10 w-full border-t border-[#96c89b]/60"
+    >
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-6 overflow-x-auto scrollbar-none">
+        <ul className="mx-auto w-max flex items-center flex-nowrap whitespace-nowrap gap-x-0.5 lg:gap-x-1 xl:gap-x-2 2xl:gap-x-3.5 py-1">
           {navItems.map((item) => (
             <li key={item.path} className="shrink-0">
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `relative py-1 px-2.5 xl:px-3 font-semibold text-[12.5px] lg:text-[13px] xl:text-[13.5px] tracking-wide transition-all duration-200 block rounded-full ${
+                  `relative py-1 px-1.5 lg:px-2 xl:px-2.5 font-semibold text-[11.5px] xl:text-[12.5px] 2xl:text-[13px] tracking-wide transition-all duration-200 block rounded-full ${
                     isActive
-                      ? 'text-[#06180c] font-bold bg-white/70 shadow-xs'
+                      ? 'text-[#06180c] font-bold bg-white/75 shadow-xs'
                       : 'text-[#0e311a] hover:text-[#06180c] hover:bg-white/40'
                   }`
                 }
@@ -57,7 +60,7 @@ export const Navbar: React.FC = () => {
                   <>
                     <span>{item.name}</span>
                     {isActive && (
-                      <span className="absolute -bottom-0.5 left-2.5 right-2.5 h-[2px] bg-[#0e311a] rounded-full animate-in fade-in" />
+                      <span className="absolute -bottom-0.5 left-2 right-2 h-[2px] bg-[#0e311a] rounded-full animate-in fade-in" />
                     )}
                   </>
                 )}
