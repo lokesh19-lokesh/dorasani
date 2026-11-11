@@ -373,3 +373,38 @@ dialog::backdrop {
 .dorasani-form textarea:user-valid {
   border-color: #285A3C;
 }
+
+@media print {
+  dialog.delhivery-label-dialog::backdrop {
+    background: transparent !important;
+    backdrop-filter: none !important;
+  }
+
+  body.printing-delhivery-slip *:not(.delhivery-printable-slip):not(.delhivery-printable-slip *) {
+    visibility: hidden !important;
+  }
+
+  dialog.delhivery-label-dialog[open] {
+    border: 0 !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .delhivery-printable-slip {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 1.5rem !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

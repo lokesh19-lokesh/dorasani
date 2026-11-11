@@ -1,5 +1,6 @@
 /// <reference path="../deno.d.ts" />
 import { corsHeaders } from './cors.ts';
+import { getDelhiveryRuntimeConfig, manifestDelhiveryShipmentForOrder } from './delhivery.ts';
 
 export const jsonResponse = (payload: unknown, status = 200) =>
   new Response(JSON.stringify(payload), {
@@ -528,7 +529,7 @@ export async function upsertPaymentRecord(
 export async function fetchFullOrderWithRelations(admin: any, orderId: string) {
   const { data, error } = await admin
     .from('orders')
-    .select('*, order_items (*), payments (*)')
+    .select('*, order_items (*), payments (*), shipments (*)')
     .eq('id', orderId)
     .single();
 
@@ -730,6 +731,15 @@ export async function finalizePaidOrderFromSession(params: {
         source: sourceEvent,
       },
     });
+  }
+
+  try {
+    const delhiveryCfg = await getDelhiveryRuntimeConfig(admin);
+    if (delhiveryCfg.enabled && delhiveryCfg.autoManifest && delhiveryCfg.token) {
+      await manifestDelhiveryShipmentForOrder(admin, orderId);
+    }
+  } catch (delhiveryErr) {
+    console.warn('[razorpay] Non-blocking Delhivery auto-manifest failed:', delhiveryErr);
   }
 
   const fullOrder = await fetchFullOrderWithRelations(admin, orderId);

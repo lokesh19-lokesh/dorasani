@@ -434,6 +434,91 @@ export interface SiteSettings {
   productTypes: ProductTypeOption[];
   exploreCategoriesConfig: ExploreCategoriesConfig;
   collectionFiltersConfig: CollectionFiltersConfig;
+  delhiveryEnabled: boolean;
+  delhiveryPickupLocation: string;
+  delhiveryOriginPincode: string;
+  delhiveryAutoManifest: boolean;
+  delhiveryDefaultWeightGrams: number;
+  delhiveryDefaultDimensions: DelhiveryPackageDimensions;
+  delhiverySellerGst: string;
+}
+
+export interface DelhiveryPackageDimensions {
+  length: number;
+  breadth: number;
+  height: number;
+}
+
+export interface ShipmentScan {
+  scan: string;
+  scanType?: string;
+  statusCode?: string;
+  location: string;
+  instructions?: string;
+  dateTime: string;
+  formattedTime?: string;
+}
+
+export interface OrderShipment {
+  id: string;
+  orderId: string;
+  courierPartner: string;
+  trackingNumber: string;
+  trackingUrl?: string;
+  currentStatus: string;
+  statusCode?: string;
+  statusType?: string;
+  currentLocation?: string;
+  pickupLocation?: string;
+  shippingMode?: 'Express' | 'Surface' | string;
+  paymentMode?: 'Prepaid' | 'COD' | string;
+  originCity?: string;
+  destinationPincode?: string;
+  packageWeightGrams?: number;
+  packageDimensions?: DelhiveryPackageDimensions;
+  pickupRequestId?: string;
+  pickupScheduledDate?: string;
+  pickupScheduledTime?: string;
+  labelUrl?: string;
+  estimatedDelivery?: string;
+  actualDelivery?: string;
+  lastSyncedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  scans: ShipmentScan[];
+}
+
+export interface DelhiveryServiceabilityResult {
+  configured?: boolean;
+  delhiveryEnabled?: boolean;
+  fallback?: boolean;
+  pincode: string;
+  originPincode: string;
+  serviceable: boolean;
+  prepaid: boolean;
+  cod: boolean;
+  delhiveryCod?: boolean;
+  storeCodEnabled?: boolean;
+  pickup: boolean;
+  isOda: boolean;
+  city: string;
+  stateCode: string;
+  sortCode: string;
+  remarks: string;
+  expressTatDays: number;
+  standardTatDays: number;
+  expressEstimatedWindow: string | null;
+  standardEstimatedWindow: string | null;
+}
+
+export interface DelhiveryRateQuote {
+  zone: string | null;
+  chargedWeightGrams: number;
+  grossAmountInr: number;
+  totalAmountInr: number;
+  codChargeInr: number;
+  fuelSurchargeInr: number;
+  error?: string;
 }
 
 export function normalizeExploreCategoriesConfig(raw: unknown): ExploreCategoriesConfig {
@@ -681,6 +766,13 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   productTypes: DEFAULT_PRODUCT_TYPES,
   exploreCategoriesConfig: DEFAULT_EXPLORE_CATEGORIES_CONFIG,
   collectionFiltersConfig: DEFAULT_COLLECTION_FILTERS_CONFIG,
+  delhiveryEnabled: true,
+  delhiveryPickupLocation: 'DORASANI SAREES B2C',
+  delhiveryOriginPincode: '500067',
+  delhiveryAutoManifest: false,
+  delhiveryDefaultWeightGrams: 650,
+  delhiveryDefaultDimensions: { length: 34, breadth: 26, height: 6 },
+  delhiverySellerGst: '',
 };
 
 export interface OrderItem {
@@ -725,6 +817,8 @@ export interface Order {
   }[];
   courierPartner?: string;
   trackingId?: string;
+  trackingUrl?: string;
+  shipment?: OrderShipment;
   orderNotes?: string;
   paymentDetails?: {
     provider: string;

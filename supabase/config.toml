@@ -9,9 +9,20 @@ verify_jwt = false
 [functions.payment-webhook]
 verify_jwt = false
 
+[functions.delhivery-serviceability]
+verify_jwt = false
+
+[functions.delhivery-track]
+verify_jwt = false
+
+[functions.delhivery-shipping]
+verify_jwt = false
+
+[functions.delhivery-webhook]
+verify_jwt = false
+
 [functions.admin-analytics]
 verify_jwt = true
 
 [functions.get-homepage]
 verify_jwt = true
-

@@ -677,6 +677,21 @@ export const productService = {
         if (cleaned.length > 0) announcementItems = cleaned;
       }
 
+      const rawDim = map.get('delhivery_default_dimensions') as any;
+      const delhiveryDefaultDimensions =
+        rawDim && typeof rawDim === 'object' && !Array.isArray(rawDim)
+          ? {
+              length: Math.max(1, Math.round(Number(rawDim.length) || 34)),
+              breadth: Math.max(1, Math.round(Number(rawDim.breadth) || 26)),
+              height: Math.max(1, Math.round(Number(rawDim.height) || 6)),
+            }
+          : DEFAULT_SITE_SETTINGS.delhiveryDefaultDimensions;
+
+      const rawOriginPin = str('delhivery_origin_pincode', DEFAULT_SITE_SETTINGS.delhiveryOriginPincode);
+      const delhiveryOriginPincode = /^\d{6}$/.test(rawOriginPin)
+        ? rawOriginPin
+        : DEFAULT_SITE_SETTINGS.delhiveryOriginPincode;
+
       return {
         storeName: str('store_name', DEFAULT_SITE_SETTINGS.storeName),
         supportEmail: str('support_email', DEFAULT_SITE_SETTINGS.supportEmail),
@@ -697,6 +712,22 @@ export const productService = {
         productTypes: normalizeProductTypes(map.get('product_types')),
         exploreCategoriesConfig: normalizeExploreCategoriesConfig(map.get('explore_categories_config')),
         collectionFiltersConfig: normalizeCollectionFiltersConfig(map.get('collection_filters_config')),
+        delhiveryEnabled: bool('delhivery_enabled', DEFAULT_SITE_SETTINGS.delhiveryEnabled),
+        delhiveryPickupLocation: str(
+          'delhivery_pickup_location',
+          DEFAULT_SITE_SETTINGS.delhiveryPickupLocation
+        ),
+        delhiveryOriginPincode,
+        delhiveryAutoManifest: bool(
+          'delhivery_auto_manifest',
+          DEFAULT_SITE_SETTINGS.delhiveryAutoManifest
+        ),
+        delhiveryDefaultWeightGrams: Math.max(
+          50,
+          num('delhivery_default_weight_grams', DEFAULT_SITE_SETTINGS.delhiveryDefaultWeightGrams)
+        ),
+        delhiveryDefaultDimensions,
+        delhiverySellerGst: str('delhivery_seller_gst', DEFAULT_SITE_SETTINGS.delhiverySellerGst, true),
       };
     } catch (err) {
       console.error('Failed to fetch site settings:', err);

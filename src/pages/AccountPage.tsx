@@ -478,6 +478,15 @@ export const AccountPage: React.FC = () => {
                                 {ord.date}
                                 {ord.paymentDetails?.paymentId ? ` • Ref: ${ord.paymentDetails.paymentId}` : ''}
                               </p>
+                              {(ord.courierPartner || ord.trackingId) && (
+                                <p className="text-[11px] text-[#285A3C] font-semibold">
+                                  {ord.courierPartner || 'Delhivery One'}
+                                  {ord.trackingId ? ` • AWB: ${ord.trackingId}` : ''}
+                                  {ord.shipment?.currentStatus && !ord.shipment.cancelledAt
+                                    ? ` (${ord.shipment.currentStatus})`
+                                    : ''}
+                                </p>
+                              )}
                             </div>
                           </div>
 
@@ -583,6 +592,15 @@ export const AccountPage: React.FC = () => {
                               {ord.date}
                               {ord.paymentDetails?.paymentId ? ` • Razorpay: ${ord.paymentDetails.paymentId}` : ''}
                             </p>
+                            {(ord.courierPartner || ord.trackingId) && (
+                              <p className="text-[11px] text-[#285A3C] font-semibold">
+                                {ord.courierPartner || 'Delhivery One'}
+                                {ord.trackingId ? ` • AWB: ${ord.trackingId}` : ''}
+                                {ord.shipment?.currentStatus && !ord.shipment.cancelledAt
+                                  ? ` (${ord.shipment.currentStatus})`
+                                  : ''}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">

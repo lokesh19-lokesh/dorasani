@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Order, CartItem, Address, Coupon } from '../types';
+import type { Order, CartItem, Address, Coupon, OrderShipment, ShipmentScan } from '../types';
 
 export interface CheckoutPayload {
   userId?: string;
@@ -202,7 +202,60 @@ export function calculateCouponDiscount(coupon: Coupon, subtotal: number): numbe
   return Math.min(subtotal, Math.max(0, discount));
 }
 
-function buildOrderTimeline(o: any): Order['timeline'] {
+export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const scansRaw = Array.isArray(raw.history) ? raw.history : [];
+  const scans: ShipmentScan[] = scansRaw.map((entry: any) => ({
+    scan: String(entry?.scan || entry?.Scan || '').trim(),
+    scanType: entry?.scanType || entry?.ScanType || undefined,
+    statusCode: entry?.statusCode || entry?.StatusCode || undefined,
+    location: String(entry?.location || entry?.ScannedLocation || '').trim(),
+    instructions: entry?.instructions || entry?.Instructions || undefined,
+    dateTime: String(entry?.dateTime || entry?.ScanDateTime || '').trim(),
+    formattedTime: entry?.formattedTime || undefined,
+  }));
+
+  const rawDim = raw.package_dimensions;
+  const packageDimensions =
+    rawDim && typeof rawDim === 'object' && !Array.isArray(rawDim)
+      ? {
+          length: Number(rawDim.length || 34),
+          breadth: Number(rawDim.breadth || 26),
+          height: Number(rawDim.height || 6),
+        }
+      : undefined;
+
+  return {
+    id: String(raw.id || ''),
+    orderId: String(raw.order_id || ''),
+    courierPartner: String(raw.courier_partner || 'Delhivery One'),
+    trackingNumber: String(raw.tracking_number || ''),
+    trackingUrl: raw.tracking_url || undefined,
+    currentStatus: String(raw.current_status || 'Manifested'),
+    statusCode: raw.status_code || undefined,
+    statusType: raw.status_type || undefined,
+    currentLocation: raw.current_location || undefined,
+    pickupLocation: raw.pickup_location || undefined,
+    shippingMode: raw.shipping_mode || undefined,
+    paymentMode: raw.payment_mode || undefined,
+    originCity: raw.origin_city || undefined,
+    destinationPincode: raw.destination_pincode || undefined,
+    packageWeightGrams: raw.package_weight_grams ? Number(raw.package_weight_grams) : undefined,
+    packageDimensions,
+    pickupRequestId: raw.pickup_request_id || undefined,
+    pickupScheduledDate: raw.pickup_scheduled_date || undefined,
+    pickupScheduledTime: raw.pickup_scheduled_time || undefined,
+    labelUrl: raw.label_url || undefined,
+    estimatedDelivery: raw.estimated_delivery || undefined,
+    actualDelivery: raw.actual_delivery || undefined,
+    lastSyncedAt: raw.last_synced_at || undefined,
+    cancelledAt: raw.cancelled_at || undefined,
+    cancellationReason: raw.cancellation_reason || undefined,
+    scans,
+  };
+}
+
+function buildOrderTimeline(o: any, activeShipment?: OrderShipment): Order['timeline'] {
   const status = String(o.order_status || 'confirmed');
   const createdFormatted = new Date(o.created_at || Date.now()).toLocaleString('en-IN', {
     day: '2-digit',
@@ -259,12 +312,22 @@ function buildOrderTimeline(o: any): Order['timeline'] {
     {
       key: ['processing', 'packed'],
       title: 'Processing & Packing',
-      desc: status === 'packed' ? 'Quality checked and packed.' : 'Preparing your handloom order.',
+      desc:
+        activeShipment?.trackingNumber && !activeShipment.cancelledAt
+          ? `Packed & manifested with ${activeShipment.courierPartner} (AWB: ${activeShipment.trackingNumber}).`
+          : status === 'packed'
+            ? 'Quality checked and packed.'
+            : 'Preparing your handloom order.',
     },
     {
       key: ['shipped'],
       title: 'Shipped',
-      desc: o.courier_name ? `Dispatched via ${o.courier_name}.` : 'Handed over to delivery partner.',
+      desc:
+        activeShipment?.currentLocation && !activeShipment.cancelledAt
+          ? `${activeShipment.currentStatus} — ${activeShipment.currentLocation} (${activeShipment.courierPartner}).`
+          : o.courier_name
+            ? `Dispatched via ${o.courier_name}.`
+            : 'Handed over to delivery partner.',
     },
     {
       key: ['out_for_delivery'],
@@ -311,6 +374,26 @@ export function mapDbOrderToOrder(o: any): Order {
     paymentsList[0] ||
     null;
 
+  const shipmentsList: any[] = Array.isArray(o.shipments)
+    ? [...o.shipments].sort(
+        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+      )
+    : o.shipments
+      ? [o.shipments]
+      : [];
+
+  const activeRawShipment =
+    shipmentsList.find((s) => s && !s.cancelled_at) || shipmentsList[0] || null;
+  const shipment = mapDbShipmentRow(activeRawShipment);
+
+  const courierName = o.courier_name || (shipment && !shipment.cancelledAt ? shipment.courierPartner : '') || '';
+  const trackingId = o.tracking_id || (shipment && !shipment.cancelledAt ? shipment.trackingNumber : '') || '';
+  const trackingUrl =
+    shipment?.trackingUrl ||
+    (trackingId && /delhivery/i.test(courierName)
+      ? `https://www.delhivery.com/track/package/${encodeURIComponent(trackingId)}`
+      : undefined);
+
   return {
     id: o.id,
     orderNumber: o.order_number,
@@ -347,9 +430,11 @@ export function mapDbOrderToOrder(o: any): Order {
     paymentMethod: (o.payment_method as any) || 'razorpay',
     paymentStatus: (o.payment_status as any) || 'pending',
     status: (o.order_status as any) || 'confirmed',
-    timeline: buildOrderTimeline(o),
-    courierPartner: o.courier_name || '',
-    trackingId: o.tracking_id || '',
+    timeline: buildOrderTimeline(o, shipment),
+    courierPartner: courierName,
+    trackingId,
+    trackingUrl,
+    shipment,
     orderNotes: o.customer_notes || undefined,
     paymentDetails: primaryPayment
       ? {
@@ -701,7 +786,8 @@ export const checkoutService = {
           `
           *,
           order_items (*),
-          payments (*)
+          payments (*),
+          shipments (*)
         `
         )
         .eq('user_id', userId)
@@ -730,7 +816,8 @@ export const checkoutService = {
               `
               *,
               order_items (*),
-              payments (*)
+              payments (*),
+              shipments (*)
             `
             )
             .or(`order_number.ilike.${clean},tracking_id.ilike.${clean}`)

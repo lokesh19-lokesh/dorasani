@@ -300,15 +300,29 @@ export const OrderConfirmationPage: React.FC = () => {
               <p>Phone: {order.shippingAddress.phone}</p>
             </div>
 
-            <div className="pt-2 border-t border-[#F5EAE2]">
-              <span className="text-[11px] font-bold text-[#1A3B2B] block">
-                Delivery Option:
-              </span>
-              <p className="text-xs text-[#285A3C] font-semibold">
-                {order.deliveryOption === 'express'
-                  ? 'Express Delivery (1-2 Business Days)'
-                  : 'Standard Delivery (3-5 Business Days)'}
-              </p>
+            <div className="pt-2 border-t border-[#F5EAE2] space-y-2">
+              <div>
+                <span className="text-[11px] font-bold text-[#1A3B2B] block">
+                  Delivery Option:
+                </span>
+                <p className="text-xs text-[#285A3C] font-semibold">
+                  {order.deliveryOption === 'express'
+                    ? 'Express Delivery (1-2 Business Days)'
+                    : 'Standard Delivery (3-5 Business Days)'}
+                </p>
+              </div>
+              {(order.courierPartner || order.trackingId) && (
+                <div className="rounded-lg bg-[#FAF5EE] border border-[#BCD8AA] p-2.5 text-xs space-y-0.5">
+                  <p className="font-bold text-[#1A3B2B]">
+                    Courier: {order.courierPartner || 'Delhivery One'}
+                  </p>
+                  {order.trackingId && (
+                    <p className="font-mono text-[11px] text-[#285A3C]">
+                      Waybill / AWB: {order.trackingId}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 pt-2">

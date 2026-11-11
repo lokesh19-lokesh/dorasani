@@ -650,7 +650,8 @@ export const adminService = {
         `
         *,
         order_items (*),
-        payments (*)
+        payments (*),
+        shipments (*)
       `,
         { count: 'exact' }
       )

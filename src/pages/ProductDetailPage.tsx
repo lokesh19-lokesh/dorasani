@@ -13,17 +13,20 @@ import {
   Check,
   MapPin,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
 import { productService } from '../services/productService';
+import { delhiveryService } from '../services/delhiveryService';
 import { buildProductPageGraph } from '../utils/seo';
 import {
   LOW_STOCK_THRESHOLD,
   getProductTypeLabel,
   getStockStatusMeta,
+  type DelhiveryServiceabilityResult,
   type Product,
   type ProductReview,
 } from '../types';
@@ -43,7 +46,9 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'details' | 'care' | 'shipping' | 'reviews'>('details');
   const [pincode, setPincode] = useState('');
-  const [pincodeStatus, setPincodeStatus] = useState<string | null>(null);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeError, setPincodeError] = useState<string | null>(null);
+  const [pincodeResult, setPincodeResult] = useState<DelhiveryServiceabilityResult | null>(null);
 
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [reviewName, setReviewName] = useState(user?.fullName || '');
@@ -215,12 +220,30 @@ export const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const checkPincode = (e: React.FormEvent) => {
+  const checkPincode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (/^\d{6}$/.test(pincode)) {
-      setPincodeStatus('Available! Standard delivery in 3-5 business days.');
-    } else {
-      setPincodeStatus('Please enter a valid 6-digit Indian PIN code.');
+    const cleanPin = pincode.replace(/\D/g, '').slice(0, 6);
+    setPincodeError(null);
+    setPincodeResult(null);
+
+    if (!/^\d{6}$/.test(cleanPin)) {
+      setPincodeError('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    }
+
+    setPincodeLoading(true);
+    try {
+      const res = await delhiveryService.checkServiceability(
+        cleanPin,
+        siteSettings.delhiveryOriginPincode
+      );
+      setPincodeResult(res);
+    } catch (err: any) {
+      setPincodeError(
+        err?.message || 'Unable to verify serviceability right now. Standard pan-India delivery takes 3–5 business days.'
+      );
+    } finally {
+      setPincodeLoading(false);
     }
   };
 
@@ -554,13 +577,13 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* PIN Code Delivery Check */}
-            <form onSubmit={checkPincode} className="pt-2 dorasani-form">
+            <form onSubmit={checkPincode} noValidate className="pt-2 dorasani-form">
               <label
                 htmlFor="delivery-pincode"
                 className="text-xs font-semibold text-[#1A3B2B] block mb-1.5 flex items-center gap-1"
               >
-                <MapPin className="w-3.5 h-3.5 text-[#285A3C]" />
-                <span>Check Estimated Delivery</span>
+                <MapPin className="w-3.5 h-3.5 text-[#285A3C]" aria-hidden="true" />
+                <span>Check Delivery &amp; Estimated Arrival</span>
               </label>
               <div className="flex max-w-sm">
                 <input
@@ -571,24 +594,107 @@ export const ProductDetailPage: React.FC = () => {
                   pattern="\d{6}"
                   maxLength={6}
                   autoComplete="postal-code"
+                  enterKeyHint="search"
                   placeholder="Enter 6-digit PIN code"
+                  aria-invalid={pincodeError ? 'true' : undefined}
+                  aria-describedby={pincodeError ? 'delivery-pincode-error' : undefined}
                   value={pincode}
                   onChange={(e) => {
-                    setPincode(e.target.value.replace(/\D/g, ''));
-                    if (pincodeStatus) setPincodeStatus(null);
+                    setPincode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    if (pincodeError) setPincodeError(null);
+                    if (pincodeResult) setPincodeResult(null);
                   }}
-                  className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3 py-2 text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                  className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3 py-2 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
                 />
                 <button
                   type="submit"
-                  className="bg-[#1A3B2B] text-white text-xs px-4 rounded-r font-semibold hover:bg-[#285A3C] transition-colors"
+                  disabled={pincodeLoading}
+                  className="bg-[#1A3B2B] text-white text-xs px-4 rounded-r font-semibold hover:bg-[#285A3C] disabled:opacity-60 transition-colors flex items-center gap-1.5"
                 >
-                  Check
+                  {pincodeLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                      <span>Checking</span>
+                    </>
+                  ) : (
+                    <span>Check</span>
+                  )}
                 </button>
               </div>
-              {pincodeStatus && (
-                <p className="text-[11px] font-medium text-[#285A3C] mt-1.5">{pincodeStatus}</p>
-              )}
+              <div role="status" aria-live="polite" className="mt-2">
+                {pincodeError && (
+                  <p
+                    id="delivery-pincode-error"
+                    className="text-[11px] font-medium text-rose-700 flex items-center gap-1.5"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{pincodeError}</span>
+                  </p>
+                )}
+                {pincodeResult && !pincodeError && (
+                  <div
+                    className={`rounded-lg border p-3 text-[11px] space-y-1.5 max-w-sm ${
+                      pincodeResult.serviceable
+                        ? 'bg-[#FAF5EE] border-[#BCD8AA] text-[#1A3B2B]'
+                        : 'bg-rose-50 border-rose-200 text-rose-800'
+                    }`}
+                  >
+                    {pincodeResult.serviceable ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-[#285A3C] flex items-center gap-1.5">
+                            <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                            <span>
+                              Deliverable to {pincodeResult.city ? `${pincodeResult.city} ` : ''}
+                              ({pincodeResult.pincode})
+                            </span>
+                          </span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#D0E9C0] text-[#1A3B2B]">
+                            Delhivery One
+                          </span>
+                        </div>
+                        <div className="text-[#4F6355] space-y-0.5">
+                          <p>
+                            • Standard: <strong>{pincodeResult.standardEstimatedWindow || '3 – 5 business days'}</strong>
+                          </p>
+                          <p>
+                            • Express: <strong>{pincodeResult.expressEstimatedWindow || '2 – 3 business days'}</strong>
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[10px]">
+                          {pincodeResult.prepaid && (
+                            <span className="px-2 py-0.5 rounded bg-white border border-[#D8C7B5] font-semibold text-[#1A3B2B]">
+                              Prepaid Supported
+                            </span>
+                          )}
+                          <span
+                            className={`px-2 py-0.5 rounded border font-semibold ${
+                              pincodeResult.cod
+                                ? 'bg-white border-[#D8C7B5] text-[#285A3C]'
+                                : 'bg-stone-100 border-stone-200 text-[#647268]'
+                            }`}
+                          >
+                            {pincodeResult.cod ? 'Cash on Delivery Available' : 'Online Payment (Prepaid)'}
+                          </span>
+                          {pincodeResult.isOda && (
+                            <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 font-semibold text-amber-800">
+                              Extended Area (ODA)
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="font-semibold flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                        <span>
+                          Currently not serviceable for PIN {pincodeResult.pincode}
+                          {pincodeResult.remarks ? ` (${pincodeResult.remarks})` : ''}.
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </form>
 
             {/* Trust Badges Strip */}

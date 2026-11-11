@@ -12,9 +12,12 @@ import {
   ChevronRight,
   Search,
   AlertCircle,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
+import { delhiveryService, type LiveTrackResponse } from '../services/delhiveryService';
 import { SeoHead } from '../components/common/SeoHead';
 import type { Order } from '../types';
 
@@ -27,8 +30,75 @@ export const TrackOrderPage: React.FC = () => {
 
   const [trackingIdInput, setTrackingIdInput] = useState(targetOrderId);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [liveTrackInfo, setLiveTrackInfo] = useState<LiveTrackResponse['tracking'] | null>(null);
+  const [isRedactedView, setIsRedactedView] = useState(false);
   const [loading, setLoading] = useState<boolean>(Boolean(targetOrderId));
+  const [refreshingScans, setRefreshingScans] = useState<boolean>(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+
+  const runLiveLookup = async (queryTerm: string, isManualRefresh = false): Promise<Order | null> => {
+    const clean = queryTerm.trim().replace(/^#/, '');
+    if (!clean) return null;
+
+    if (isManualRefresh) {
+      setRefreshingScans(true);
+    } else {
+      setLoading(true);
+    }
+    setLookupError(null);
+
+    try {
+      const res = await delhiveryService.trackOrderLive({
+        orderNumber: clean,
+        waybill: clean,
+        refresh: true,
+      });
+
+      if (res.order) {
+        setCurrentOrder(res.order);
+        setLiveTrackInfo(res.tracking);
+        setIsRedactedView(res.redacted);
+        return res.order;
+      }
+      return null;
+    } catch (liveErr: any) {
+      const localMatch = orders.find(
+        (o) =>
+          o.orderNumber.toLowerCase() === clean.toLowerCase() ||
+          o.id === clean ||
+          (o.trackingId && o.trackingId.toLowerCase() === clean.toLowerCase())
+      );
+      if (localMatch) {
+        setCurrentOrder(localMatch);
+        setLiveTrackInfo(null);
+        setIsRedactedView(false);
+        return localMatch;
+      }
+
+      const remoteFallback = await checkoutService.lookupOrderByNumber(clean);
+      if (remoteFallback) {
+        setCurrentOrder(remoteFallback);
+        setLiveTrackInfo(null);
+        setIsRedactedView(false);
+        return remoteFallback;
+      }
+
+      if (!isManualRefresh) {
+        setCurrentOrder(null);
+        setLiveTrackInfo(null);
+        setLookupError(
+          liveErr?.message ||
+            `We could not find an order matching "${clean}". Please check your Order Number (e.g. DOR-...) or Delhivery AWB.`
+        );
+      } else {
+        showToast(liveErr?.message || 'Unable to refresh live scans right now.', 'info');
+      }
+      return null;
+    } finally {
+      setLoading(false);
+      setRefreshingScans(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -36,40 +106,26 @@ export const TrackOrderPage: React.FC = () => {
 
     if (targetOrderId) {
       setTrackingIdInput(targetOrderId);
-      const localMatch = orders.find(
-        (o) =>
-          o.orderNumber.toLowerCase() === targetOrderId.toLowerCase() ||
-          o.id === targetOrderId ||
-          (o.trackingId && o.trackingId.toLowerCase() === targetOrderId.toLowerCase())
-      );
-
-      if (localMatch) {
-        setCurrentOrder(localMatch);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      checkoutService
-        .lookupOrderByNumber(targetOrderId)
-        .then((remoteMatch) => {
-          if (!isMounted) return;
-          if (remoteMatch) {
-            setCurrentOrder(remoteMatch);
-          } else {
-            setCurrentOrder(null);
-            setLookupError(`No order found matching "${targetOrderId}".`);
-          }
-        })
-        .finally(() => {
-          if (isMounted) setLoading(false);
-        });
+      runLiveLookup(targetOrderId, false);
     } else if (orders.length > 0) {
-      setCurrentOrder(orders[0]);
-      setTrackingIdInput(orders[0].orderNumber);
+      const firstOrd = orders[0];
+      setCurrentOrder(firstOrd);
+      setTrackingIdInput(firstOrd.orderNumber);
+      setIsRedactedView(false);
       setLoading(false);
+      if (firstOrd.trackingId) {
+        delhiveryService
+          .trackOrderLive({ orderNumber: firstOrd.orderNumber, refresh: true })
+          .then((res) => {
+            if (!isMounted || !res.order) return;
+            setCurrentOrder(res.order);
+            setLiveTrackInfo(res.tracking);
+          })
+          .catch(() => {});
+      }
     } else {
       setCurrentOrder(null);
+      setLiveTrackInfo(null);
       setLoading(false);
     }
 
@@ -78,47 +134,40 @@ export const TrackOrderPage: React.FC = () => {
     };
   }, [targetOrderId, orders]);
 
+  const activeAwb = liveTrackInfo?.awb || currentOrder?.shipment?.trackingNumber || currentOrder?.trackingId || '';
+  const activeScans =
+    (liveTrackInfo?.scans && liveTrackInfo.scans.length > 0
+      ? liveTrackInfo.scans
+      : currentOrder?.shipment?.scans) || [];
+  const activeTrackingUrl =
+    liveTrackInfo?.trackingUrl ||
+    currentOrder?.trackingUrl ||
+    (activeAwb ? `https://www.delhivery.com/track/package/${encodeURIComponent(activeAwb)}` : '');
+
   const handleCopyTracking = () => {
-    if (!currentOrder?.trackingId) return;
-    navigator.clipboard.writeText(currentOrder.trackingId);
-    showToast('Tracking ID copied to clipboard!');
+    if (!activeAwb) return;
+    navigator.clipboard.writeText(activeAwb);
+    showToast('Tracking AWB copied to clipboard!');
+  };
+
+  const handleRefreshScans = async () => {
+    if (!currentOrder) return;
+    const updated = await runLiveLookup(activeAwb || currentOrder.orderNumber, true);
+    if (updated) {
+      showToast('Live Delhivery tracking status updated');
+    }
   };
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     const term = trackingIdInput.trim();
     if (!term) return;
-    setLookupError(null);
-
-    const localFound = orders.find(
-      (o) =>
-        o.orderNumber.toLowerCase() === term.toLowerCase() ||
-        (o.trackingId && o.trackingId.toLowerCase() === term.toLowerCase())
-    );
-    if (localFound) {
-      setCurrentOrder(localFound);
-      setSearchParams({ order: localFound.orderNumber });
+    const found = await runLiveLookup(term, false);
+    if (found) {
+      setSearchParams({ order: found.orderNumber });
       showToast('Order details retrieved');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const remoteFound = await checkoutService.lookupOrderByNumber(term);
-      if (remoteFound) {
-        setCurrentOrder(remoteFound);
-        setSearchParams({ order: remoteFound.orderNumber });
-        showToast('Order details retrieved');
-      } else {
-        setCurrentOrder(null);
-        const msg = user
-          ? `No order found matching "${term}" under your account.`
-          : `No order found matching "${term}". Please sign in with the account used to place the order.`;
-        setLookupError(msg);
-        showToast('Order not found', 'info');
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      showToast('Order not found', 'info');
     }
   };
 
@@ -173,29 +222,31 @@ export const TrackOrderPage: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleLookup} className="flex w-full md:w-auto max-w-md">
-            <input
-              type="text"
-              aria-label="Order number or tracking ID"
-              value={trackingIdInput}
-              onChange={(e) => {
-                setTrackingIdInput(e.target.value);
-                if (lookupError) setLookupError(null);
-              }}
-              autoCorrect="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              placeholder="Enter Order # or Tracking ID"
-              className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3.5 py-2 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
-            />
-            <button
-              type="submit"
-              disabled={loading || !trackingIdInput.trim()}
-              className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-50 text-white px-5 rounded-r font-semibold text-xs transition-colors"
-            >
-              {loading ? 'Searching...' : 'Track'}
-            </button>
-          </form>
+          <search className="w-full md:w-auto max-w-md">
+            <form onSubmit={handleLookup} className="flex w-full">
+              <input
+                type="search"
+                aria-label="Order number or tracking AWB"
+                value={trackingIdInput}
+                onChange={(e) => {
+                  setTrackingIdInput(e.target.value);
+                  if (lookupError) setLookupError(null);
+                }}
+                autoCorrect="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                placeholder="Enter Order # or Delhivery AWB"
+                className="flex-1 bg-white border border-r-0 border-[#BCD8AA] rounded-l px-3.5 py-2 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+              />
+              <button
+                type="submit"
+                disabled={loading || !trackingIdInput.trim()}
+                className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-50 text-white px-5 rounded-r font-semibold text-xs transition-colors"
+              >
+                {loading ? 'Searching...' : 'Track'}
+              </button>
+            </form>
+          </search>
         </div>
       </div>
 
@@ -386,40 +437,137 @@ export const TrackOrderPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Center: Live Tracking Milestones */}
-              <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-4">
-                <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#285A3C]" />
-                  <span>Tracking Details</span>
-                </h2>
-
-                <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#285A3C]/30 text-xs">
-                  {reversedTimeline.map((step) => (
-                    <div key={step.title} className="relative">
-                      <span
-                        className={`absolute -left-6 top-0.5 rounded-full ${
-                          step.current
-                            ? 'w-3.5 h-3.5 bg-[#285A3C] ring-4 ring-[#D0E9C0]'
-                            : step.completed
-                            ? 'w-3 h-3 bg-[#285A3C]'
-                            : 'w-3 h-3 bg-[#FAF5EE] border border-[#BCD8AA]'
-                        }`}
+              {/* Center: Live Tracking Milestones & Delhivery Scan Checkpoints */}
+              <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#D8C7B5]">
+                  <h2 className="font-bold text-xs uppercase tracking-wider text-[#1A3B2B] flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#285A3C]" />
+                    <span>Live Tracking &amp; Courier Scans</span>
+                  </h2>
+                  {activeAwb && (
+                    <button
+                      type="button"
+                      onClick={handleRefreshScans}
+                      disabled={refreshingScans}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#285A3C] bg-[#FAF5EE] hover:bg-[#D0E9C0]/50 border border-[#BCD8AA] px-2.5 py-1 rounded transition-colors disabled:opacity-60"
+                    >
+                      <RefreshCw
+                        className={`w-3 h-3 ${refreshingScans ? 'animate-spin' : ''}`}
+                        aria-hidden="true"
                       />
-                      <h3
-                        className={`font-semibold ${
-                          step.current
-                            ? 'font-bold text-[#285A3C]'
-                            : step.completed
-                            ? 'text-[#1A3B2B]'
-                            : 'text-[#8E9B92]'
-                        }`}
-                      >
-                        {step.title}
-                      </h3>
-                      <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
-                      <p className="text-xs text-[#4F6355] mt-0.5">{step.description}</p>
+                      <span>{refreshingScans ? 'Syncing...' : 'Refresh Live Scans'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {activeAwb && (
+                  <div className="rounded-lg bg-[#FAF5EE] border border-[#D8C7B5] p-3 text-xs space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-bold text-[#1A3B2B]">
+                        {liveTrackInfo?.currentStatus || currentOrder.shipment?.currentStatus || 'Manifested'}
+                      </span>
+                      {(liveTrackInfo?.estimatedDelivery || currentOrder.shipment?.estimatedDelivery) && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#D0E9C0] text-[#1A3B2B]">
+                          Est. Delivery:{' '}
+                          {new Date(
+                            liveTrackInfo?.estimatedDelivery ||
+                              currentOrder.shipment?.estimatedDelivery ||
+                              ''
+                          ).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-[11px] text-[#4F6355]">
+                      Route:{' '}
+                      <strong className="text-[#1A3B2B]">
+                        {liveTrackInfo?.origin || currentOrder.shipment?.originCity || 'Hyderabad'}
+                      </strong>{' '}
+                      →{' '}
+                      <strong className="text-[#1A3B2B]">
+                        {liveTrackInfo?.destination ||
+                          currentOrder.shippingAddress.city ||
+                          currentOrder.shippingAddress.pincode}
+                      </strong>
+                    </p>
+                    {(liveTrackInfo?.currentLocation || currentOrder.shipment?.currentLocation) && (
+                      <p className="text-[11px] text-[#285A3C] font-medium">
+                        Current Hub: {liveTrackInfo?.currentLocation || currentOrder.shipment?.currentLocation}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {activeScans.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#4F6355]">
+                      Courier Hub Activity ({activeScans.length})
+                    </h3>
+                    <div className="relative pl-5 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#BCD8AA] text-xs max-h-72 overflow-y-auto pr-1">
+                      {activeScans.map((scan, sIdx) => (
+                        <div key={`${scan.dateTime}-${scan.scan}-${sIdx}`} className="relative">
+                          <span
+                            className={`absolute -left-5 top-1 rounded-full ${
+                              sIdx === 0
+                                ? 'w-3 h-3 bg-[#285A3C] ring-4 ring-[#D0E9C0]'
+                                : 'w-2.5 h-2.5 bg-[#BCD8AA]'
+                            }`}
+                          />
+                          <div className="flex flex-wrap items-baseline justify-between gap-1">
+                            <p className={`font-semibold ${sIdx === 0 ? 'text-[#285A3C]' : 'text-[#1A3B2B]'}`}>
+                              {scan.scan}
+                            </p>
+                            <span className="text-[10px] text-[#647268]">
+                              {scan.formattedTime || scan.dateTime}
+                            </span>
+                          </div>
+                          {scan.location && (
+                            <p className="text-[11px] font-medium text-[#4F6355]">{scan.location}</p>
+                          )}
+                          {scan.instructions && (
+                            <p className="text-[11px] text-[#647268]">{scan.instructions}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 pt-2 border-t border-[#F5EAE2]">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#4F6355]">
+                    Order Milestones
+                  </h3>
+                  <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#285A3C]/30 text-xs">
+                    {reversedTimeline.map((step) => (
+                      <div key={step.title} className="relative">
+                        <span
+                          className={`absolute -left-6 top-0.5 rounded-full ${
+                            step.current
+                              ? 'w-3.5 h-3.5 bg-[#285A3C] ring-4 ring-[#D0E9C0]'
+                              : step.completed
+                              ? 'w-3 h-3 bg-[#285A3C]'
+                              : 'w-3 h-3 bg-[#FAF5EE] border border-[#BCD8AA]'
+                          }`}
+                        />
+                        <h4
+                          className={`font-semibold ${
+                            step.current
+                              ? 'font-bold text-[#285A3C]'
+                              : step.completed
+                              ? 'text-[#1A3B2B]'
+                              : 'text-[#8E9B92]'
+                          }`}
+                        >
+                          {step.title}
+                        </h4>
+                        <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
+                        <p className="text-xs text-[#4F6355] mt-0.5">{step.description}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -428,17 +576,39 @@ export const TrackOrderPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-2">
                   <h2 className="font-bold uppercase tracking-wider text-[#1A3B2B] pb-2 border-b border-[#D8C7B5] flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#285A3C]" />
-                    <span>Delivery Address</span>
+                    <span>Delivery Destination</span>
                   </h2>
-                  <p className="font-bold text-[#1A3B2B]">
-                    {currentOrder.shippingAddress.fullName}
-                  </p>
-                  <p className="text-[#4F6355]">{currentOrder.shippingAddress.streetAddress}</p>
-                  <p className="text-[#4F6355]">
-                    {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} -{' '}
-                    {currentOrder.shippingAddress.pincode}
-                  </p>
-                  <p className="text-[#4F6355]">Phone: {currentOrder.shippingAddress.phone}</p>
+                  {!isRedactedView && currentOrder.shippingAddress.fullName ? (
+                    <>
+                      <p className="font-bold text-[#1A3B2B]">
+                        {currentOrder.shippingAddress.fullName}
+                      </p>
+                      {currentOrder.shippingAddress.streetAddress && (
+                        <p className="text-[#4F6355]">{currentOrder.shippingAddress.streetAddress}</p>
+                      )}
+                      <p className="text-[#4F6355]">
+                        {currentOrder.shippingAddress.city}, {currentOrder.shippingAddress.state} -{' '}
+                        {currentOrder.shippingAddress.pincode}
+                      </p>
+                      {currentOrder.shippingAddress.phone && (
+                        <p className="text-[#4F6355]">Phone: {currentOrder.shippingAddress.phone}</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-[#1A3B2B]">
+                        {[currentOrder.shippingAddress.city, currentOrder.shippingAddress.state]
+                          .filter(Boolean)
+                          .join(', ') || 'Destination City'}
+                        {currentOrder.shippingAddress.pincode
+                          ? ` - ${currentOrder.shippingAddress.pincode}`
+                          : ''}
+                      </p>
+                      <p className="text-[11px] text-[#647268] leading-relaxed">
+                        Street address and contact number are protected for privacy. Sign in with your order account to view complete details.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="bg-[#FAF5EE] rounded-xl border border-[#D8C7B5] p-5 shadow-xs text-xs space-y-3">
@@ -447,15 +617,20 @@ export const TrackOrderPage: React.FC = () => {
                     <span>Shipping Partner</span>
                   </h2>
 
-                  {currentOrder.courierPartner || currentOrder.trackingId ? (
+                  {currentOrder.courierPartner || activeAwb ? (
                     <>
                       <div className="space-y-1">
                         <p className="font-bold text-sm text-[#1A3B2B]">
-                          {currentOrder.courierPartner || 'Courier Assigned'}
+                          {liveTrackInfo?.courierPartner || currentOrder.courierPartner || 'Delhivery One'}
                         </p>
-                        {currentOrder.trackingId && (
-                          <div className="flex items-center justify-between text-[#4F6355]">
-                            <span>ID: {currentOrder.trackingId}</span>
+                        {currentOrder.shipment?.shippingMode && (
+                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-white border border-[#BCD8AA] text-[#285A3C]">
+                            {currentOrder.shipment.shippingMode} Service
+                          </span>
+                        )}
+                        {activeAwb && (
+                          <div className="flex items-center justify-between text-[#4F6355] pt-1">
+                            <span className="font-mono text-[11px]">AWB: {activeAwb}</span>
                             <button
                               type="button"
                               onClick={handleCopyTracking}
@@ -467,21 +642,23 @@ export const TrackOrderPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      {currentOrder.courierPartner?.toLowerCase().includes('delhivery') &&
-                        currentOrder.trackingId && (
+                      {activeTrackingUrl &&
+                        (/delhivery/i.test(currentOrder.courierPartner || '') ||
+                          Boolean(currentOrder.shipment)) && (
                           <a
-                            href={`https://www.delhivery.com/track/package/${currentOrder.trackingId}`}
+                            href={activeTrackingUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full bg-white border border-[#BCD8AA] hover:border-[#285A3C] text-[#1A3B2B] py-2 rounded font-semibold text-center block transition-colors shadow-xs"
+                            className="w-full bg-white border border-[#BCD8AA] hover:border-[#285A3C] text-[#1A3B2B] py-2 rounded font-semibold text-center flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                           >
-                            Track on Delhivery
+                            <span>Track on Delhivery</span>
+                            <ExternalLink className="w-3 h-3" aria-hidden="true" />
                           </a>
                         )}
                     </>
                   ) : (
                     <p className="text-[#4F6355] text-[11px] leading-relaxed">
-                      Awaiting dispatch assignment. Your courier partner and tracking ID will appear here once shipped.
+                      Awaiting dispatch assignment. Your courier partner and tracking ID will appear here once manifested.
                     </p>
                   )}
                 </div>

@@ -8,10 +8,55 @@ import {
   Coins,
   AlertCircle,
   Info,
+  CheckCircle2,
+  Loader2,
+  MapPin,
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
-import { getStockStatusMeta } from '../types';
+import { delhiveryService } from '../services/delhiveryService';
+import { getStockStatusMeta, type DelhiveryServiceabilityResult } from '../types';
+
+const INDIAN_STATE_CODE_MAP: Record<string, string> = {
+  AP: 'Andhra Pradesh',
+  AR: 'Arunachal Pradesh',
+  AS: 'Assam',
+  BR: 'Bihar',
+  CG: 'Chhattisgarh',
+  CT: 'Chhattisgarh',
+  GA: 'Goa',
+  GJ: 'Gujarat',
+  HR: 'Haryana',
+  HP: 'Himachal Pradesh',
+  JH: 'Jharkhand',
+  KA: 'Karnataka',
+  KL: 'Kerala',
+  MP: 'Madhya Pradesh',
+  MH: 'Maharashtra',
+  MN: 'Manipur',
+  ML: 'Meghalaya',
+  MZ: 'Mizoram',
+  NL: 'Nagaland',
+  OD: 'Odisha',
+  OR: 'Odisha',
+  PB: 'Punjab',
+  RJ: 'Rajasthan',
+  SK: 'Sikkim',
+  TN: 'Tamil Nadu',
+  TG: 'Telangana',
+  TS: 'Telangana',
+  TR: 'Tripura',
+  UP: 'Uttar Pradesh',
+  UK: 'Uttarakhand',
+  UT: 'Uttarakhand',
+  WB: 'West Bengal',
+  AN: 'Andaman and Nicobar Islands',
+  CH: 'Chandigarh',
+  DL: 'Delhi',
+  JK: 'Jammu and Kashmir',
+  LA: 'Ladakh',
+  PY: 'Puducherry',
+};
 
 const FIELD_ORDER: { key: string; elementId: string }[] = [
   { key: 'fullName', elementId: 'checkout-full-name' },
@@ -81,7 +126,63 @@ export const CheckoutPage: React.FC = () => {
   }, [selectedAddress]);
 
   const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express'>('standard');
-  const isCodAvailable = Boolean(siteSettings.codEnabled);
+  const [pinServiceability, setPinServiceability] =
+    useState<DelhiveryServiceabilityResult | null>(null);
+  const [checkingPin, setCheckingPin] = useState(false);
+  const [pinCheckWarning, setPinCheckWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cleanPin = pincode.replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      setPinServiceability(null);
+      setPinCheckWarning(null);
+      setCheckingPin(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCheckingPin(true);
+    setPinCheckWarning(null);
+
+    const timer = window.setTimeout(() => {
+      delhiveryService
+        .checkServiceability(cleanPin, siteSettings.delhiveryOriginPincode)
+        .then((res) => {
+          if (cancelled) return;
+          setPinServiceability(res);
+          if (res.serviceable && res.city) {
+            setCity((prev) => (prev.trim() ? prev : res.city));
+          }
+          if (res.serviceable && res.stateCode) {
+            const fullState = INDIAN_STATE_CODE_MAP[res.stateCode.toUpperCase()];
+            if (fullState) {
+              setStateName((prev) => (prev.trim() ? prev : fullState));
+            }
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setPinServiceability(null);
+          setPinCheckWarning('Live Delhivery PIN check is temporarily unavailable — standard estimates apply.');
+        })
+        .finally(() => {
+          if (!cancelled) setCheckingPin(false);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [pincode, siteSettings.delhiveryOriginPincode]);
+
+  const pinExplicitlyUnserviceable = Boolean(
+    pinServiceability && !pinServiceability.fallback && !pinServiceability.serviceable
+  );
+  const pinBlocksCod = Boolean(
+    pinServiceability && !pinServiceability.fallback && pinServiceability.serviceable && !pinServiceability.cod
+  );
+  const isCodAvailable = Boolean(siteSettings.codEnabled) && !pinBlocksCod;
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [orderNotes, setOrderNotes] = useState('');
 
@@ -188,6 +289,14 @@ export const CheckoutPage: React.FC = () => {
     if (firstInvalid) {
       setSubmitError('Please review the highlighted address and contact fields.');
       document.getElementById(firstInvalid.elementId)?.focus();
+      return;
+    }
+
+    if (pinExplicitlyUnserviceable && pinServiceability) {
+      setSubmitError(
+        `PIN code ${pinServiceability.pincode} is currently outside Delhivery courier serviceability. Please enter a serviceable PIN code.`
+      );
+      document.getElementById('checkout-pincode')?.focus();
       return;
     }
 
@@ -733,6 +842,71 @@ export const CheckoutPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {(checkingPin || pinServiceability || pinCheckWarning) && (
+                <div role="status" aria-live="polite" className="pt-1">
+                  {checkingPin ? (
+                    <div className="rounded-lg border border-[#BCD8AA] bg-[#FAF5EE] px-3 py-2 text-xs text-[#4F6355] flex items-center gap-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#285A3C]" aria-hidden="true" />
+                      <span>Checking Delhivery One courier availability for PIN {pincode}...</span>
+                    </div>
+                  ) : pinServiceability && !pinServiceability.fallback ? (
+                    <div
+                      className={`rounded-lg border px-3.5 py-2.5 text-xs flex flex-wrap items-center justify-between gap-2 ${
+                        pinServiceability.serviceable
+                          ? 'border-[#BCD8AA] bg-[#D0E9C0]/30 text-[#1A3B2B]'
+                          : 'border-rose-200 bg-rose-50 text-rose-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {pinServiceability.serviceable ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#285A3C] shrink-0" aria-hidden="true" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />
+                        )}
+                        <span>
+                          {pinServiceability.serviceable ? (
+                            <>
+                              <strong>Delhivery One Serviceable</strong>
+                              {pinServiceability.city ? ` • ${pinServiceability.city}` : ''}
+                              {pinServiceability.stateCode ? `, ${pinServiceability.stateCode}` : ''}
+                              {pinServiceability.isOda ? ' (Extended Area)' : ''}
+                            </>
+                          ) : (
+                            <>
+                              <strong>PIN {pinServiceability.pincode} not serviceable by Delhivery</strong>
+                              {pinServiceability.remarks ? ` (${pinServiceability.remarks})` : ''}
+                            </>
+                          )}
+                        </span>
+                      </div>
+                      {pinServiceability.serviceable && (
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded bg-white border border-[#BCD8AA] text-[#285A3C]">
+                            Est. {pinServiceability.standardEstimatedWindow || '3–5 Days'}
+                          </span>
+                          {siteSettings.codEnabled && (
+                            <span
+                              className={`px-2 py-0.5 rounded border ${
+                                pinServiceability.cod
+                                  ? 'bg-white border-[#BCD8AA] text-[#285A3C]'
+                                  : 'bg-amber-50 border-amber-200 text-amber-800'
+                              }`}
+                            >
+                              {pinServiceability.cod ? 'COD Eligible' : 'Prepaid Only'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : pinCheckWarning ? (
+                    <p className="text-[11px] text-[#4F6355] flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#285A3C]" aria-hidden="true" />
+                      <span>{pinCheckWarning}</span>
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             {/* Section 3: Delivery Options */}
@@ -775,7 +949,9 @@ export const CheckoutPage: React.FC = () => {
                         Standard Delivery
                       </label>
                       <p id="checkout-delivery-standard-desc" className="text-[11px] text-[#4F6355]">
-                        3-5 Business Days
+                        {pinServiceability && !pinServiceability.fallback && pinServiceability.standardEstimatedWindow
+                          ? `Est. ${pinServiceability.standardEstimatedWindow} (${pinServiceability.standardTatDays}–${pinServiceability.standardTatDays + 1} Business Days)`
+                          : '3-5 Business Days'}
                       </p>
                     </div>
                   </div>
@@ -809,7 +985,9 @@ export const CheckoutPage: React.FC = () => {
                         Express Delivery
                       </label>
                       <p id="checkout-delivery-express-desc" className="text-[11px] text-[#4F6355]">
-                        1-2 Business Days
+                        {pinServiceability && !pinServiceability.fallback && pinServiceability.expressEstimatedWindow
+                          ? `Est. ${pinServiceability.expressEstimatedWindow} (${pinServiceability.expressTatDays}–${pinServiceability.expressTatDays + 1} Business Days)`
+                          : '1-2 Business Days'}
                       </p>
                     </div>
                   </div>
@@ -927,7 +1105,9 @@ export const CheckoutPage: React.FC = () => {
                           Cash on Delivery (COD)
                         </p>
                         <p className="text-[11px] text-[#647268]">
-                          Not available at present — please pay online via Razorpay.
+                          {pinBlocksCod && pinServiceability
+                            ? `Cash on Delivery is unavailable for PIN ${pinServiceability.pincode} — please pay online via Razorpay.`
+                            : 'Not available at present — please pay online via Razorpay.'}
                         </p>
                       </div>
                     </div>

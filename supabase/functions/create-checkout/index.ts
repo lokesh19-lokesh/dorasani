@@ -1,6 +1,7 @@
 /// <reference path="../deno.d.ts" />
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { getDelhiveryRuntimeConfig, manifestDelhiveryShipmentForOrder } from '../_shared/delhivery.ts';
 import { getSupabaseAdmin, getSupabaseClient } from '../_shared/supabaseClient.ts';
 import {
   computeServerCheckoutSummary,
@@ -184,6 +185,15 @@ serve(async (req: Request) => {
           delivery_option: deliveryOption,
         },
       });
+
+      try {
+        const delhiveryCfg = await getDelhiveryRuntimeConfig(admin);
+        if (delhiveryCfg.enabled && delhiveryCfg.autoManifest && delhiveryCfg.token) {
+          await manifestDelhiveryShipmentForOrder(admin, orderId);
+        }
+      } catch (delhiveryErr) {
+        console.warn('[create-checkout] Non-blocking Delhivery auto-manifest failed:', delhiveryErr);
+      }
 
       const fullOrder = await fetchFullOrderWithRelations(admin, orderId);
 
