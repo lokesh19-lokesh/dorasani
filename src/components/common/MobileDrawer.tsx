@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { X, ChevronRight, Package, Sparkles, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
+import { OptimizedPicture } from './OptimizedPicture';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -59,11 +60,14 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
         {/* Header */}
         <div className="p-4 border-b border-[#D8C7B5] flex items-center justify-between bg-[#F5EFE6]">
           <Link to="/" onClick={onClose} className="flex items-center">
-            <img
+            <OptimizedPicture
               src="/assets/logo.png"
               alt="DORASANI"
-              width={1842}
-              height={854}
+              width={921}
+              height={427}
+              sizes="96px"
+              loading="eager"
+              pictureClassName="inline-flex items-center"
               className="h-9 sm:h-10 w-auto object-contain"
             />
           </Link>

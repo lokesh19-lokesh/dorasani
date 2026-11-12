@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Landmark, Users, HeartHandshake } from 'lucide-react';
 import { SubpageHero } from '../components/common/SubpageHero';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SeoHead } from '../components/common/SeoHead';
 import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
@@ -135,13 +136,15 @@ export const HeritagePage: React.FC = () => {
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
         <div className="relative rounded-2xl sm:rounded-3xl border border-[#D8C7B5] overflow-hidden shadow-lg min-h-[460px] sm:min-h-[500px] lg:min-h-[540px] flex items-center justify-end p-5 sm:p-8 lg:p-12">
           {/* Background Image */}
-          <img
+          <OptimizedPicture
             src="/assets/hero/heritagebannersection2.png"
             alt="DORASANI Heritage - Land of Temples and Textiles"
             width={2170}
             height={725}
+            sizes="100vw"
             loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover object-[18%_center] sm:object-left lg:object-center"
+            pictureClassName="absolute inset-0 w-full h-full block"
+            className="w-full h-full object-cover object-[18%_center] sm:object-left lg:object-center"
           />
 
           {/* Artistic Gradient Overlays for optimal contrast & depth */}
@@ -230,10 +233,12 @@ export const HeritagePage: React.FC = () => {
                   <div>
                     {/* Natural Ratio Artwork Image */}
                     <div className="aspect-[2.2/1] overflow-hidden rounded-md bg-[#FAF5EE]">
-                      <img
+                      <OptimizedPicture
                         src={s.image}
                         alt={s.title}
+                        sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 23vw"
                         loading="lazy"
+                        pictureClassName="block w-full h-full"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     </div>

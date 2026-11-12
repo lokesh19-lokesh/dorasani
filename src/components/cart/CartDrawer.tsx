@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { X, Trash2, ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { getStockStatusMeta } from '../../types';
+import { OptimizedPicture } from '../common/OptimizedPicture';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -94,10 +95,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
               return (
                 <div key={item.id} className="py-3 flex gap-3 sm:gap-4 items-center">
-                  <img
+                  <OptimizedPicture
                     src={item.product.primaryImage}
                     alt={item.product.title}
-                    className="w-16 h-20 sm:w-20 sm:h-24 object-cover object-top rounded border border-[#E8DCCF] bg-[#FAF5EE] shrink-0"
+                    sizes="80px"
+                    loading="lazy"
+                    pictureClassName="shrink-0 block"
+                    className="w-16 h-20 sm:w-20 sm:h-24 object-cover object-top rounded border border-[#E8DCCF] bg-[#FAF5EE]"
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs sm:text-sm font-semibold text-[#1A3B2B] truncate">

@@ -1,21 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnnouncementBar } from '../components/common/AnnouncementBar';
 import { Header } from '../components/common/Header';
 import { Navbar } from '../components/common/Navbar';
 import { Footer } from '../components/common/Footer';
 import { MobileBottomBar } from '../components/common/MobileBottomBar';
-import { CartDrawer } from '../components/cart/CartDrawer';
 import { ToastContainer } from '../components/common/ToastContainer';
-import { Preloader } from '../components/common/Preloader';
 import { BaseStoreSchema } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 
+const Preloader = lazy(() =>
+  import('../components/common/Preloader').then((m) => ({ default: m.Preloader }))
+);
+const CartDrawer = lazy(() =>
+  import('../components/cart/CartDrawer').then((m) => ({ default: m.CartDrawer }))
+);
+
 export const RootLayout: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [hasOpenedCart, setHasOpenedCart] = useState(false);
   const { siteSettings } = useStore();
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+
+  const handleOpenCart = useCallback(() => {
+    setHasOpenedCart(true);
+    setIsCartOpen(true);
+  }, []);
 
   // Show preloader once per session on the home page, or if forced via query param / replay event
   const [showPreloader, setShowPreloader] = useState(() => {
@@ -70,7 +81,9 @@ export const RootLayout: React.FC = () => {
       </a>
 
       {showPreloader && isHomePage && (
-        <Preloader onComplete={handlePreloaderComplete} />
+        <Suspense fallback={null}>
+          <Preloader onComplete={handlePreloaderComplete} />
+        </Suspense>
       )}
 
       <AnnouncementBar />
@@ -86,7 +99,7 @@ export const RootLayout: React.FC = () => {
           />
         </div>
         */}
-        <Header onOpenCart={() => setIsCartOpen(true)} />
+        <Header onOpenCart={handleOpenCart} />
         <Navbar />
       </div>
 
@@ -97,7 +110,11 @@ export const RootLayout: React.FC = () => {
       <Footer />
       <MobileBottomBar />
 
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {hasOpenedCart && (
+        <Suspense fallback={null}>
+          <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+        </Suspense>
+      )}
       <ToastContainer />
     </div>
   );

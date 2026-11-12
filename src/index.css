@@ -408,3 +408,50 @@ dialog::backdrop {
     display: none !important;
   }
 }
+
+/* Art-directed responsive decorative backgrounds (AVIF -> WebP -> fallback) */
+@media (min-width: 1024px) {
+  .home-temple-bg {
+    background-image: url('/assets/hero/ShopbyCategoryhomepage1.png');
+    background-image: image-set(
+      url('/assets/hero/ShopbyCategoryhomepage1-1440w.avif') type('image/avif') 1x,
+      url('/assets/hero/ShopbyCategoryhomepage1.avif') type('image/avif') 2x,
+      url('/assets/hero/ShopbyCategoryhomepage1-1440w.webp') type('image/webp') 1x,
+      url('/assets/hero/ShopbyCategoryhomepage1.webp') type('image/webp') 2x,
+      url('/assets/hero/ShopbyCategoryhomepage1.png') type('image/png') 1x
+    );
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: 100% 100%;
+  }
+}
+
+.login-hero-bg {
+  background-image: url('/assets/banners/hero_model.jpg');
+  background-image: image-set(
+    url('/assets/banners/hero_model.avif') type('image/avif') 1x,
+    url('/assets/banners/hero_model.webp') type('image/webp') 1x,
+    url('/assets/banners/hero_model.jpg') type('image/jpeg') 1x
+  );
+}
+
+/* Defer layout/paint of confirmed off-screen below-the-fold blocks */
+.below-fold-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 28rem;
+}
+
+.below-fold-section-sm {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 18rem;
+}
+
+.below-fold-section-lg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 36rem;
+}
+
+.below-fold-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 28rem;
+}

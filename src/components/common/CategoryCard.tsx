@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type { Category } from '../../types';
+import { OptimizedPicture } from './OptimizedPicture';
 
 interface CategoryCardProps {
   category: Category;
@@ -22,9 +23,11 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
         }`}
       >
         {category.imageUrl ? (
-          <img
+          <OptimizedPicture
             src={category.imageUrl}
             alt={category.name}
+            sizes="(max-width: 640px) 130px, 150px"
+            pictureClassName="block w-full h-full"
             className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-106"
             loading="lazy"
           />

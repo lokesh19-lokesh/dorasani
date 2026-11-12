@@ -13,6 +13,7 @@ import { useStore } from '../../context/StoreContext';
 import { ProductCard } from '../product/ProductCard';
 import { SubpageHero } from '../common/SubpageHero';
 import { SeoHead } from '../common/SeoHead';
+import { OptimizedPicture } from '../common/OptimizedPicture';
 import { buildCollectionPageGraph } from '../../utils/seo';
 import { productService } from '../../services/productService';
 
@@ -621,12 +622,14 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
                       }`}
                     >
                       {sub.imageUrl ? (
-                        <img
+                        <OptimizedPicture
                           src={sub.imageUrl}
                           alt={sub.name}
+                          sizes="64px"
                           loading="lazy"
                           width={120}
                           height={120}
+                          pictureClassName="block w-full h-full"
                           className="w-full h-full object-cover object-top transition-transform group-hover:scale-110"
                         />
                       ) : (

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronDown } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { productService } from '../services/productService';
@@ -285,18 +286,20 @@ export const HomePage: React.FC = () => {
                 className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${safeSlideIndex === idx ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none'
                   }`}
               >
-                <picture className="w-full h-full block">
-                  <source media="(max-width: 640px)" srcSet={slide.mobileImage} />
-                  <img
-                    src={slide.desktopImage}
-                    alt={`${slide.titleLine1} ${slide.titleLine2}`.trim()}
-                    width={2170}
-                    height={725}
-                    fetchPriority={idx === 0 ? 'high' : 'low'}
-                    loading={idx === 0 ? 'eager' : 'lazy'}
-                    className="w-full h-full object-cover object-top sm:object-cover sm:object-center"
-                  />
-                </picture>
+                <OptimizedPicture
+                  src={slide.desktopImage}
+                  mobileSrc={slide.mobileImage}
+                  mobileMedia="(max-width: 640px)"
+                  sizes="100vw"
+                  mobileSizes="100vw"
+                  alt={`${slide.titleLine1} ${slide.titleLine2}`.trim()}
+                  width={2170}
+                  height={725}
+                  fetchPriority={idx === 0 ? 'high' : 'low'}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  pictureClassName="w-full h-full block"
+                  className="w-full h-full object-cover object-top sm:object-cover sm:object-center"
+                />
 
                 <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent sm:hidden pointer-events-none" />
                 <div className="hidden sm:block absolute inset-y-0 left-0 w-[60%] lg:w-[50%] xl:w-[46%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/70 to-transparent pointer-events-none z-[1]" />
@@ -387,7 +390,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ── DESKTOP TEMPLE BACKGROUND WRAPPER ── */}
-      <div className="w-full relative lg:mt-0 lg:bg-[url('/assets/hero/ShopbyCategoryhomepage1.png')] lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-5 lg:pb-2">
+      <div className="w-full relative lg:mt-0 home-temple-bg lg:bg-no-repeat lg:bg-top lg:bg-[length:100%_100%] lg:pt-5 lg:pb-2">
         {/* 2. SHOP BY CATEGORY */}
         <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-5 sm:mb-6">
@@ -436,12 +439,14 @@ export const HomePage: React.FC = () => {
                 to={celebrationBanner.link}
                 className="block relative w-full h-full flex-1 aspect-[1922/818] lg:aspect-auto"
               >
-                <img
+                <OptimizedPicture
                   src={celebrationBanner.image}
                   alt={`${celebrationBanner.title1} ${celebrationBanner.title2}`.trim()}
                   width={1922}
                   height={818}
+                  sizes="(max-width: 1024px) 100vw, 33vw"
                   loading="lazy"
+                  pictureClassName="w-full h-full block"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-y-0 left-0 w-[72%] sm:w-[65%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
@@ -526,12 +531,14 @@ export const HomePage: React.FC = () => {
                 to={legacyBanner.link}
                 className="block relative w-full h-full aspect-[2097/750] lg:aspect-auto min-h-0 lg:min-h-[200px]"
               >
-                <img
+                <OptimizedPicture
                   src={legacyBanner.image}
                   alt={`${legacyBanner.title1} ${legacyBanner.title2}`.trim()}
                   width={2097}
                   height={750}
+                  sizes="(max-width: 1024px) 100vw, 45vw"
                   loading="lazy"
+                  pictureClassName="w-full h-full block"
                   className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-y-0 right-0 w-[72%] sm:w-[65%] bg-gradient-to-l from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
@@ -594,7 +601,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* 5. CUSTOMER REVIEWS & TESTIMONIALS (LIVE FROM SUPABASE) */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 text-center lg:mt-12">
+      <section className="below-fold-section max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-12 text-center lg:mt-12">
         <span className="text-xs font-semibold tracking-[0.25em] text-[#285A3C] uppercase">
           ✦ Real Experiences ✦
         </span>
@@ -638,13 +645,15 @@ export const HomePage: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E8DCCF] shadow-sm flex flex-col sm:flex-row items-center gap-6 text-left max-w-2xl mx-auto">
-            <img
+            <OptimizedPicture
               src="/assets/categories/cat_sarees_arch.jpg"
               alt="DORASANI Handloom Craftsmanship"
               width={896}
               height={1200}
+              sizes="112px"
               loading="lazy"
-              className="w-24 h-28 sm:w-28 sm:h-32 object-cover object-top rounded-xl border border-[#D8C7B5] shadow-xs shrink-0"
+              pictureClassName="shrink-0 block"
+              className="w-24 h-28 sm:w-28 sm:h-32 object-cover object-top rounded-xl border border-[#D8C7B5] shadow-xs"
             />
             <div className="space-y-3">
               <div className="flex items-center gap-1 text-[#C29336]">
@@ -671,7 +680,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. AEO HERITAGE & HANDLOOM QUICK ANSWERS */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 pb-12 sm:pb-16">
+      <section className="below-fold-section max-w-4xl mx-auto px-4 sm:px-8 pb-12 sm:pb-16">
         <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-[#E8DCCF] pb-4">
             <div>

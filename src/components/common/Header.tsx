@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
-import { MobileDrawer } from './MobileDrawer';
+import { OptimizedPicture } from './OptimizedPicture';
+
+const MobileDrawer = lazy(() =>
+  import('./MobileDrawer').then((m) => ({ default: m.MobileDrawer }))
+);
 
 interface HeaderProps {
   onOpenCart: () => void;
@@ -12,11 +16,11 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
   const [isSearchExpandedMobile, setIsSearchExpandedMobile] = useState(false);
 
   const { cartCount, wishlistCount, user } = useStore();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +40,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
                 type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
+                onClick={() => {
+                  setHasOpenedMenu(true);
+                  setIsMobileMenuOpen(true);
+                }}
                 className="lg:hidden p-1.5 -ml-1 text-[#113520] hover:text-[#06180c] transition-colors"
                 aria-label="Open menu"
               >
@@ -47,11 +54,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                 to="/"
                 className="flex items-center py-0.5 group transition-transform duration-300 hover:scale-102"
               >
-                <img
+                <OptimizedPicture
                   src="/assets/logo.png"
                   alt="DORASANI — A Symbol of Tradition"
-                  width={1842}
-                  height={854}
+                  width={921}
+                  height={427}
+                  sizes="(max-width: 640px) 100px, 140px"
+                  loading="eager"
+                  pictureClassName="inline-flex items-center shrink-0"
                   className="h-11 sm:h-13 md:h-14 lg:h-15 xl:h-16 w-auto object-contain"
                 />
               </Link>
@@ -230,10 +240,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
       </header>
 
       {/* Mobile Drawer */}
-      <MobileDrawer
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+      {hasOpenedMenu && (
+        <Suspense fallback={null}>
+          <MobileDrawer
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          />
+        </Suspense>
+      )}
     </>
   );
 };

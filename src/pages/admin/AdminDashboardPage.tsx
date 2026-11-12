@@ -64,6 +64,7 @@ import {
 import { authService } from '../../services/authService';
 import { useStore } from '../../context/StoreContext';
 import { SeoHead } from '../../components/common/SeoHead';
+import { OptimizedPicture } from '../../components/common/OptimizedPicture';
 import {
   AdminAnalyticsPanel,
   OverviewAnalyticsPulse,
@@ -3058,9 +3059,14 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link to="/" className="shrink-0" title="DORASANI User Interface">
-              <img
+              <OptimizedPicture
                 src="/assets/logo.png"
                 alt="DORASANI"
+                width={921}
+                height={427}
+                sizes="120px"
+                loading="eager"
+                pictureClassName="inline-block"
                 className="h-10 sm:h-11 w-auto object-contain"
               />
             </Link>
@@ -7215,9 +7221,12 @@ export const AdminDashboardPage: React.FC = () => {
                       >
                         <div className="space-y-3">
                           <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black/10">
-                            <img
+                            <OptimizedPicture
                               src={b.desktop_image_url}
                               alt={b.title_line_1}
+                              sizes="(max-width: 768px) 92vw, 46vw"
+                              loading="lazy"
+                              pictureClassName="w-full h-full block"
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute top-2 left-2 flex items-center gap-1.5">

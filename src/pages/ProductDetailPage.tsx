@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/product/ProductCard';
@@ -321,12 +322,14 @@ export const ProductDetailPage: React.FC = () => {
                       : 'border-[#BCD8AA] hover:border-[#285A3C]/60'
                   }`}
                 >
-                  <img
+                  <OptimizedPicture
                     src={img}
                     alt={`${product.title} thumbnail ${idx + 1}`}
                     width={160}
                     height={192}
+                    sizes="80px"
                     loading="lazy"
+                    pictureClassName="w-full h-full block"
                     className="w-full h-full object-cover object-top"
                   />
                 </button>
@@ -334,12 +337,13 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             <div className="flex-1 w-full rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm bg-[#FAF5EE] relative aspect-[4/5] group">
-              <img
+              <OptimizedPicture
                 src={selectedImage || product.primaryImage}
                 alt={`${product.title} — ${product.fabric || product.category}`}
-                width={1000}
-                height={1250}
+                sizes="(max-width: 1024px) 94vw, 56vw"
                 fetchPriority="high"
+                loading="eager"
+                pictureClassName="w-full h-full block"
                 className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
               />
             </div>
@@ -725,7 +729,7 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* 3. Product Tabs & Specifications */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-4">
+      <div className="below-fold-section max-w-7xl mx-auto px-4 sm:px-8 pt-4">
         <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs">
           <h2 className="font-serif-royal text-lg sm:text-xl font-bold text-[#1A3B2B] mb-4">
             Product Specifications &amp; Handloom Care
@@ -841,12 +845,14 @@ export const ProductDetailPage: React.FC = () => {
 
                 {product.blouseIncluded && (
                   <div className="rounded-xl overflow-hidden border border-[#BCD8AA] bg-[#D0E9C0]/25 p-4 flex items-center gap-4">
-                    <img
+                    <OptimizedPicture
                       src="/assets/products/blouse_piece.jpg"
                       alt="Unstitched Blouse Piece"
                       width={96}
                       height={80}
+                      sizes="96px"
                       loading="lazy"
+                      pictureClassName="shrink-0 block"
                       className="w-24 h-20 object-cover rounded-md border border-[#D8C7B5]"
                     />
                     <div>
@@ -1147,7 +1153,7 @@ export const ProductDetailPage: React.FC = () => {
 
       {/* 4. You May Also Like Section */}
       {relatedProducts.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+        <div className="below-fold-section max-w-7xl mx-auto px-4 sm:px-8">
           <div className="text-center sm:text-left mb-6">
             <h2 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B]">
               You May Also Like

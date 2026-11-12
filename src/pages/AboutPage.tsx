@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
 export const AboutPage: React.FC = () => {
@@ -111,15 +112,14 @@ export const AboutPage: React.FC = () => {
           {/* Visual Showcase */}
           <div className="lg:col-span-5 order-2 lg:order-1">
             <div className="relative rounded-2xl overflow-hidden border border-[#D8C7B5] shadow-lg bg-[#1A3B2B] max-w-[460px] mx-auto aspect-[3/4]">
-              <img
+              <OptimizedPicture
                 src="/assets/banners/about_heritage_showcase.jpg"
-                srcSet="/assets/banners/about_heritage_showcase-480w.jpg 480w, /assets/banners/about_heritage_showcase.jpg 896w"
                 sizes="(max-width: 640px) 92vw, (max-width: 1024px) 90vw, 460px"
                 alt="Woman draped in a deep emerald-green Kanchipuram pure silk saree with antique gold zari border inside DORASANI's sunlit handloom boutique"
                 width={896}
                 height={1200}
                 loading="eager"
-                decoding="async"
+                pictureClassName="w-full h-full block"
                 className="w-full h-full object-cover object-top"
               />
               <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#1A3B2B]/95 via-[#1A3B2B]/55 to-transparent flex flex-col justify-end p-6 text-white space-y-1">
@@ -233,7 +233,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 4. The Dorasani Promise of Trust & Care Section */}
-      <section className="bg-gradient-to-b from-[#FAF5EE] to-[#D0E9C0]/30 py-12 sm:py-16 border-y border-[#BCD8AA]/60">
+      <section className="below-fold-section-lg bg-gradient-to-b from-[#FAF5EE] to-[#D0E9C0]/30 py-12 sm:py-16 border-y border-[#BCD8AA]/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-10">
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-bold text-[#285A3C] tracking-widest uppercase font-poppins">
@@ -301,7 +301,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 5. In-Store & Online Experience */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8">
+      <section className="below-fold-section max-w-7xl mx-auto px-4 sm:px-8">
         <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 sm:p-10 shadow-xs">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
@@ -361,7 +361,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 6. Closing Statement & Final CTA */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-8 text-center space-y-6 pt-4">
+      <section className="below-fold-section-sm max-w-4xl mx-auto px-4 sm:px-8 text-center space-y-6 pt-4">
         <div className="bg-[#D0E9C0]/45 border border-[#BCD8AA] rounded-2xl p-8 sm:p-12 shadow-sm space-y-4">
           <p className="font-golden text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A3B2B] leading-relaxed">
             “Step into the grace of tradition. Step into Dorasani.”

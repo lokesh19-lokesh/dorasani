@@ -19,6 +19,7 @@ import {
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -166,9 +167,14 @@ export const RegisterPage: React.FC = () => {
           {/* Logo Header */}
           <div className="text-center mb-5">
             <Link to="/" className="inline-block transition-transform duration-200 hover:scale-102">
-              <img
+              <OptimizedPicture
                 src="/assets/logo.png"
                 alt="DORASANI - Where Heritage Meets Divine Elegance"
+                width={921}
+                height={427}
+                sizes="160px"
+                loading="eager"
+                pictureClassName="inline-block"
                 className="h-14 sm:h-16 md:h-18 w-auto mx-auto object-contain"
               />
             </Link>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Tag, ShieldCheck, ArrowRight, Check, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { getStockStatusMeta } from '../types';
 
 export const CartPage: React.FC = () => {
@@ -18,9 +19,16 @@ export const CartPage: React.FC = () => {
     total,
     appliedCoupon,
     availableCoupons,
+    refreshCoupons,
     applyCoupon,
     removeCoupon,
   } = useStore();
+
+  useEffect(() => {
+    if (availableCoupons.length === 0) {
+      void refreshCoupons();
+    }
+  }, [availableCoupons.length, refreshCoupons]);
 
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
@@ -142,12 +150,15 @@ export const CartPage: React.FC = () => {
                           aria-label={`Select ${item.product.title}`}
                           className="accent-[#285A3C] w-4 h-4 cursor-pointer"
                         />
-                        <img
+                        <OptimizedPicture
                           src={item.product.primaryImage}
                           alt={item.product.title}
                           width={800}
                           height={1000}
-                          className="w-16 h-20 sm:w-20 sm:h-24 object-cover object-top rounded-md border border-[#BCD8AA] bg-[#FAF5EE] shrink-0"
+                          sizes="80px"
+                          loading="lazy"
+                          pictureClassName="shrink-0 block"
+                          className="w-16 h-20 sm:w-20 sm:h-24 object-cover object-top rounded-md border border-[#BCD8AA] bg-[#FAF5EE]"
                         />
 
                         <div className="space-y-1 min-w-0">

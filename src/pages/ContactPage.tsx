@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Send, Clock, ChevronRight } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Clock, ChevronRight, ExternalLink } from 'lucide-react';
 import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -100,7 +100,7 @@ export const ContactPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Contact Info */}
           <div className="lg:col-span-5 bg-white rounded-xl border border-[#D8C7B5] p-6 sm:p-8 space-y-6 shadow-xs">
@@ -270,6 +270,41 @@ export const ContactPage: React.FC = () => {
             </form>
           </div>
         </div>
+
+        {/* Store Location Map */}
+        <section className="below-fold-section bg-white rounded-xl border border-[#D8C7B5] overflow-hidden shadow-xs">
+          <div className="px-6 py-4 sm:px-8 sm:py-5 border-b border-[#E8DCCF] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h2 className="font-cinzel-royal font-bold text-lg text-[#1A3B2B]">
+                Find Our Boutique
+              </h2>
+              <p className="text-xs text-[#4F6355] mt-0.5">
+                Visit Dorasani Sarees — A Symbol of Tradition in Quthbullapur, Hyderabad.
+              </p>
+            </div>
+            <a
+              href="https://maps.google.com/?q=17.5078482,78.4628003"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#285A3C] hover:text-[#1A3B2B] hover:underline shrink-0"
+            >
+              <span>Open in Google Maps</span>
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+            </a>
+          </div>
+          <div className="w-full bg-[#FAF5EE]">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3804.992987519357!2d78.46022537555304!3d17.507848183400256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb9166f892e9fd%3A0xd4b10eb11b889832!2sDorasani%20Sarees%20A%20Symbol%20of%20Tradition!5e0!3m2!1sen!2sin!4v1794463162758!5m2!1sen!2sin"
+              title="Dorasani Sarees A Symbol of Tradition — Store Location Map"
+              width={600}
+              height={450}
+              className="w-full h-[320px] sm:h-[400px] lg:h-[450px] border-0 block"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          </div>
+        </section>
       </div>
     </div>
   );

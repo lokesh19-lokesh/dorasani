@@ -1,33 +1,22 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
+import { OptimizedPicture } from './OptimizedPicture';
 
 interface PreloaderProps {
   onComplete?: () => void;
   forceShow?: boolean;
 }
 
-// Key assets to preload for application readiness
-const ESSENTIAL_ASSETS = [
-  '/assets/preloader/bg_temple_desktop.jpg',
-  '/assets/preloader/bg_temple_mobile.jpg',
-  '/assets/preloader/woman_standing_transparent.png',
-  '/assets/preloader/woman_walking_transparent.png',
-  '/assets/logo.png',
-  '/assets/fevicon.png',
-  '/assets/hero/desktop/h1.png',
-  '/assets/hero/mobile/h1.png',
-  '/assets/hero/ShopbyCategoryhomepage.png',
-];
-
-export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = false }) => {
+export const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('Weaving Sacred Threads...');
-  const [isExiting, setIsExiting] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [, setIsExiting] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const bgDesktopRef = useRef<HTMLDivElement>(null);
-  const bgMobileRef = useRef<HTMLDivElement>(null);
+  const bgWrapRef = useRef<HTMLDivElement>(null);
   const characterWrapRef = useRef<HTMLDivElement>(null);
   const womanWalkingRef = useRef<HTMLImageElement>(null);
   const womanStandingRef = useRef<HTMLImageElement>(null);
@@ -121,12 +110,6 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
       }
     }, 40);
 
-    // Warm up image cache in background
-    ESSENTIAL_ASSETS.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-    });
-
     // Hard failsafe timeout: Exit at 3.5s maximum no matter what
     const failsafeTimeout = setTimeout(() => {
       if (!isCancelled) {
@@ -157,11 +140,13 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
       timelineRef.current = tl;
 
       // 1. Temple background reveal
-      tl.fromTo(
-        [bgDesktopRef.current, bgMobileRef.current],
-        { opacity: 0, scale: 1.03 },
-        { opacity: 1, scale: 1.0, duration: 0.7, ease: 'power2.out' }
-      );
+      if (bgWrapRef.current) {
+        tl.fromTo(
+          bgWrapRef.current,
+          { opacity: 0, scale: 1.03 },
+          { opacity: 1, scale: 1.0, duration: 0.7, ease: 'power2.out' }
+        );
+      }
 
       // 2. Royal Brand Card Reveal (starts at 0.15s for immediate brand presence)
       if (brandCardRef.current) {
@@ -268,31 +253,27 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
       style={{ touchAction: 'none' }}
       title="Click anywhere to enter"
     >
-      {/* ─── DESKTOP PANORAMIC TEMPLE BACKGROUND (Visible on >= 768px) ─── */}
+      {/* ─── ART-DIRECTED TEMPLE BACKGROUND (Single Responsive Picture) ─── */}
       <div
-        ref={bgDesktopRef}
-        className="hidden md:block absolute inset-0 w-full h-full bg-[#FAF5EE]"
+        ref={bgWrapRef}
+        className="absolute inset-0 w-full h-full bg-[#FAF5EE]"
       >
-        <img
+        <OptimizedPicture
+          mobileSrc="/assets/preloader/bg_temple_mobile.jpg"
           src="/assets/preloader/bg_temple_desktop.jpg"
+          mobileMedia="(max-width: 767px)"
+          sizes="100vw"
+          mobileSizes="100vw"
+          fetchPriority="high"
+          loading="eager"
+          decoding="sync"
           alt="DORASANI Sacred Temple Courtyard"
-          className="w-full h-full object-cover object-center"
+          pictureClassName="block w-full h-full"
+          className="w-full h-full object-cover object-top md:object-center"
         />
         {/* Soft, warm ambient vignettes to frame the artwork */}
-        <div className="absolute inset-0 bg-radial-[at_30%_40%] from-transparent via-[#FAF5EE]/30 to-[#FAF5EE]/70 pointer-events-none" />
-      </div>
-
-      {/* ─── MOBILE VERTICAL PORTRAIT TEMPLE BACKGROUND (Visible on < 768px) ─── */}
-      <div
-        ref={bgMobileRef}
-        className="block md:hidden absolute inset-0 w-full h-full bg-[#FAF5EE]"
-      >
-        <img
-          src="/assets/preloader/bg_temple_mobile.jpg"
-          alt="DORASANI Temple Corridor"
-          className="w-full h-full object-cover object-top"
-        />
-        <div className="absolute inset-0 bg-radial-[at_50%_25%] from-transparent via-[#FAF5EE]/25 to-[#FAF5EE]/65 pointer-events-none" />
+        <div className="hidden md:block absolute inset-0 bg-radial-[at_30%_40%] from-transparent via-[#FAF5EE]/30 to-[#FAF5EE]/70 pointer-events-none" />
+        <div className="block md:hidden absolute inset-0 bg-radial-[at_50%_25%] from-transparent via-[#FAF5EE]/25 to-[#FAF5EE]/65 pointer-events-none" />
       </div>
 
       {/* ─── FLOATING LOTUS & ROSE PETAL PARTICLES ─── */}
@@ -335,19 +316,25 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
         }`}
       >
         {/* Walking Pose */}
-        <img
-          ref={womanWalkingRef}
+        <OptimizedPicture
+          imgRef={womanWalkingRef}
           src="/assets/preloader/woman_walking_transparent.png"
           alt="Graceful Woman in Pastel Pistachio Green Saree"
-          className="absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-2xl"
+          sizes="(max-width: 767px) 68vw, 50vh"
+          loading="eager"
+          pictureClassName="absolute inset-0 w-full h-full block"
+          className="w-full h-full object-contain object-bottom drop-shadow-2xl"
         />
 
         {/* Standing Pose (Holding auspicious lotus urli bowl) */}
-        <img
-          ref={womanStandingRef}
+        <OptimizedPicture
+          imgRef={womanStandingRef}
           src="/assets/preloader/woman_standing_transparent.png"
           alt="Woman in Pastel Pistachio Green Silk Saree #D0E9C0"
-          className="absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-2xl opacity-0"
+          sizes="(max-width: 767px) 68vw, 50vh"
+          loading="eager"
+          pictureClassName="absolute inset-0 w-full h-full block"
+          className="w-full h-full object-contain object-bottom drop-shadow-2xl opacity-0"
         />
       </div>
 
@@ -371,9 +358,14 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete, forceShow = fa
           {/* Authentic Dorasani Lotus Icon & Heritage Badge */}
           <div className="flex items-center gap-2.5 mb-2.5 justify-center md:justify-start">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-[#D8C7B5] shadow-xs flex items-center justify-center p-1 shrink-0 overflow-hidden">
-              <img
+              <OptimizedPicture
                 src="/assets/fevicon.png"
                 alt="DORASANI Royal Emblem"
+                width={512}
+                height={512}
+                sizes="48px"
+                loading="eager"
+                pictureClassName="block w-full h-full"
                 className="w-full h-full object-contain"
               />
             </div>

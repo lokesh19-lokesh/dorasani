@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, ArrowRight } from 'lucide-react';
+import { OptimizedPicture } from './OptimizedPicture';
 
 export interface BreadcrumbItem {
   name: string;
@@ -49,17 +50,20 @@ export const SubpageHero: React.FC<SubpageHeroProps> = ({
       {/* 1. Main Background Media Container */}
       <div className="relative w-full h-[430px] xs:h-[460px] sm:h-[500px] md:h-auto md:aspect-[2170/725] md:min-h-[380px] md:max-h-[520px] flex flex-col md:flex-row md:items-center">
         {/* Responsive Picture for LCP hero */}
-        <picture className="absolute inset-0 w-full h-full block">
-          <source media="(max-width: 767px)" srcSet={mobileImage} />
-          <img
-            src={desktopImage}
-            alt={title}
-            width={2170}
-            height={725}
-            fetchPriority="high"
-            className="w-full h-full object-cover object-[center_28%] md:object-center select-none"
-          />
-        </picture>
+        <OptimizedPicture
+          src={desktopImage}
+          mobileSrc={mobileImage}
+          mobileMedia="(max-width: 767px)"
+          sizes="100vw"
+          mobileSizes="100vw"
+          alt={title}
+          width={2170}
+          height={725}
+          fetchPriority="high"
+          loading="eager"
+          pictureClassName="absolute inset-0 w-full h-full block"
+          className="w-full h-full object-cover object-[center_28%] md:object-center select-none"
+        />
 
         {/* Soft Vignette Gradients for Text Legibility without obscuring the artwork */}
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#FAF5EE]/95 via-[#FAF5EE]/45 to-transparent pointer-events-none md:hidden" />

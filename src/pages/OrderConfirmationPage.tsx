@@ -11,10 +11,10 @@ import {
   ArrowRight,
   ExternalLink,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import type { Order } from '../types';
 
 export const OrderConfirmationPage: React.FC = () => {
@@ -52,16 +52,23 @@ export const OrderConfirmationPage: React.FC = () => {
 
   useEffect(() => {
     if (!order) return;
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.6 },
-        colors: ['#285A3C', '#C99632', '#D0E9C0', '#FAF5EE'],
+    let active = true;
+    void import('canvas-confetti')
+      .then(({ default: confetti }) => {
+        if (!active) return;
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#285A3C', '#C99632', '#D0E9C0', '#FAF5EE'],
+        });
+      })
+      .catch(() => {
+        // Ignore if confetti canvas is unavailable
       });
-    } catch {
-      // Ignore if confetti canvas is unavailable
-    }
+    return () => {
+      active = false;
+    };
   }, [order?.id]);
 
   if (loading) {
@@ -264,9 +271,12 @@ export const OrderConfirmationPage: React.FC = () => {
             <div className="space-y-3">
               {order.items.map((item, i) => (
                 <div key={`${item.productId}-${i}`} className="flex items-center gap-3 text-xs">
-                  <img
+                  <OptimizedPicture
                     src={item.imageUrl}
                     alt={item.productTitle}
+                    sizes="56px"
+                    loading="lazy"
+                    pictureClassName="shrink-0 block"
                     className="w-12 h-14 object-cover rounded border border-[#D8C7B5] bg-[#FAF5EE]"
                   />
                   <div className="flex-1 min-w-0">

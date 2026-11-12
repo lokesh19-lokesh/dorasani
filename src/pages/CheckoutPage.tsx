@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { delhiveryService } from '../services/delhiveryService';
 import { getStockStatusMeta, type DelhiveryServiceabilityResult } from '../types';
 
@@ -1160,10 +1161,13 @@ export const CheckoutPage: React.FC = () => {
                   return (
                     <div key={item.id} className="pt-2 flex items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <img
+                        <OptimizedPicture
                           src={item.product.primaryImage}
                           alt={item.product.title}
-                          className="w-10 h-12 object-cover rounded border border-[#D8C7B5] shrink-0"
+                          sizes="48px"
+                          loading="lazy"
+                          pictureClassName="shrink-0 block"
+                          className="w-10 h-12 object-cover rounded border border-[#D8C7B5]"
                         />
                         <div className="truncate">
                           <p className="font-semibold text-[#1A3B2B] truncate">{item.product.title}</p>

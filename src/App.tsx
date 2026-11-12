@@ -1,41 +1,92 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { RootLayout } from './layouts/RootLayout';
 import { ToastContainer } from './components/common/ToastContainer';
 
-// Page Components
+// Eager Landing Route + Route-Split Secondary Pages
 import { HomePage } from './pages/HomePage';
-import { ShopPage } from './pages/ShopPage';
-import { SareesPage } from './pages/SareesPage';
-import { EthnicWearPage } from './pages/EthnicWearPage';
-import { KurtisPage } from './pages/KurtisPage';
-import { LehengasPage } from './pages/LehengasPage';
-import { KidsWearPage } from './pages/KidsWearPage';
-import { FestivePage } from './pages/FestivePage';
-import { NewArrivalsPage } from './pages/NewArrivalsPage';
-import { BestsellersPage } from './pages/BestsellersPage';
-import { DynamicCollectionPage } from './pages/DynamicCollectionPage';
-import { HeritagePage } from './pages/HeritagePage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { SearchResultsPage } from './pages/SearchResultsPage';
-import { WishlistPage } from './pages/WishlistPage';
-import { CartPage } from './pages/CartPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { AccountPage } from './pages/AccountPage';
-import { TrackOrderPage } from './pages/TrackOrderPage';
-import { AboutPage } from './pages/AboutPage';
-import { ContactPage } from './pages/ContactPage';
-import { FAQPage } from './pages/FAQPage';
-import { ShippingPolicyPage } from './pages/ShippingPolicyPage';
-import { ReturnsPolicyPage } from './pages/ReturnsPolicyPage';
-import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
-import { TermsPage } from './pages/TermsPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+
+const ShopPage = lazy(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
+const SareesPage = lazy(() => import('./pages/SareesPage').then((m) => ({ default: m.SareesPage })));
+const EthnicWearPage = lazy(() =>
+  import('./pages/EthnicWearPage').then((m) => ({ default: m.EthnicWearPage }))
+);
+const KurtisPage = lazy(() => import('./pages/KurtisPage').then((m) => ({ default: m.KurtisPage })));
+const LehengasPage = lazy(() =>
+  import('./pages/LehengasPage').then((m) => ({ default: m.LehengasPage }))
+);
+const KidsWearPage = lazy(() =>
+  import('./pages/KidsWearPage').then((m) => ({ default: m.KidsWearPage }))
+);
+const FestivePage = lazy(() =>
+  import('./pages/FestivePage').then((m) => ({ default: m.FestivePage }))
+);
+const NewArrivalsPage = lazy(() =>
+  import('./pages/NewArrivalsPage').then((m) => ({ default: m.NewArrivalsPage }))
+);
+const BestsellersPage = lazy(() =>
+  import('./pages/BestsellersPage').then((m) => ({ default: m.BestsellersPage }))
+);
+const DynamicCollectionPage = lazy(() =>
+  import('./pages/DynamicCollectionPage').then((m) => ({ default: m.DynamicCollectionPage }))
+);
+const HeritagePage = lazy(() =>
+  import('./pages/HeritagePage').then((m) => ({ default: m.HeritagePage }))
+);
+const ProductDetailPage = lazy(() =>
+  import('./pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage }))
+);
+const SearchResultsPage = lazy(() =>
+  import('./pages/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage }))
+);
+const WishlistPage = lazy(() =>
+  import('./pages/WishlistPage').then((m) => ({ default: m.WishlistPage }))
+);
+const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() =>
+  import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage }))
+);
+const OrderConfirmationPage = lazy(() =>
+  import('./pages/OrderConfirmationPage').then((m) => ({ default: m.OrderConfirmationPage }))
+);
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() =>
+  import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
+);
+const AccountPage = lazy(() =>
+  import('./pages/AccountPage').then((m) => ({ default: m.AccountPage }))
+);
+const TrackOrderPage = lazy(() =>
+  import('./pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage }))
+);
+const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazy(() =>
+  import('./pages/ContactPage').then((m) => ({ default: m.ContactPage }))
+);
+const FAQPage = lazy(() => import('./pages/FAQPage').then((m) => ({ default: m.FAQPage })));
+const ShippingPolicyPage = lazy(() =>
+  import('./pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage }))
+);
+const ReturnsPolicyPage = lazy(() =>
+  import('./pages/ReturnsPolicyPage').then((m) => ({ default: m.ReturnsPolicyPage }))
+);
+const PrivacyPolicyPage = lazy(() =>
+  import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage }))
+);
+const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
+const NotFoundPage = lazy(() =>
+  import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
+);
+const AdminDashboardPage = lazy(() =>
+  import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage }))
+);
+
+const RouteFallback: React.FC = () => (
+  <div className="min-h-[60vh] flex items-center justify-center bg-[#FAF5EE] px-4">
+    <div className="w-8 h-8 rounded-full border-2 border-[#285A3C] border-t-transparent animate-spin" aria-label="Loading page" />
+  </div>
+);
 
 const AuthCallbackHandler: React.FC = () => {
   const { passwordRecoveryPending, user, authLoading, showToast } = useStore();
@@ -79,8 +130,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <StoreProvider>
         <AuthCallbackHandler />
-        <Routes>
-          <Route path="/" element={<RootLayout />}>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<RootLayout />}>
             {/* Primary Landing & Catalog Pages */}
             <Route index element={<HomePage />} />
             <Route path="shop" element={<ShopPage />} />
@@ -170,7 +222,8 @@ export const App: React.FC = () => {
               </>
             }
           />
-        </Routes>
+          </Routes>
+        </Suspense>
       </StoreProvider>
     </BrowserRouter>
   );

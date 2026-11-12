@@ -19,6 +19,7 @@ import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
 import { delhiveryService, type LiveTrackResponse } from '../services/delhiveryService';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import type { Order } from '../types';
 
 export const TrackOrderPage: React.FC = () => {
@@ -451,9 +452,12 @@ export const TrackOrderPage: React.FC = () => {
                 <div className="space-y-3">
                   {currentOrder.items.map((item, idx) => (
                     <div key={`${item.productId}-${idx}`} className="flex items-center gap-3 text-xs">
-                      <img
+                      <OptimizedPicture
                         src={item.imageUrl}
                         alt={item.productTitle}
+                        sizes="56px"
+                        loading="lazy"
+                        pictureClassName="shrink-0 block"
                         className="w-12 h-14 object-cover rounded border border-[#D8C7B5] bg-[#FAF5EE]"
                       />
                       <div className="flex-1 min-w-0">

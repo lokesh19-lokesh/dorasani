@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Share2, Trash2, ArrowRight } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { useStore } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
 import { getStockStatusMeta } from '../types';
@@ -107,13 +108,15 @@ export const WishlistPage: React.FC = () => {
                   >
                     {/* Image */}
                     <div className="relative aspect-[4/5] bg-[#FAF5EE] overflow-hidden">
-                      <Link to={`/products/${item.product.slug}`}>
-                        <img
+                      <Link to={`/products/${item.product.slug}`} className="block w-full h-full">
+                        <OptimizedPicture
                           src={item.product.primaryImage}
                           alt={item.product.title}
                           width={800}
                           height={1000}
+                          sizes="(max-width: 640px) 46vw, 23vw"
                           loading="lazy"
+                          pictureClassName="block w-full h-full"
                           className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                         />
                       </Link>

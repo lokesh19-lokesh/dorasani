@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { invalidateStorefrontCache } from './productService';
 import type { Json, TablesUpdate, UserRoleType } from '../types/supabase';
 import type { UserRole } from '../types';
 
@@ -375,6 +376,7 @@ export const adminService = {
     });
     if (ledgerErr) throw ledgerErr;
 
+    invalidateStorefrontCache();
     return prod;
   },
 
@@ -517,6 +519,7 @@ export const adminService = {
       if (ledgerErr) throw ledgerErr;
     }
 
+    invalidateStorefrontCache();
     return data;
   },
 
@@ -524,6 +527,7 @@ export const adminService = {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) throw error;
+    invalidateStorefrontCache();
     return true;
   },
 
@@ -556,6 +560,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache();
     return data;
   },
 
@@ -577,6 +582,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache();
     return data;
   },
 
@@ -637,6 +643,7 @@ export const adminService = {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) throw error;
+    invalidateStorefrontCache();
     return true;
   },
 
@@ -793,6 +800,9 @@ export const adminService = {
 
     if (ledgerErr) throw ledgerErr;
 
+    invalidateStorefrontCache('products:');
+    invalidateStorefrontCache('product:');
+    invalidateStorefrontCache('related:');
     return { previous_quantity, new_quantity };
   },
 
@@ -840,6 +850,9 @@ export const adminService = {
 
     if (ledgerErr) throw ledgerErr;
 
+    invalidateStorefrontCache('products:');
+    invalidateStorefrontCache('product:');
+    invalidateStorefrontCache('related:');
     return { previous_quantity, new_quantity: safeTarget };
   },
 
@@ -959,6 +972,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache('banners:');
     return data;
   },
 
@@ -971,6 +985,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache('banners:');
     return data;
   },
 
@@ -978,6 +993,7 @@ export const adminService = {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
     const { error } = await supabase.from('banners').delete().eq('id', id);
     if (error) throw error;
+    invalidateStorefrontCache('banners:');
     return true;
   },
 
@@ -1000,6 +1016,7 @@ export const adminService = {
         { onConflict: 'key' }
       );
     if (error) throw error;
+    invalidateStorefrontCache('site_settings');
     return true;
   },
 
@@ -1015,6 +1032,7 @@ export const adminService = {
       .from('site_settings')
       .upsert(rows, { onConflict: 'key' });
     if (error) throw error;
+    invalidateStorefrontCache('site_settings');
     return true;
   },
 
@@ -1042,6 +1060,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache('service_benefits');
     return data;
   },
 
@@ -1061,6 +1080,7 @@ export const adminService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateStorefrontCache('service_benefits');
     return data;
   },
 
@@ -1068,6 +1088,7 @@ export const adminService = {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
     const { error } = await supabase.from('service_benefits').delete().eq('id', id);
     if (error) throw error;
+    invalidateStorefrontCache('service_benefits');
     return true;
   },
 
@@ -1292,6 +1313,11 @@ export const adminService = {
       .single();
     if (error) throw error;
     await recomputeProductRatingStats(data?.product_id);
+    invalidateStorefrontCache('product_reviews:');
+    invalidateStorefrontCache('featured_reviews:');
+    invalidateStorefrontCache('products:');
+    invalidateStorefrontCache('product:');
+    invalidateStorefrontCache('related:');
     return data;
   },
 
@@ -1306,6 +1332,11 @@ export const adminService = {
     const { error } = await supabase.from('product_reviews').delete().eq('id', id);
     if (error) throw error;
     await recomputeProductRatingStats(existing?.product_id);
+    invalidateStorefrontCache('product_reviews:');
+    invalidateStorefrontCache('featured_reviews:');
+    invalidateStorefrontCache('products:');
+    invalidateStorefrontCache('product:');
+    invalidateStorefrontCache('related:');
     return true;
   },
 };

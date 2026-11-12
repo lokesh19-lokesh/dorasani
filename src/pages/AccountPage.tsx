@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
 import { SeoHead } from '../components/common/SeoHead';
@@ -438,9 +439,12 @@ export const AccountPage: React.FC = () => {
                           className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                         >
                           <div className="flex items-center gap-3">
-                            <img
+                            <OptimizedPicture
                               src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
                               alt={ord.items[0]?.productTitle || 'Order Item'}
+                              sizes="64px"
+                              loading="lazy"
+                              pictureClassName="shrink-0 block"
                               className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
                             />
                             <div className="space-y-1">
@@ -563,9 +567,12 @@ export const AccountPage: React.FC = () => {
                         className="p-4 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                       >
                         <div className="flex items-center gap-3">
-                          <img
+                          <OptimizedPicture
                             src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
                             alt={ord.items[0]?.productTitle || 'Order Item'}
+                            sizes="64px"
+                            loading="lazy"
+                            pictureClassName="shrink-0 block"
                             className="w-14 h-16 object-cover rounded border border-[#D8C7B5]"
                           />
                           <div className="space-y-1">

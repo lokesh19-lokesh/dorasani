@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { OptimizedPicture } from './OptimizedPicture';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -177,16 +178,18 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* 3. Main Footer Links & Brand Section */}
-      <div className="py-10 sm:py-14 px-4 sm:px-8 max-w-7xl mx-auto">
+      <div className="below-fold-footer py-10 sm:py-14 px-4 sm:px-8 max-w-7xl mx-auto">
         {/* Brand Header inside Footer */}
         <div className="flex flex-col items-center text-center mb-10">
           <Link to="/" className="inline-block transition-transform duration-300 hover:scale-102 mb-1">
-            <img
+            <OptimizedPicture
               src="/assets/logo.png"
               alt="DORASANI - Where Heritage Meets Divine Elegance"
-              width={1842}
-              height={854}
+              width={921}
+              height={427}
+              sizes="(max-width: 640px) 150px, 190px"
               loading="lazy"
+              pictureClassName="inline-block"
               className="h-16 sm:h-18 md:h-20 lg:h-22 w-auto object-contain mx-auto"
             />
           </Link>

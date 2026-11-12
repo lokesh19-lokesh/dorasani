@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, CheckCircle2, Refresh
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
 import { SeoHead } from '../components/common/SeoHead';
+import { OptimizedPicture } from '../components/common/OptimizedPicture';
 
 type AuthMode = 'password' | 'magic' | 'forgot';
 
@@ -152,10 +153,7 @@ export const LoginPage: React.FC = () => {
       <div className="max-w-4xl w-full bg-white rounded-2xl border border-[#D8C7B5] shadow-lg overflow-hidden grid grid-cols-1 md:grid-cols-12">
         {/* Left Side: Brand Story & Model Photo */}
         <div
-          className="hidden md:flex md:col-span-6 bg-cover bg-center p-8 flex-col justify-between text-white relative min-h-[460px]"
-          style={{
-            backgroundImage: 'url(/assets/banners/hero_model.jpg)',
-          }}
+          className="hidden md:flex md:col-span-6 login-hero-bg bg-cover bg-center p-8 flex-col justify-between text-white relative min-h-[460px]"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-[#1A3B2B]/95 via-[#285A3C]/60 to-transparent" />
           <div className="relative z-10">
@@ -180,9 +178,14 @@ export const LoginPage: React.FC = () => {
           {/* Logo Header */}
           <div className="text-center mb-6">
             <Link to="/" className="inline-block transition-transform duration-200 hover:scale-102">
-              <img
+              <OptimizedPicture
                 src="/assets/logo.png"
                 alt="DORASANI - Where Heritage Meets Divine Elegance"
+                width={921}
+                height={427}
+                sizes="160px"
+                loading="eager"
+                pictureClassName="inline-block"
                 className="h-14 sm:h-16 md:h-18 w-auto mx-auto object-contain"
               />
             </Link>

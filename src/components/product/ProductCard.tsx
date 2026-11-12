@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Star } from 'lucide-react';
 import { WishlistIcon } from '../common/WishlistIcon';
+import { OptimizedPicture } from '../common/OptimizedPicture';
 import type { Product } from '../../types';
 import { getProductTypeLabel, getStockStatusMeta } from '../../types';
 import { useStore } from '../../context/StoreContext';
@@ -48,11 +49,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         to={`/products/${product.slug}`}
         className={`relative block ${imageAspectRatio || (compact ? 'aspect-[16/11]' : 'aspect-[4/3]')} overflow-hidden bg-[#FAF5EE]`}
       >
-        <img
+        <OptimizedPicture
           src={product.primaryImage}
           alt={product.title}
-          width={800}
-          height={600}
+          sizes="(max-width: 640px) 48vw, (max-width: 1024px) 32vw, 24vw"
+          pictureClassName="block w-full h-full"
           className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />

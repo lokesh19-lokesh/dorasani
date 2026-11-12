@@ -233,9 +233,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   useEffect(() => {
-    void refreshCoupons();
+    const deferCoupons = () => {
+      void refreshCoupons();
+    };
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(deferCoupons, { timeout: 2000 });
+    } else {
+      timeoutId = setTimeout(deferCoupons, 1500);
+    }
     void refreshSiteSettings();
     void refreshStoreCategories();
+    return () => {
+      if (idleId !== undefined && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
   }, [refreshCoupons, refreshSiteSettings, refreshStoreCategories]);
 
   useEffect(() => {
