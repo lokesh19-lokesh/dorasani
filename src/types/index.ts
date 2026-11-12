@@ -430,6 +430,7 @@ export interface SiteSettings {
   instagramUrl: string;
   facebookUrl: string;
   youtubeUrl: string;
+  googleUrl: string;
   footerCopyright: string;
   productTypes: ProductTypeOption[];
   exploreCategoriesConfig: ExploreCategoriesConfig;
@@ -759,9 +760,10 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     'Authentic Handloom',
     'Customer Support',
   ],
-  instagramUrl: 'https://instagram.com',
-  facebookUrl: 'https://facebook.com',
-  youtubeUrl: 'https://youtube.com',
+  instagramUrl: 'https://www.instagram.com/dorasani.a_symbol_of_tradition/?hl=en',
+  facebookUrl: '',
+  youtubeUrl: 'https://youtube.com/@ala-dorasanitho?si=HuECZg4ePcoRlyHb',
+  googleUrl: 'https://share.google/M3XD0k82h9QQnXiMX',
   footerCopyright: '© 2026 DORASANI. All rights reserved.',
   productTypes: DEFAULT_PRODUCT_TYPES,
   exploreCategoriesConfig: DEFAULT_EXPLORE_CATEGORIES_CONFIG,

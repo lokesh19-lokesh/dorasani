@@ -817,6 +817,24 @@ export const productService = {
           ? rawOriginPin
           : DEFAULT_SITE_SETTINGS.delhiveryOriginPincode;
 
+        const GENERIC_SOCIAL_PLACEHOLDERS = new Set([
+          'https://instagram.com',
+          'https://www.instagram.com',
+          'https://facebook.com',
+          'https://www.facebook.com',
+          'https://youtube.com',
+          'https://www.youtube.com',
+        ]);
+
+        const socialUrl = (key: string, fallback: string): string => {
+          const raw = str(key, fallback, true);
+          if (!raw) return fallback;
+          if (GENERIC_SOCIAL_PLACEHOLDERS.has(raw.replace(/\/+$/, '').toLowerCase())) {
+            return fallback;
+          }
+          return raw;
+        };
+
         return {
           value: {
             storeName: str('store_name', DEFAULT_SITE_SETTINGS.storeName),
@@ -831,9 +849,10 @@ export const productService = {
             expressShippingFee: num('express_shipping_fee', DEFAULT_SITE_SETTINGS.expressShippingFee),
             codEnabled: bool('cod_enabled', DEFAULT_SITE_SETTINGS.codEnabled),
             announcementItems,
-            instagramUrl: str('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl, true),
-            facebookUrl: str('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl, true),
-            youtubeUrl: str('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl, true),
+            instagramUrl: socialUrl('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl),
+            facebookUrl: socialUrl('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl),
+            youtubeUrl: socialUrl('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl),
+            googleUrl: socialUrl('google_url', DEFAULT_SITE_SETTINGS.googleUrl),
             footerCopyright: str('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright),
             productTypes: normalizeProductTypes(map.get('product_types')),
             exploreCategoriesConfig: normalizeExploreCategoriesConfig(map.get('explore_categories_config')),

@@ -883,9 +883,19 @@ export const AdminDashboardPage: React.FC = () => {
             readVal('express_shipping_fee', DEFAULT_SITE_SETTINGS.expressShippingFee)
           ) || 0,
           announcementItems: annItems,
-          instagramUrl: String(readVal('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl)),
-          facebookUrl: String(readVal('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl)),
-          youtubeUrl: String(readVal('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl)),
+          instagramUrl: String(readVal('instagram_url', DEFAULT_SITE_SETTINGS.instagramUrl)).replace(
+            /^https?:\/\/(www\.)?instagram\.com\/?$/i,
+            DEFAULT_SITE_SETTINGS.instagramUrl
+          ),
+          facebookUrl: String(readVal('facebook_url', DEFAULT_SITE_SETTINGS.facebookUrl)).replace(
+            /^https?:\/\/(www\.)?facebook\.com\/?$/i,
+            ''
+          ),
+          youtubeUrl: String(readVal('youtube_url', DEFAULT_SITE_SETTINGS.youtubeUrl)).replace(
+            /^https?:\/\/(www\.)?youtube\.com\/?$/i,
+            DEFAULT_SITE_SETTINGS.youtubeUrl
+          ),
+          googleUrl: String(readVal('google_url', DEFAULT_SITE_SETTINGS.googleUrl)),
           footerCopyright: String(readVal('footer_copyright', DEFAULT_SITE_SETTINGS.footerCopyright)),
           codEnabled,
           exploreCategoriesConfig: nextExploreCfg,
@@ -2639,9 +2649,10 @@ export const AdminDashboardPage: React.FC = () => {
           announcementList.length > 0
             ? announcementList
             : DEFAULT_SITE_SETTINGS.announcementItems,
-        instagram_url: settingsForm.instagramUrl.trim() || 'https://instagram.com',
-        facebook_url: settingsForm.facebookUrl.trim() || 'https://facebook.com',
-        youtube_url: settingsForm.youtubeUrl.trim() || 'https://youtube.com',
+        instagram_url: settingsForm.instagramUrl.trim(),
+        facebook_url: settingsForm.facebookUrl.trim(),
+        youtube_url: settingsForm.youtubeUrl.trim(),
+        google_url: settingsForm.googleUrl.trim(),
         footer_copyright:
           settingsForm.footerCopyright.trim() || DEFAULT_SITE_SETTINGS.footerCopyright,
         cod_enabled: Boolean(settingsForm.codEnabled),
@@ -6687,6 +6698,25 @@ export const AdminDashboardPage: React.FC = () => {
                           value={settingsForm.youtubeUrl}
                           onChange={(e) =>
                             setSettingsForm({ ...settingsForm, youtubeUrl: e.target.value })
+                          }
+                          className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="cfg-google" className="font-semibold text-[#1A3B2B] block">
+                          Google Business / Share URL
+                        </label>
+                        <input
+                          id="cfg-google"
+                          name="googleUrl"
+                          type="url"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          value={settingsForm.googleUrl}
+                          onChange={(e) =>
+                            setSettingsForm({ ...settingsForm, googleUrl: e.target.value })
                           }
                           className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
                         />
@@ -10987,40 +11017,6 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="font-medium truncate">
                           {item.product_title}
                           {item.product_sku ? ` (${item.product_sku})` : ''} × {item.quantity}
-                        </span>
-                        <span className="font-semibold shrink-0">
-                          ₹{Number(item.total_price_inr || 0).toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {label.warehouse && (
-                  <p className="text-[10px] text-[#647268] border-t border-[#E8DCCF] pt-2">
-                    Return Address (If Undelivered): {label.warehouse.name},{' '}
-                    {label.warehouse.address}, {label.warehouse.cityStatePin}
-                    {label.warehouse.phone ? ` • Tel: ${label.warehouse.phone}` : ''}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-      </ModalDialog>
-
-      {/* ==================== MODAL: SCHEDULE DELHIVERY PICKUP ==================== */}
-      <ModalDialog
-        open={pickupModalOpen}
-        onClose={() => setPickupModalOpen(false)}
-        labelledBy="delhivery-pickup-title"
-        maxWidthClass="max-w-lg"
-      >
-        <div className="flex items-center justify-between border-b border-[#D8C7B5] pb-3">
-          <div>
-            <h2
-              id="delhivery-pickup-title"
-              className="font-golden text-lg font-bold text-[#1A3B2B]"
             >
               Schedule Delhivery Courier Pickup
             </h2>

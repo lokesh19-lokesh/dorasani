@@ -38,7 +38,7 @@ export function buildCanonicalUrl(path: string): string {
 }
 
 function getConfiguredSocialProfiles(settings: SiteSettings): string[] {
-  return [settings.instagramUrl, settings.facebookUrl, settings.youtubeUrl]
+  return [settings.instagramUrl, settings.googleUrl, settings.youtubeUrl, settings.facebookUrl]
     .map((url) => (url || '').trim())
     .filter((url) => {
       if (!url || !/^https?:\/\//i.test(url)) return false;
