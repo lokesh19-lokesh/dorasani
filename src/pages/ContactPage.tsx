@@ -156,7 +156,7 @@ export const ContactPage: React.FC = () => {
                       {siteSettings.supportEmail}
                     </a>
                     {siteSettings.conciergeEmail &&
-                    siteSettings.conciergeEmail.toLowerCase() !==
+                      siteSettings.conciergeEmail.toLowerCase() !==
                       siteSettings.supportEmail.toLowerCase() ? (
                       <>
                         {' / '}
@@ -177,7 +177,7 @@ export const ContactPage: React.FC = () => {
                   <Clock className="w-4 h-4 text-[#285A3C]" />
                 </div>
                 <div>
-                  <p className="font-bold text-[#1A3B2B]">Studio Timings</p>
+                  <p className="font-bold text-[#1A3B2B]">Store Timings</p>
                   <p>{siteSettings.studioHours}</p>
                 </div>
               </div>
