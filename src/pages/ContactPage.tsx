@@ -6,6 +6,29 @@ import { useStore } from '../context/StoreContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
+const CONTACT_RECIPIENT_EMAIL = 'dorasanisarees@gmail.com';
+
+function buildContactMailtoUrl(params: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): string {
+  const emailSubject = `[DORASANI Contact] ${params.subject} — ${params.name}`;
+  const emailBody = [
+    `Name: ${params.name}`,
+    `Email: ${params.email}`,
+    `Subject: ${params.subject}`,
+    '',
+    'Message:',
+    params.message,
+  ].join('\n');
+
+  return `mailto:${CONTACT_RECIPIENT_EMAIL}?subject=${encodeURIComponent(
+    emailSubject
+  )}&body=${encodeURIComponent(emailBody)}`;
+}
+
 export const ContactPage: React.FC = () => {
   const { showToast, siteSettings } = useStore();
   const [name, setName] = useState('');
@@ -13,24 +36,81 @@ export const ContactPage: React.FC = () => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submittedNotice, setSubmittedNotice] = useState<{
+    emailSent: boolean;
+    mailtoUrl: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanSubject = subject.trim();
+    const cleanMessage = message.trim();
+
+    if (!cleanName || !cleanEmail || !cleanSubject || !cleanMessage) {
+      showToast('Please fill in all required fields.', 'error');
+      return;
+    }
+
     setSubmitting(true);
+    setSubmittedNotice(null);
+    const mailtoUrl = buildContactMailtoUrl({
+      name: cleanName,
+      email: cleanEmail,
+      subject: cleanSubject,
+      message: cleanMessage,
+    });
+
     try {
+      let saved = false;
+      let emailSent = false;
+
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('contact_messages').insert({
-          full_name: name.trim(),
-          email: email.trim().toLowerCase(),
-          subject: subject.trim(),
-          message: message.trim(),
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('submit-contact', {
+          body: {
+            fullName: cleanName,
+            email: cleanEmail,
+            subject: cleanSubject,
+            message: cleanMessage,
+          },
         });
-        if (error) {
-          showToast('Could not send your message right now. Please try again.', 'error');
-          return;
+
+        if (!fnError && fnData?.success) {
+          saved = true;
+          emailSent = Boolean(fnData.emailSent);
+        } else {
+          // Fallback to direct DB insert if the edge function is temporarily unavailable
+          const { error: dbError } = await supabase.from('contact_messages').insert({
+            full_name: cleanName,
+            email: cleanEmail,
+            subject: cleanSubject,
+            message: cleanMessage,
+          });
+          if (dbError) {
+            showToast('Could not send your message right now. Please try again.', 'error');
+            return;
+          }
+          saved = true;
         }
+      } else {
+        saved = true;
       }
-      showToast('Your message has been sent! Our heritage concierge will respond within 24 hours.');
+
+      if (!saved) {
+        showToast('Could not send your message right now. Please try again.', 'error');
+        return;
+      }
+
+      setSubmittedNotice({ emailSent, mailtoUrl });
+      if (emailSent) {
+        showToast(
+          `Your message has been sent to ${CONTACT_RECIPIENT_EMAIL}! Our heritage concierge will respond within 24 hours.`
+        );
+      } else {
+        showToast('Your inquiry has been saved! Use the email button below if you wish to send a copy directly.');
+      }
+
       setName('');
       setEmail('');
       setSubject('');
@@ -334,6 +414,25 @@ export const ContactPage: React.FC = () => {
                 <Send className="w-3.5 h-3.5" />
                 <span>{submitting ? 'Sending...' : 'Send Message'}</span>
               </button>
+
+              {submittedNotice && (
+                <div className="rounded-lg border border-[#BCD8AA] bg-[#F3F8F1] p-3.5 text-xs text-[#1A3B2B] space-y-2">
+                  <p className="font-semibold">
+                    {submittedNotice.emailSent
+                      ? `Thank you! Your inquiry was sent to ${CONTACT_RECIPIENT_EMAIL}.`
+                      : `Your inquiry has been saved for our team (${CONTACT_RECIPIENT_EMAIL}).`}
+                  </p>
+                  {!submittedNotice.emailSent && (
+                    <a
+                      href={submittedNotice.mailtoUrl}
+                      className="inline-flex items-center gap-1.5 font-semibold text-[#285A3C] hover:text-[#1E432D] underline"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Send via Email App to {CONTACT_RECIPIENT_EMAIL}</span>
+                    </a>
+                  )}
+                </div>
+              )}
             </form>
           </div>
         </div>
