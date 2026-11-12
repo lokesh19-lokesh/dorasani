@@ -273,9 +273,11 @@ export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
 function buildOrderTimeline(
   o: any,
   activeShipment?: OrderShipment,
-  refundsList: OrderRefund[] = []
+  refundsList: OrderRefund[] = [],
+  resolvedStatus?: string,
+  resolvedCancellationReason?: string
 ): Order['timeline'] {
-  const status = String(o.order_status || 'confirmed');
+  const status = String(resolvedStatus || o.order_status || 'confirmed');
   const formatTimestamp = (raw?: string | null) =>
     raw
       ? new Date(raw).toLocaleString('en-IN', {
@@ -289,18 +291,20 @@ function buildOrderTimeline(
 
   const createdFormatted = formatTimestamp(o.created_at || new Date().toISOString());
   const updatedFormatted = formatTimestamp(o.updated_at);
-  const cancelledFormatted = formatTimestamp(o.cancelled_at) || updatedFormatted || createdFormatted;
+  const cancelledFormatted =
+    formatTimestamp(o.cancelled_at || refundsList[0]?.createdAt) || updatedFormatted || createdFormatted;
 
   if (status === 'cancelled' || status === 'returned' || status === 'refunded') {
     const labelMap: Record<string, string> = {
-      cancelled: 'Order Cancelled',
+      cancelled: 'Order Cancelled by Admin',
       returned: 'Order Returned',
       refunded: 'Order Refunded',
     };
 
     const primaryRefund = refundsList[0];
-    const reasonDesc = o.cancellation_reason
-      ? `Cancelled by DORASANI: ${o.cancellation_reason}. We sincerely apologize for disappointing you.`
+    const effectiveReason = resolvedCancellationReason || o.cancellation_reason;
+    const reasonDesc = effectiveReason
+      ? `Cancelled by DORASANI: ${effectiveReason}. We sincerely apologize for disappointing you.`
       : status === 'cancelled'
         ? 'This order was cancelled by DORASANI. We sincerely apologize for the inconvenience.'
         : `Current status: ${status.replace(/_/g, ' ')}.`;
@@ -480,6 +484,38 @@ export function mapDbOrderToOrder(o: any): Order {
     createdAt: h?.created_at || undefined,
   }));
 
+  const adminRefundNote = refunds
+    .map((r) => r.notes || '')
+    .find((n) => /^Admin cancelled order:/i.test(n));
+  const extractedFromRefund = adminRefundNote
+    ? adminRefundNote.replace(/^Admin cancelled order:\s*/i, '').trim()
+    : undefined;
+  const adminNoteMatch =
+    typeof o.admin_notes === 'string'
+      ? o.admin_notes.match(/\[Cancelled by admin(?: at [^\]:]+)?:\s*([^\]]+)\]/i)
+      : null;
+  const derivedCancellationReason =
+    o.cancellation_reason || extractedFromRefund || adminNoteMatch?.[1]?.trim() || undefined;
+  const hasAdminCancelledSignal = Boolean(
+    o.cancelled_by ||
+      o.cancelled_at ||
+      adminRefundNote ||
+      adminNoteMatch ||
+      statusHistory.some((h) => h.newStatus === 'cancelled')
+  );
+  const derivedStatus =
+    hasAdminCancelledSignal && !['cancelled', 'returned', 'refunded'].includes(String(o.order_status || '').toLowerCase())
+      ? 'cancelled'
+      : ((o.order_status as any) || 'confirmed');
+  const derivedPaymentStatus =
+    refunds.length > 0 && o.payment_status === 'paid'
+      ? 'refunded'
+      : ((o.payment_status as any) || 'pending');
+  const derivedCancelledAt =
+    o.cancelled_at ||
+    (derivedStatus === 'cancelled' ? refunds[0]?.createdAt || o.updated_at : undefined) ||
+    undefined;
+
   return {
     id: o.id,
     orderNumber: o.order_number,
@@ -514,16 +550,22 @@ export function mapDbOrderToOrder(o: any): Order {
     shippingFee: Number(o.shipping_fee_inr ?? 0),
     total: Number(o.total_inr ?? 0),
     paymentMethod: (o.payment_method as any) || 'razorpay',
-    paymentStatus: (o.payment_status as any) || 'pending',
-    status: (o.order_status as any) || 'confirmed',
-    timeline: buildOrderTimeline(o, shipment, refunds),
+    paymentStatus: derivedPaymentStatus,
+    status: derivedStatus,
+    timeline: buildOrderTimeline(
+      o,
+      shipment,
+      refunds,
+      derivedStatus,
+      derivedCancellationReason
+    ),
     courierPartner: courierName,
     trackingId,
     trackingUrl,
     shipment,
     orderNotes: o.customer_notes || undefined,
-    cancelledAt: o.cancelled_at || undefined,
-    cancellationReason: o.cancellation_reason || undefined,
+    cancelledAt: derivedCancelledAt,
+    cancellationReason: derivedCancellationReason,
     refunds: refunds.length > 0 ? refunds : undefined,
     statusHistory: statusHistory.length > 0 ? statusHistory : undefined,
     paymentDetails: primaryPayment

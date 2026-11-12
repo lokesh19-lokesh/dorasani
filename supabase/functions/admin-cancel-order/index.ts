@@ -354,14 +354,20 @@ serve(async (req: Request) => {
       // keep defaults
     }
 
-    // 2. Cancel active Delhivery AWB if manifested
+    // 2. Cancel active Delhivery AWB if manifested and not already cancelled
     const shipmentsList: any[] = Array.isArray(order.shipments) ? order.shipments : [];
     const activeShip = shipmentsList.find((s) => s && !s.cancelled_at && s.tracking_number);
     const activeWaybill = String(activeShip?.tracking_number || order.tracking_id || '').trim();
-    let delhiveryCancelled = false;
+    const waybillAlreadyCancelled = Boolean(
+      activeWaybill &&
+        shipmentsList.some(
+          (s) => s && String(s.tracking_number || '').trim() === activeWaybill && s.cancelled_at
+        )
+    );
+    let delhiveryCancelled = waybillAlreadyCancelled;
     let delhiveryWarning: string | null = null;
 
-    if (cancelDelhiveryAwb && activeWaybill) {
+    if (cancelDelhiveryAwb && activeWaybill && !waybillAlreadyCancelled) {
       try {
         const delhiveryCfg = await getDelhiveryRuntimeConfig(admin);
         if (delhiveryCfg.token) {
@@ -399,7 +405,17 @@ serve(async (req: Request) => {
     let refundRecord: any = activeExistingRefund || null;
     let refundIssued = Boolean(activeExistingRefund || order.payment_status === 'refunded');
     let refundError: string | null = null;
-    let nextPaymentStatus = String(order.payment_status || 'pending');
+    let nextPaymentStatus = refundIssued ? 'refunded' : String(order.payment_status || 'pending');
+
+    if (activeExistingRefund && primaryRazorpayPayment && primaryRazorpayPayment.status !== 'refunded') {
+      const { error: syncPayErr } = await admin
+        .from('payments')
+        .update({ status: 'refunded', updated_at: nowIso })
+        .eq('id', primaryRazorpayPayment.id);
+      if (syncPayErr) {
+        console.warn('[admin-cancel-order] Payment status sync warning:', syncPayErr.message);
+      }
+    }
 
     if (initiateRefund && !activeExistingRefund) {
       const isPaidOnline =
@@ -432,7 +448,7 @@ serve(async (req: Request) => {
             const rzpStatus = String(rzpRefund?.status || 'initiated').toLowerCase();
             const localRefundStatus = rzpStatus === 'processed' ? 'processed' : 'initiated';
 
-            const { data: insertedRefund } = await admin
+            const { data: insertedRefund, error: insRefundErr } = await admin
               .from('refunds')
               .insert({
                 order_id: order.id,
@@ -445,20 +461,34 @@ serve(async (req: Request) => {
               .select('*')
               .single();
 
-            refundRecord = insertedRefund;
+            if (insRefundErr) {
+              console.warn('[admin-cancel-order] Refund insert warning:', insRefundErr.message);
+            }
+
+            refundRecord = insertedRefund || {
+              amount_inr: Number(order.total_inr || 0),
+              refund_reference: refundRef,
+              status: localRefundStatus,
+            };
             refundIssued = true;
             nextPaymentStatus = 'refunded';
 
-            await admin
+            const { error: payUpdateErr } = await admin
               .from('payments')
               .update({ status: 'refunded', updated_at: nowIso })
               .eq('id', primaryRazorpayPayment.id);
+            if (payUpdateErr) {
+              console.warn('[admin-cancel-order] Payment update warning:', payUpdateErr.message);
+            }
 
-            await admin.from('payment_events').insert({
+            const { error: evErr } = await admin.from('payment_events').insert({
               payment_id: primaryRazorpayPayment.id,
               event_type: 'admin.refund.created',
               payload: rzpRefund || {},
             });
+            if (evErr) {
+              console.warn('[admin-cancel-order] Payment event log warning:', evErr.message);
+            }
           } catch (err: any) {
             refundError = err?.message || 'Razorpay refund API call failed.';
           }
@@ -466,7 +496,7 @@ serve(async (req: Request) => {
       } else if (order.payment_status === 'paid') {
         // Non-Razorpay paid order: create internal refund reference record
         const manualRef = `REF-${order.order_number}-${Date.now().toString(36).toUpperCase()}`;
-        const { data: insertedRefund } = await admin
+        const { data: insertedRefund, error: manualRefundErr } = await admin
           .from('refunds')
           .insert({
             order_id: order.id,
@@ -479,7 +509,15 @@ serve(async (req: Request) => {
           .select('*')
           .single();
 
-        refundRecord = insertedRefund;
+        if (manualRefundErr) {
+          console.warn('[admin-cancel-order] Manual refund insert warning:', manualRefundErr.message);
+        }
+
+        refundRecord = insertedRefund || {
+          amount_inr: Number(order.total_inr || 0),
+          refund_reference: manualRef,
+          status: 'initiated',
+        };
         refundIssued = true;
         nextPaymentStatus = 'refunded';
       }
@@ -509,7 +547,27 @@ serve(async (req: Request) => {
     // 4. Restore product & variant stock if not previously cancelled/returned/refunded
     let stockRestoredUnits = 0;
     const alreadyTerminated = ['cancelled', 'refunded', 'returned'].includes(prevStatus);
-    if (restoreStock && !alreadyTerminated && Array.isArray(order.order_items)) {
+    const refundAlreadyRecordedAdminCancel = Boolean(
+      activeExistingRefund && /Admin cancelled order:/i.test(String(activeExistingRefund.notes || ''))
+    );
+    let alreadyRestoredInLedger = false;
+    if (restoreStock && !alreadyTerminated && !refundAlreadyRecordedAdminCancel) {
+      const { data: existingMovements } = await admin
+        .from('inventory_movements')
+        .select('id')
+        .eq('reference_id', order.id)
+        .eq('reason', 'order_cancelled')
+        .limit(1);
+      alreadyRestoredInLedger = Boolean(existingMovements && existingMovements.length > 0);
+    }
+
+    if (
+      restoreStock &&
+      !alreadyTerminated &&
+      !refundAlreadyRecordedAdminCancel &&
+      !alreadyRestoredInLedger &&
+      Array.isArray(order.order_items)
+    ) {
       for (const item of order.order_items) {
         const qty = Math.max(0, Number(item?.quantity || 0));
         if (!qty) continue;
@@ -527,7 +585,7 @@ serve(async (req: Request) => {
               .from('product_variants')
               .update({ stock_quantity: nextVarQty })
               .eq('id', item.variant_id);
-            await admin.from('inventory_movements').insert({
+            const { error: varMovErr } = await admin.from('inventory_movements').insert({
               product_id: item.product_id,
               variant_id: item.variant_id,
               previous_quantity: prevVarQty,
@@ -535,8 +593,11 @@ serve(async (req: Request) => {
               new_quantity: nextVarQty,
               reason: 'order_cancelled',
               reference_id: order.id,
-              performed_by: user.id,
+              created_by: user.id,
             });
+            if (varMovErr) {
+              console.warn('[admin-cancel-order] Variant movement log warning:', varMovErr.message);
+            }
           }
         }
 
@@ -564,7 +625,7 @@ serve(async (req: Request) => {
               })
               .eq('id', item.product_id);
 
-            await admin.from('inventory_movements').insert({
+            const { error: prodMovErr } = await admin.from('inventory_movements').insert({
               product_id: item.product_id,
               variant_id: item.variant_id || null,
               previous_quantity: prevQty,
@@ -572,31 +633,90 @@ serve(async (req: Request) => {
               new_quantity: nextQty,
               reason: 'order_cancelled',
               reference_id: order.id,
-              performed_by: user.id,
+              created_by: user.id,
             });
+            if (prodMovErr) {
+              console.warn('[admin-cancel-order] Product movement log warning:', prodMovErr.message);
+            }
             stockRestoredUnits += qty;
           }
         }
       }
     }
 
-    // 5. Update Order & Status History
-    const orderUpdatePayload: Record<string, unknown> = {
+    // 5. Update Order & Status History (with core-column fallback if migration 20261112000002 is pending)
+    const existingAdminNotes = String(order.admin_notes || '').trim();
+    const cancelAdminNoteTag = `[Cancelled by admin at ${nowIso}: ${reasonInput}]`;
+    const nextAdminNotes = /\[Cancelled by admin/i.test(existingAdminNotes)
+      ? existingAdminNotes
+      : existingAdminNotes
+      ? `${existingAdminNotes}\n${cancelAdminNoteTag}`
+      : cancelAdminNoteTag;
+
+    const coreUpdatePayload: Record<string, unknown> = {
       order_status: 'cancelled',
       payment_status: nextPaymentStatus,
+      admin_notes: nextAdminNotes,
+      updated_at: nowIso,
+    };
+    if (delhiveryCancelled || shipmentsList.some((s) => s && s.cancelled_at)) {
+      coreUpdatePayload.courier_name = null;
+      coreUpdatePayload.tracking_id = null;
+    }
+
+    const extendedUpdatePayload: Record<string, unknown> = {
+      ...coreUpdatePayload,
       cancellation_reason: reasonInput,
       cancelled_by: order.cancelled_by || user.id,
       cancelled_at: order.cancelled_at || nowIso,
-      updated_at: nowIso,
     };
-    if (delhiveryCancelled) {
-      orderUpdatePayload.courier_name = null;
-      orderUpdatePayload.tracking_id = null;
+
+    let orderUpdateErrorMessage: string | null = null;
+    const { error: extOrderUpdateErr } = await admin
+      .from('orders')
+      .update(extendedUpdatePayload)
+      .eq('id', order.id);
+
+    if (extOrderUpdateErr) {
+      console.warn(
+        '[admin-cancel-order] Extended orders update failed, retrying with core columns:',
+        extOrderUpdateErr.message
+      );
+      const { error: coreOrderUpdateErr } = await admin
+        .from('orders')
+        .update(coreUpdatePayload)
+        .eq('id', order.id);
+      if (coreOrderUpdateErr) {
+        orderUpdateErrorMessage = coreOrderUpdateErr.message;
+      }
     }
 
-    await admin.from('orders').update(orderUpdatePayload).eq('id', order.id);
+    if (orderUpdateErrorMessage) {
+      return jsonResponse(
+        {
+          error: `Failed to mark order as cancelled in database: ${orderUpdateErrorMessage}`,
+          refundIssued,
+          refund: refundRecord
+            ? {
+                id: refundRecord.id,
+                amountInr: refundRecord.amount_inr,
+                refundReference: refundRecord.refund_reference,
+                status: refundRecord.status,
+              }
+            : null,
+        },
+        500
+      );
+    }
 
-    if (!wasAlreadyCancelled || refundIssued) {
+    const existingHistory: any[] = Array.isArray(order.order_status_history)
+      ? order.order_status_history
+      : [];
+    const hasCancelledHistory = existingHistory.some(
+      (h) => String(h?.new_status || '').toLowerCase() === 'cancelled'
+    );
+
+    if (!wasAlreadyCancelled || !hasCancelledHistory) {
       const historyNoteParts = [`Order cancelled by admin: ${reasonInput}.`];
       if (refundIssued) {
         historyNoteParts.push(
@@ -609,22 +729,31 @@ serve(async (req: Request) => {
         historyNoteParts.push(`Delhivery AWB ${activeWaybill} cancelled.`);
       }
 
-      await admin.from('order_status_history').insert({
+      const { error: histErr } = await admin.from('order_status_history').insert({
         order_id: order.id,
         previous_status: prevStatus,
         new_status: 'cancelled',
         changed_by: user.id,
         note: historyNoteParts.join(' '),
       });
+      if (histErr) {
+        console.warn('[admin-cancel-order] Status history insert warning:', histErr.message);
+      }
     }
 
-    await admin.from('admin_audit_logs').insert({
-      admin_user_id: user.id,
+    const { error: auditErr } = await admin.from('admin_audit_logs').insert({
+      admin_id: user.id,
       action: 'admin_cancel_order',
       entity_type: 'order',
       entity_id: order.id,
-      details: {
+      before_values: {
+        order_status: prevStatus,
+        payment_status: order.payment_status,
+      },
+      after_values: {
         order_number: order.order_number,
+        order_status: 'cancelled',
+        payment_status: nextPaymentStatus,
         reason: reasonInput,
         refund_reference: refundRecord?.refund_reference || null,
         refund_status: refundRecord?.status || null,
@@ -632,6 +761,9 @@ serve(async (req: Request) => {
         stock_restored_units: stockRestoredUnits,
       },
     });
+    if (auditErr) {
+      console.warn('[admin-cancel-order] Audit log insert warning:', auditErr.message);
+    }
 
     // 6. Compose & Dispatch Email + WhatsApp Apology Messages
     const itemsSummary = Array.isArray(order.order_items)

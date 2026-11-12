@@ -130,6 +130,75 @@ const getActiveShipmentFromOrder = (ord: any): any | null => {
   return list.find((s) => !s?.cancelled_at && s?.tracking_number) || null;
 };
 
+const getRefundsFromOrder = (ord: any): any[] => {
+  const list: any[] = Array.isArray(ord?.refunds)
+    ? ord.refunds
+    : ord?.refunds
+      ? [ord.refunds]
+      : [];
+  return [...list].sort(
+    (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+  );
+};
+
+const getAdminCancellationMeta = (ord: any) => {
+  const statusLower = String(ord?.order_status || '').toLowerCase();
+  const paymentStatusLower = String(ord?.payment_status || '').toLowerCase();
+  const refundsList = getRefundsFromOrder(ord);
+  const latestRefund = refundsList[0] || null;
+  const historyList: any[] = Array.isArray(ord?.order_status_history)
+    ? ord.order_status_history
+    : [];
+
+  const adminRefundNote = refundsList
+    .map((r) => String(r?.notes || ''))
+    .find((n) => /^Admin cancelled order:/i.test(n));
+  const adminNoteMatch =
+    typeof ord?.admin_notes === 'string'
+      ? ord.admin_notes.match(/\[Cancelled by admin(?: at [^\]:]+)?:\s*([^\]]+)\]/i)
+      : null;
+  const hasCancelledHistory = historyList.some(
+    (h) => String(h?.new_status || '').toLowerCase() === 'cancelled'
+  );
+
+  const isCancelledByAdmin = Boolean(
+    statusLower === 'cancelled' ||
+      ord?.cancelled_by ||
+      ord?.cancelled_at ||
+      adminRefundNote ||
+      adminNoteMatch ||
+      hasCancelledHistory
+  );
+  const hasAnyRefund = refundsList.length > 0 || paymentStatusLower === 'refunded';
+  const effectiveOrderStatus = isCancelledByAdmin ? 'cancelled' : statusLower || 'confirmed';
+  const effectivePaymentStatus =
+    hasAnyRefund && paymentStatusLower === 'paid' ? 'refunded' : paymentStatusLower || 'pending';
+  const canCancelOrder =
+    !isCancelledByAdmin &&
+    !hasAnyRefund &&
+    !['cancelled', 'refunded', 'returned', 'delivered'].includes(statusLower);
+
+  const derivedReason =
+    ord?.cancellation_reason ||
+    (adminRefundNote ? adminRefundNote.replace(/^Admin cancelled order:\s*/i, '').trim() : '') ||
+    adminNoteMatch?.[1]?.trim() ||
+    '';
+  const derivedCancelledAt =
+    ord?.cancelled_at || (isCancelledByAdmin ? latestRefund?.created_at || ord?.updated_at : null);
+
+  return {
+    refundsList,
+    latestRefund,
+    isCancelledByAdmin,
+    hasAnyRefund,
+    effectiveOrderStatus,
+    effectivePaymentStatus,
+    canCancelOrder,
+    derivedReason,
+    derivedCancelledAt,
+  };
+};
+
 const getDefaultPickupDateString = (): string => {
   const now = new Date();
   // Move to tomorrow if past 15:30 local time, and skip Sunday (Delhivery pickups Mon-Sat)
@@ -1559,8 +1628,9 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const openCancelOrderModal = (order: any) => {
+    const cancelMeta = getAdminCancellationMeta(order);
     const defaultReason =
-      order?.cancellation_reason || 'the ordered handloom piece is currently unavailable';
+      cancelMeta.derivedReason || 'the ordered handloom piece is currently unavailable';
     setCancelOrderTarget(order);
     setCancelOrderReason(defaultReason);
     setCancelOrderMessage(buildDefaultCancelApologyMessage(order, defaultReason));
@@ -1593,15 +1663,22 @@ export const AdminDashboardPage: React.FC = () => {
 
       setCancelOrderResult(res);
       if (res.order) {
-        setCancelOrderTarget(res.order);
-        if (orderDetailsTarget?.id === res.order.id) {
-          setOrderDetailsTarget(res.order);
+        const syncedOrder = {
+          ...res.order,
+          order_status: 'cancelled',
+          payment_status: res.refundIssued ? 'refunded' : res.order.payment_status,
+          cancellation_reason: res.order.cancellation_reason || cleanReason,
+        };
+        setCancelOrderTarget(syncedOrder);
+        setOrders((prev) => prev.map((row) => (row.id === syncedOrder.id ? syncedOrder : row)));
+        if (orderDetailsTarget?.id === syncedOrder.id) {
+          setOrderDetailsTarget(syncedOrder);
         }
       }
       showToast(
         res.refund?.refundReference
-          ? `Order #${cancelOrderTarget.order_number} cancelled • Refund Ref: ${res.refund.refundReference}`
-          : `Order #${cancelOrderTarget.order_number} cancelled & apology notification ready.`
+          ? `Order #${cancelOrderTarget.order_number} cancelled by admin • Refund Ref: ${res.refund.refundReference}`
+          : `Order #${cancelOrderTarget.order_number} cancelled by admin & apology notification ready.`
       );
       await loadData();
     } catch (err: any) {
@@ -2972,15 +3049,18 @@ export const AdminDashboardPage: React.FC = () => {
           p?.provider_payment_id?.toLowerCase().includes(q) ||
           p?.provider_order_id?.toLowerCase().includes(q)
       );
+    const cancelMeta = getAdminCancellationMeta(o);
+    const effectiveStatus = cancelMeta.effectiveOrderStatus;
     const matchesStatus =
       orderStatusFilter === 'all' ||
       (orderStatusFilter === 'in_progress'
         ? ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery'].includes(
-            o.order_status
+            effectiveStatus
           )
         : orderStatusFilter === 'returned_refunded'
-        ? ['returned', 'refunded'].includes(o.order_status)
-        : o.order_status === orderStatusFilter);
+        ? ['returned', 'refunded'].includes(effectiveStatus) ||
+          (cancelMeta.hasAnyRefund && effectiveStatus !== 'cancelled')
+        : effectiveStatus === orderStatusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -3538,32 +3618,39 @@ export const AdminDashboardPage: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E8DCCF]">
-                          {orders.slice(0, 5).map((o: any) => (
-                            <tr key={o.id} className="hover:bg-[#FAF5EE]/60">
-                              <th scope="row" className="p-2.5 font-semibold text-[#1A3B2B]">
-                                {o.order_number}
-                              </th>
-                              <td className="p-2.5">{o.customer_name}</td>
-                              <td className="p-2.5 font-bold text-[#285A3C]">
-                                ₹{Number(o.total_inr || 0).toLocaleString('en-IN')}
-                              </td>
-                              <td className="p-2.5">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${o.order_status === 'delivered'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : o.order_status === 'cancelled'
-                                      ? 'bg-rose-100 text-rose-800'
-                                      : 'bg-amber-100 text-amber-800'
+                          {orders.slice(0, 5).map((o: any) => {
+                            const cancelMeta = getAdminCancellationMeta(o);
+                            const effStatus = cancelMeta.effectiveOrderStatus;
+                            return (
+                              <tr key={o.id} className="hover:bg-[#FAF5EE]/60">
+                                <th scope="row" className="p-2.5 font-semibold text-[#1A3B2B]">
+                                  {o.order_number}
+                                </th>
+                                <td className="p-2.5">{o.customer_name}</td>
+                                <td className="p-2.5 font-bold text-[#285A3C]">
+                                  ₹{Number(o.total_inr || 0).toLocaleString('en-IN')}
+                                </td>
+                                <td className="p-2.5">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
+                                      effStatus === 'delivered'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : cancelMeta.isCancelledByAdmin
+                                          ? 'bg-rose-100 text-rose-800'
+                                          : 'bg-amber-100 text-amber-800'
                                     }`}
-                                >
-                                  {o.order_status}
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-[#647268]">
-                                {new Date(o.created_at).toLocaleDateString('en-GB')}
-                              </td>
-                            </tr>
-                          ))}
+                                  >
+                                    {cancelMeta.isCancelledByAdmin
+                                      ? 'Cancelled by Admin'
+                                      : effStatus.replace(/_/g, ' ')}
+                                  </span>
+                                </td>
+                                <td className="p-2.5 text-[#647268]">
+                                  {new Date(o.created_at).toLocaleDateString('en-GB')}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -3959,33 +4046,35 @@ export const AdminDashboardPage: React.FC = () => {
                                     activeWaybill &&
                                       /delhivery/i.test(String(activeCourier || ''))
                                   );
+                            const cancelMeta = getAdminCancellationMeta(o);
+                            const {
+                              latestRefund,
+                              isCancelledByAdmin,
+                              hasAnyRefund,
+                              effectiveOrderStatus,
+                              effectivePaymentStatus,
+                              canCancelOrder,
+                              derivedReason,
+                            } = cancelMeta;
                             const canShipDelhivery =
                               !activeWaybill &&
+                              !isCancelledByAdmin &&
+                              !hasAnyRefund &&
                               !['cancelled', 'refunded', 'returned', 'delivered'].includes(
-                                String(o.order_status || '').toLowerCase()
+                                effectiveOrderStatus
                               );
-                            const refundsList: any[] = Array.isArray(o.refunds)
-                              ? o.refunds
-                              : o.refunds
-                              ? [o.refunds]
-                              : [];
-                            const latestRefund = refundsList[0] || null;
-                            const isCancelledOrder = String(o.order_status || '').toLowerCase() === 'cancelled';
-                            const canCancelOrder = !['cancelled', 'refunded', 'returned', 'delivered'].includes(
-                              String(o.order_status || '').toLowerCase()
-                            );
 
                             return (
                               <tr key={o.id} className="hover:bg-[#FAF5EE]/50">
                                 <th scope="row" className="p-3 font-bold text-[#1A3B2B]">
                                   <div className="space-y-0.5">
                                     <span>{o.order_number}</span>
-                                    {activeWaybill && (
+                                    {activeWaybill && !isCancelledByAdmin && (
                                       <span className="block text-[10px] font-mono font-normal text-[#4F6355]">
                                         {activeCourier || 'Delhivery'}: {activeWaybill}
                                       </span>
                                     )}
-                                    {activeShip?.current_status && (
+                                    {activeShip?.current_status && !isCancelledByAdmin && (
                                       <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#F3F8F1] border border-[#C6DEC9] text-[#285A3C]">
                                         {activeShip.current_status}
                                         {activeShip.current_location
@@ -3993,12 +4082,12 @@ export const AdminDashboardPage: React.FC = () => {
                                           : ''}
                                       </span>
                                     )}
-                                    {isCancelledOrder && o.cancellation_reason && (
+                                    {isCancelledByAdmin && derivedReason && (
                                       <span
                                         className="block text-[10px] font-normal text-rose-700 truncate max-w-[200px]"
-                                        title={o.cancellation_reason}
+                                        title={derivedReason}
                                       >
-                                        Reason: {o.cancellation_reason}
+                                        Reason: {derivedReason}
                                       </span>
                                     )}
                                   </div>
@@ -4021,19 +4110,19 @@ export const AdminDashboardPage: React.FC = () => {
                                       </span>
                                       <span
                                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                          o.payment_status === 'paid'
+                                          effectivePaymentStatus === 'paid'
                                             ? 'bg-emerald-100 text-emerald-800'
-                                            : o.payment_status === 'failed'
+                                            : effectivePaymentStatus === 'failed'
                                             ? 'bg-rose-100 text-rose-800'
-                                            : o.payment_status === 'refunded' ||
-                                              o.payment_status === 'partially_refunded'
+                                            : effectivePaymentStatus === 'refunded' ||
+                                              effectivePaymentStatus === 'partially_refunded'
                                             ? 'bg-stone-100 text-stone-700'
-                                            : o.payment_status === 'authorized'
+                                            : effectivePaymentStatus === 'authorized'
                                             ? 'bg-sky-100 text-sky-800'
                                             : 'bg-amber-100 text-amber-800'
                                         }`}
                                       >
-                                        {String(o.payment_status || 'pending').replace(/_/g, ' ')}
+                                        {effectivePaymentStatus.replace(/_/g, ' ')}
                                       </span>
                                     </div>
                                     {primaryPayment?.provider_payment_id && (
@@ -4056,29 +4145,41 @@ export const AdminDashboardPage: React.FC = () => {
                                 </td>
                               <td className="p-3">
                                 <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${o.order_status === 'delivered'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : o.order_status === 'cancelled'
-                                      ? 'bg-rose-100 text-rose-800'
-                                      : 'bg-amber-100 text-amber-800'
-                                    }`}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase ${
+                                    effectiveOrderStatus === 'delivered'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : isCancelledByAdmin || effectiveOrderStatus === 'refunded'
+                                        ? 'bg-rose-100 text-rose-800'
+                                        : 'bg-amber-100 text-amber-800'
+                                  }`}
                                 >
-                                  {o.order_status.replace(/_/g, ' ')}
+                                  {isCancelledByAdmin && <XCircle className="w-3 h-3 shrink-0" />}
+                                  <span>
+                                    {isCancelledByAdmin
+                                      ? 'Cancelled by Admin'
+                                      : effectiveOrderStatus.replace(/_/g, ' ')}
+                                  </span>
                                 </span>
                               </td>
                               <td className="p-3 text-right">
                                 <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
                                   <select
                                     aria-label={`Order status for ${o.order_number}`}
-                                    value={o.order_status}
+                                    value={effectiveOrderStatus}
+                                    disabled={isCancelledByAdmin}
+                                    title={
+                                      isCancelledByAdmin
+                                        ? 'Item was cancelled by Admin'
+                                        : 'Update order status'
+                                    }
                                     onChange={(e) =>
                                       void handleUpdateOrderStatus(o.id, e.target.value)
                                     }
-                                    className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#D0E9C0]/40 rounded-lg px-2 py-1 text-[#1A3B2B] focus:outline-none"
+                                    className="text-[11px] font-semibold border border-[#BCD8AA] bg-[#D0E9C0]/40 rounded-lg px-2 py-1 text-[#1A3B2B] focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                                   >
                                     {ORDER_STATUSES.map((st) => (
                                       <option key={st.value} value={st.value}>
-                                        {st.label}
+                                        {st.value === 'cancelled' ? 'Cancelled by Admin' : st.label}
                                       </option>
                                     ))}
                                   </select>
@@ -4093,7 +4194,7 @@ export const AdminDashboardPage: React.FC = () => {
                                         <span>Ship Delhivery</span>
                                       </button>
                                     )}
-                                    {isDelhiveryOrder && activeWaybill && (
+                                    {isDelhiveryOrder && activeWaybill && !isCancelledByAdmin && (
                                       <>
                                         <button
                                           type="button"
@@ -4134,15 +4235,17 @@ export const AdminDashboardPage: React.FC = () => {
                                       <Eye className="w-3 h-3 text-[#285A3C]" />
                                       <span>Details</span>
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => openEditOrderModal(o)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
-                                      title="Edit courier & tracking details"
-                                    >
-                                      <Truck className="w-3 h-3 text-[#285A3C]" />
-                                      <span>Dispatch</span>
-                                    </button>
+                                    {!isCancelledByAdmin && !hasAnyRefund && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditOrderModal(o)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE]"
+                                        title="Edit courier & tracking details"
+                                      >
+                                        <Truck className="w-3 h-3 text-[#285A3C]" />
+                                        <span>Dispatch</span>
+                                      </button>
+                                    )}
                                     {canCancelOrder ? (
                                       <button
                                         type="button"
@@ -4153,16 +4256,22 @@ export const AdminDashboardPage: React.FC = () => {
                                         <XCircle className="w-3 h-3" />
                                         <span>Cancel Order</span>
                                       </button>
-                                    ) : isCancelledOrder ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => openCancelOrderModal(o)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-semibold hover:bg-amber-100"
-                                        title="Send cancellation apology via WhatsApp / Email or review refund status"
-                                      >
-                                        <Mail className="w-3 h-3" />
-                                        <span>Notify</span>
-                                      </button>
+                                    ) : isCancelledByAdmin || hasAnyRefund ? (
+                                      <>
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-[11px] font-bold">
+                                          <XCircle className="w-3 h-3" />
+                                          <span>Cancelled by Admin</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => openCancelOrderModal(o)}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-semibold hover:bg-amber-100"
+                                          title="Send cancellation apology via WhatsApp / Email or review refund status"
+                                        >
+                                          <Mail className="w-3 h-3" />
+                                          <span>Notify</span>
+                                        </button>
+                                      </>
                                     ) : null}
                                     <button
                                       type="button"
@@ -9819,24 +9928,40 @@ export const AdminDashboardPage: React.FC = () => {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
                     Fulfillment & Payment Summary
                   </span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#647268]">Order Status:</span>
-                    <span className="font-bold uppercase text-[#1A3B2B]">
-                      {String(ord.order_status || 'confirmed').replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#647268]">Delivery Tier:</span>
-                    <span className="font-semibold capitalize text-[#1A3B2B]">
-                      {ord.delivery_option || 'standard'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#647268]">Payment:</span>
-                    <span className="font-semibold uppercase text-[#1A3B2B]">
-                      {ord.payment_method} ({String(ord.payment_status || 'pending').replace(/_/g, ' ')})
-                    </span>
-                  </div>
+                  {(() => {
+                    const detailsCancelMeta = getAdminCancellationMeta(ord);
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#647268]">Order Status:</span>
+                          <span
+                            className={`font-bold uppercase ${
+                              detailsCancelMeta.isCancelledByAdmin
+                                ? 'text-rose-700'
+                                : 'text-[#1A3B2B]'
+                            }`}
+                          >
+                            {detailsCancelMeta.isCancelledByAdmin
+                              ? 'Cancelled by Admin'
+                              : detailsCancelMeta.effectiveOrderStatus.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#647268]">Delivery Tier:</span>
+                          <span className="font-semibold capitalize text-[#1A3B2B]">
+                            {ord.delivery_option || 'standard'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#647268]">Payment:</span>
+                          <span className="font-semibold uppercase text-[#1A3B2B]">
+                            {ord.payment_method} (
+                            {detailsCancelMeta.effectivePaymentStatus.replace(/_/g, ' ')})
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
                   {(ord.courier_name || ord.tracking_id) && (
                     <div className="flex items-center justify-between">
                       <span className="text-[#647268]">Dispatch:</span>
@@ -10151,23 +10276,20 @@ export const AdminDashboardPage: React.FC = () => {
               )}
 
               {(() => {
-                const ordRefunds: any[] = Array.isArray(ord.refunds)
-                  ? ord.refunds
-                  : ord.refunds
-                  ? [ord.refunds]
-                  : [];
-                const isCancelled = String(ord.order_status || '').toLowerCase() === 'cancelled';
-                if (!isCancelled && ordRefunds.length === 0) return null;
+                const detailsCancelMeta = getAdminCancellationMeta(ord);
+                const ordRefunds = detailsCancelMeta.refundsList;
+                if (!detailsCancelMeta.isCancelledByAdmin && ordRefunds.length === 0) return null;
 
                 return (
                   <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
-                        Cancellation &amp; Refund Record
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Cancelled by Admin &amp; Refund Record</span>
                       </span>
-                      {ord.cancelled_at && (
+                      {detailsCancelMeta.derivedCancelledAt && (
                         <span className="text-[10px] text-rose-700 font-medium">
-                          {new Date(ord.cancelled_at).toLocaleString('en-IN', {
+                          {new Date(detailsCancelMeta.derivedCancelledAt).toLocaleString('en-IN', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
@@ -10177,10 +10299,10 @@ export const AdminDashboardPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    {ord.cancellation_reason && (
+                    {detailsCancelMeta.derivedReason && (
                       <p className="text-xs text-[#1A3B2B]">
                         <span className="font-semibold">Reason: </span>
-                        {ord.cancellation_reason}
+                        {detailsCancelMeta.derivedReason}
                       </p>
                     )}
                     {ordRefunds.map((rf: any, rIdx: number) => (
@@ -10223,56 +10345,67 @@ export const AdminDashboardPage: React.FC = () => {
                 );
               })()}
 
-              <div className="flex flex-wrap justify-end gap-2.5 pt-2 border-t border-[#D8C7B5]">
-                <button
-                  type="button"
-                  onClick={() => setOrderDetailsTarget(null)}
-                  className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
-                >
-                  Close
-                </button>
-                {!['refunded', 'returned', 'delivered'].includes(
-                  String(ord.order_status || '').toLowerCase()
-                ) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const target = ord;
-                      setOrderDetailsTarget(null);
-                      openCancelOrderModal(target);
-                    }}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold ${
-                      String(ord.order_status || '').toLowerCase() === 'cancelled'
-                        ? 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                        : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-                    }`}
-                  >
-                    {String(ord.order_status || '').toLowerCase() === 'cancelled' ? (
-                      <>
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>Send Apology / Refund Info</span>
-                      </>
-                    ) : (
-                      <>
+              {(() => {
+                const footerMeta = getAdminCancellationMeta(ord);
+                return (
+                  <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-[#D8C7B5]">
+                    {footerMeta.isCancelledByAdmin && (
+                      <span className="mr-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 font-bold">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Cancelled by Admin</span>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setOrderDetailsTarget(null)}
+                      className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+                    >
+                      Close
+                    </button>
+                    {footerMeta.canCancelOrder ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = ord;
+                          setOrderDetailsTarget(null);
+                          openCancelOrderModal(target);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 font-semibold hover:bg-rose-100"
+                      >
                         <XCircle className="w-3.5 h-3.5" />
                         <span>Cancel Order &amp; Refund</span>
-                      </>
+                      </button>
+                    ) : footerMeta.isCancelledByAdmin || footerMeta.hasAnyRefund ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = ord;
+                          setOrderDetailsTarget(null);
+                          openCancelOrderModal(target);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 font-semibold hover:bg-amber-100"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Send Apology / Refund Info</span>
+                      </button>
+                    ) : null}
+                    {!footerMeta.isCancelledByAdmin && !footerMeta.hasAnyRefund && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = ord;
+                          setOrderDetailsTarget(null);
+                          openEditOrderModal(target);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D]"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Edit Fulfillment</span>
+                      </button>
                     )}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = ord;
-                    setOrderDetailsTarget(null);
-                    openEditOrderModal(target);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D]"
-                >
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>Edit Fulfillment</span>
-                </button>
-              </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}
@@ -10344,6 +10477,7 @@ export const AdminDashboardPage: React.FC = () => {
       >
         {cancelOrderTarget && (() => {
           const ord = cancelOrderTarget;
+          const modalCancelMeta = getAdminCancellationMeta(ord);
           const activeShip = getActiveShipmentFromOrder(ord);
           const activeWaybill = activeShip?.tracking_number || ord.tracking_id || '';
           const paymentsList: any[] = Array.isArray(ord.payments)
@@ -10355,8 +10489,12 @@ export const AdminDashboardPage: React.FC = () => {
             paymentsList.find((p) => p?.status === 'paid' || p?.status === 'refunded') ||
             paymentsList[0] ||
             null;
-          const isPaidOrder = ord.payment_status === 'paid' || ord.payment_status === 'refunded';
-          const alreadyCancelled = String(ord.order_status || '').toLowerCase() === 'cancelled';
+          const isPaidOrder =
+            ord.payment_status === 'paid' ||
+            ord.payment_status === 'refunded' ||
+            modalCancelMeta.hasAnyRefund;
+          const alreadyCancelled =
+            modalCancelMeta.isCancelledByAdmin || modalCancelMeta.hasAnyRefund;
 
           const REASON_PRESETS = [
             'the ordered handloom piece is currently unavailable',
