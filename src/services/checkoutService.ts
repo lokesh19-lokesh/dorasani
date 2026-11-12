@@ -1,5 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Order, CartItem, Address, Coupon, OrderShipment, ShipmentScan } from '../types';
+import type {
+  Order,
+  OrderRefund,
+  CartItem,
+  Address,
+  Coupon,
+  OrderShipment,
+  ShipmentScan,
+} from '../types';
 
 export interface CheckoutPayload {
   userId?: string;
@@ -262,24 +270,26 @@ export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
   };
 }
 
-function buildOrderTimeline(o: any, activeShipment?: OrderShipment): Order['timeline'] {
+function buildOrderTimeline(
+  o: any,
+  activeShipment?: OrderShipment,
+  refundsList: OrderRefund[] = []
+): Order['timeline'] {
   const status = String(o.order_status || 'confirmed');
-  const createdFormatted = new Date(o.created_at || Date.now()).toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const updatedFormatted = o.updated_at
-    ? new Date(o.updated_at).toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '';
+  const formatTimestamp = (raw?: string | null) =>
+    raw
+      ? new Date(raw).toLocaleString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+
+  const createdFormatted = formatTimestamp(o.created_at || new Date().toISOString());
+  const updatedFormatted = formatTimestamp(o.updated_at);
+  const cancelledFormatted = formatTimestamp(o.cancelled_at) || updatedFormatted || createdFormatted;
 
   if (status === 'cancelled' || status === 'returned' || status === 'refunded') {
     const labelMap: Record<string, string> = {
@@ -287,7 +297,15 @@ function buildOrderTimeline(o: any, activeShipment?: OrderShipment): Order['time
       returned: 'Order Returned',
       refunded: 'Order Refunded',
     };
-    return [
+
+    const primaryRefund = refundsList[0];
+    const reasonDesc = o.cancellation_reason
+      ? `Cancelled by DORASANI: ${o.cancellation_reason}. We sincerely apologize for disappointing you.`
+      : status === 'cancelled'
+        ? 'This order was cancelled by DORASANI. We sincerely apologize for the inconvenience.'
+        : `Current status: ${status.replace(/_/g, ' ')}.`;
+
+    const steps: NonNullable<Order['timeline']> = [
       {
         title: 'Order Placed',
         description: 'Your order was received.',
@@ -296,12 +314,31 @@ function buildOrderTimeline(o: any, activeShipment?: OrderShipment): Order['time
       },
       {
         title: labelMap[status] || status,
-        description: `Current status: ${status.replace(/_/g, ' ')}.`,
-        timestamp: updatedFormatted || createdFormatted,
+        description: reasonDesc,
+        timestamp: cancelledFormatted,
         completed: true,
-        current: true,
+        current: !primaryRefund && o.payment_status !== 'refunded',
       },
     ];
+
+    if (primaryRefund || o.payment_status === 'refunded') {
+      const refPart = primaryRefund?.refundReference
+        ? ` (Refund Reference ID: ${primaryRefund.refundReference})`
+        : '';
+      const amt = Number(primaryRefund?.amountInr ?? o.total_inr ?? 0);
+      const isProcessed = primaryRefund?.status === 'processed';
+      steps.push({
+        title: isProcessed ? 'Refund Processed' : 'Refund Initiated',
+        description: `Refund of ₹${amt.toLocaleString('en-IN')} has been ${
+          isProcessed ? 'credited' : 'initiated'
+        } to your original payment method${refPart}.`,
+        timestamp: formatTimestamp(primaryRefund?.createdAt) || cancelledFormatted,
+        completed: true,
+        current: true,
+      });
+    }
+
+    return steps;
   }
 
   const stageOrder = ['confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered'];
@@ -411,6 +448,38 @@ export function mapDbOrderToOrder(o: any): Order {
       ? `https://www.delhivery.com/track-v2/package/${encodeURIComponent(trackingId)}`
       : undefined);
 
+  const rawRefunds: any[] = Array.isArray(o.refunds)
+    ? [...o.refunds].sort(
+        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+      )
+    : o.refunds
+      ? [o.refunds]
+      : [];
+
+  const refunds: OrderRefund[] = rawRefunds
+    .filter((r) => r && typeof r === 'object')
+    .map((r) => ({
+      id: String(r.id || ''),
+      amountInr: Number(r.amount_inr ?? 0),
+      refundReference: r.refund_reference ? String(r.refund_reference) : undefined,
+      status: String(r.status || 'initiated'),
+      notes: r.notes ? String(r.notes) : undefined,
+      createdAt: r.created_at || undefined,
+    }));
+
+  const rawHistory: any[] = Array.isArray(o.order_status_history)
+    ? [...o.order_status_history].sort(
+        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+      )
+    : [];
+
+  const statusHistory = rawHistory.map((h) => ({
+    previousStatus: h?.previous_status ? String(h.previous_status) : undefined,
+    newStatus: String(h?.new_status || ''),
+    note: h?.note ? String(h.note) : undefined,
+    createdAt: h?.created_at || undefined,
+  }));
+
   return {
     id: o.id,
     orderNumber: o.order_number,
@@ -447,12 +516,16 @@ export function mapDbOrderToOrder(o: any): Order {
     paymentMethod: (o.payment_method as any) || 'razorpay',
     paymentStatus: (o.payment_status as any) || 'pending',
     status: (o.order_status as any) || 'confirmed',
-    timeline: buildOrderTimeline(o, shipment),
+    timeline: buildOrderTimeline(o, shipment, refunds),
     courierPartner: courierName,
     trackingId,
     trackingUrl,
     shipment,
     orderNotes: o.customer_notes || undefined,
+    cancelledAt: o.cancelled_at || undefined,
+    cancellationReason: o.cancellation_reason || undefined,
+    refunds: refunds.length > 0 ? refunds : undefined,
+    statusHistory: statusHistory.length > 0 ? statusHistory : undefined,
     paymentDetails: primaryPayment
       ? {
           provider: primaryPayment.provider,
@@ -804,7 +877,9 @@ export const checkoutService = {
           *,
           order_items (*),
           payments (*),
-          shipments (*)
+          shipments (*),
+          refunds (*),
+          order_status_history (*)
         `
         )
         .eq('user_id', userId)
@@ -834,7 +909,9 @@ export const checkoutService = {
               *,
               order_items (*),
               payments (*),
-              shipments (*)
+              shipments (*),
+              refunds (*),
+              order_status_history (*)
             `
             )
             .or(`order_number.ilike.${clean},tracking_id.ilike.${clean}`)

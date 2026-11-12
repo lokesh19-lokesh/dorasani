@@ -68,6 +68,8 @@ function redactOrderForPublic(order: any) {
     discount_inr: order.discount_inr,
     courier_name: order.courier_name,
     tracking_id: order.tracking_id,
+    cancelled_at: order.cancelled_at || null,
+    cancellation_reason: order.cancellation_reason || null,
     created_at: order.created_at,
     updated_at: order.updated_at,
     shipping_address: {
@@ -88,6 +90,25 @@ function redactOrderForPublic(order: any) {
         }))
       : [],
     shipments: sanitizeShipmentsForPublic(order.shipments),
+    refunds: Array.isArray(order.refunds)
+      ? order.refunds.map((r: any) => ({
+          id: r.id,
+          amount_inr: r.amount_inr,
+          refund_reference: r.refund_reference || null,
+          status: r.status || 'initiated',
+          notes: r.notes || null,
+          created_at: r.created_at,
+        }))
+      : [],
+    order_status_history: Array.isArray(order.order_status_history)
+      ? order.order_status_history.map((h: any) => ({
+          id: h.id,
+          previous_status: h.previous_status || null,
+          new_status: h.new_status,
+          note: h.note || null,
+          created_at: h.created_at,
+        }))
+      : [],
     payments: [],
   };
 }
@@ -240,7 +261,7 @@ serve(async (req: Request) => {
     if (orderNumberInput) {
       const { data } = await admin
         .from('orders')
-        .select('*, order_items (*), payments (*), shipments (*)')
+        .select('*, order_items (*), payments (*), shipments (*), refunds (*), order_status_history (*)')
         .ilike('order_number', orderNumberInput)
         .maybeSingle();
       orderRow = data;
@@ -250,7 +271,7 @@ serve(async (req: Request) => {
     if (!orderRow && searchCode) {
       const { data: byTracking } = await admin
         .from('orders')
-        .select('*, order_items (*), payments (*), shipments (*)')
+        .select('*, order_items (*), payments (*), shipments (*), refunds (*), order_status_history (*)')
         .eq('tracking_id', searchCode)
         .maybeSingle();
       orderRow = byTracking;
@@ -268,7 +289,7 @@ serve(async (req: Request) => {
       if (byShipment?.order_id) {
         const { data } = await admin
           .from('orders')
-          .select('*, order_items (*), payments (*), shipments (*)')
+          .select('*, order_items (*), payments (*), shipments (*), refunds (*), order_status_history (*)')
           .eq('id', byShipment.order_id)
           .maybeSingle();
         orderRow = data;
@@ -348,7 +369,7 @@ serve(async (req: Request) => {
 
           const { data: refreshedOrder } = await admin
             .from('orders')
-            .select('*, order_items (*), payments (*), shipments (*)')
+            .select('*, order_items (*), payments (*), shipments (*), refunds (*), order_status_history (*)')
             .eq('id', orderRow.id)
             .single();
 

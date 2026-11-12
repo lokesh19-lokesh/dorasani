@@ -10,6 +10,8 @@ import {
   MapPin,
   ArrowRight,
   ExternalLink,
+  AlertCircle,
+  Copy,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { checkoutService } from '../services/checkoutService';
@@ -19,7 +21,7 @@ import type { Order } from '../types';
 
 export const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
-  const { getOrder, orders } = useStore();
+  const { getOrder, orders, showToast } = useStore();
 
   const localOrder = (orderId ? getOrder(orderId) : orders[0]) || null;
   const [fetchedOrder, setFetchedOrder] = useState<Order | null>(null);
@@ -51,7 +53,7 @@ export const OrderConfirmationPage: React.FC = () => {
   const order = localOrder || fetchedOrder;
 
   useEffect(() => {
-    if (!order) return;
+    if (!order || order.status === 'cancelled' || order.status === 'refunded') return;
     let active = true;
     void import('canvas-confetti')
       .then(({ default: confetti }) => {
@@ -120,34 +122,111 @@ export const OrderConfirmationPage: React.FC = () => {
     );
   }
 
+  const isCancelledOrder = order.status === 'cancelled' || order.status === 'refunded';
+
   return (
     <div className="space-y-10 sm:space-y-12 pb-16">
       <SeoHead
-        title={`Order #${order.orderNumber} Confirmed | DORASANI`}
-        description={`Order #${order.orderNumber} confirmation and dispatch details for your DORASANI purchase.`}
+        title={
+          isCancelledOrder
+            ? `Order #${order.orderNumber} Cancelled | DORASANI`
+            : `Order #${order.orderNumber} Confirmed | DORASANI`
+        }
+        description={`Order #${order.orderNumber} status, payment, and refund information for your DORASANI purchase.`}
         canonicalPath={`/order-confirmation/${order.orderNumber}`}
         robots="noindex, nofollow"
       />
-      {/* 1. Success Hero Banner */}
+      {/* 1. Hero Banner */}
       <div className="bg-[#FAF5EE] border-b border-[#D8C7B5] py-10 sm:py-16 px-4 sm:px-8 text-center">
         <div className="max-w-2xl mx-auto space-y-3">
-          <div className="w-16 h-16 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center mx-auto shadow-md">
-            <CheckCircle2 className="w-10 h-10" />
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-md ${
+              isCancelledOrder ? 'bg-rose-100 text-rose-700' : 'bg-[#D0E9C0] text-[#285A3C]'
+            }`}
+          >
+            {isCancelledOrder ? (
+              <AlertCircle className="w-10 h-10" />
+            ) : (
+              <CheckCircle2 className="w-10 h-10" />
+            )}
           </div>
 
           <h1 className="font-serif-royal text-2xl sm:text-4xl font-bold text-[#1A3B2B]">
-            Order Placed Successfully!
+            {isCancelledOrder ? 'Order Cancelled by DORASANI' : 'Order Placed Successfully!'}
           </h1>
-          <p className="font-serif-royal text-sm sm:text-base text-[#285A3C] font-semibold">
-            Thank you for shopping with DORASANI
+          <p
+            className={`font-serif-royal text-sm sm:text-base font-semibold ${
+              isCancelledOrder ? 'text-rose-800' : 'text-[#285A3C]'
+            }`}
+          >
+            {isCancelledOrder
+              ? 'We are truly sorry for disappointing you'
+              : 'Thank you for shopping with DORASANI'}
           </p>
           <p className="text-xs sm:text-sm text-[#4F6355]">
-            {order.paymentStatus === 'paid'
-              ? 'Payment verified via Razorpay. Your order has been confirmed and our weavers are preparing your handloom package.'
-              : 'Your order has been received and our team is preparing your handloom package.'}
+            {isCancelledOrder
+              ? order.cancellationReason
+                ? `This order was cancelled because ${order.cancellationReason}.`
+                : 'This ordered item is currently unavailable, so your order was cancelled.'
+              : order.paymentStatus === 'paid'
+                ? 'Payment verified via Razorpay. Your order has been confirmed and our weavers are preparing your handloom package.'
+                : 'Your order has been received and our team is preparing your handloom package.'}
           </p>
         </div>
       </div>
+
+      {/* Refund Reference Card (if cancelled or refunded) */}
+      {(isCancelledOrder || (order.refunds && order.refunds.length > 0)) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="bg-rose-50/90 rounded-xl border border-rose-200 p-5 shadow-xs space-y-3">
+            <h2 className="font-serif-royal text-base font-bold text-rose-900">
+              Cancellation &amp; Refund Details
+            </h2>
+            {order.refunds && order.refunds.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {order.refunds.map((rf) => (
+                  <div
+                    key={rf.id || rf.refundReference || 'refund'}
+                    className="rounded-lg bg-white border border-rose-200 p-3 flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div>
+                      <p className="font-bold text-[#1A3B2B]">
+                        Refund ₹{rf.amountInr.toLocaleString('en-IN')} ({rf.status})
+                      </p>
+                      {rf.refundReference && (
+                        <p className="font-mono text-[11px] text-rose-800 font-semibold mt-0.5">
+                          Refund Reference ID: {rf.refundReference}
+                        </p>
+                      )}
+                    </div>
+                    {rf.refundReference && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(rf.refundReference || '');
+                          showToast('Refund Reference ID copied!');
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-[#FAF5EE] text-[#285A3C] text-[11px] font-semibold"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Ref</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : order.paymentStatus === 'refunded' ? (
+              <p className="text-xs text-[#1A3B2B]">
+                Refund of ₹{order.total.toLocaleString('en-IN')} has been initiated to your original payment method.
+              </p>
+            ) : (
+              <p className="text-xs text-[#4F6355]">
+                Please reach out to DORASANI Customer Care if you need any assistance choosing another handloom piece.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 2. Order Summary Cards Strip */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8">

@@ -169,6 +169,52 @@ export async function captureRazorpayPayment(params: {
   return data;
 }
 
+export async function createRazorpayRefund(params: {
+  keyId: string;
+  keySecret: string;
+  paymentId: string;
+  amountInPaise?: number;
+  speed?: 'normal' | 'optimum';
+  receipt?: string;
+  notes?: Record<string, string>;
+}) {
+  const payload: Record<string, unknown> = {
+    speed: params.speed || 'normal',
+  };
+  if (typeof params.amountInPaise === 'number' && params.amountInPaise > 0) {
+    payload.amount = Math.round(params.amountInPaise);
+  }
+  if (params.receipt) {
+    payload.receipt = String(params.receipt).slice(0, 40);
+  }
+  if (params.notes) {
+    payload.notes = params.notes;
+  }
+
+  const res = await fetch(
+    `https://api.razorpay.com/v1/payments/${encodeURIComponent(params.paymentId)}/refund`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: buildRazorpayBasicAuth(params.keyId, params.keySecret),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const desc =
+      data?.error?.description ||
+      data?.error?.reason ||
+      `Razorpay refund creation failed (${res.status})`;
+    throw new Error(desc);
+  }
+
+  return data;
+}
+
 export function normalizePaymentMethod(rawMethod: unknown, fallback = 'razorpay'): string {
   const val = String(rawMethod || '').trim().toLowerCase();
   if (val === 'online') return 'razorpay';
@@ -529,11 +575,18 @@ export async function upsertPaymentRecord(
 export async function fetchFullOrderWithRelations(admin: any, orderId: string) {
   const { data, error } = await admin
     .from('orders')
-    .select('*, order_items (*), payments (*), shipments (*)')
+    .select('*, order_items (*), payments (*), shipments (*), refunds (*), order_status_history (*)')
     .eq('id', orderId)
     .single();
 
-  if (error) return null;
+  if (error) {
+    const { data: fallback } = await admin
+      .from('orders')
+      .select('*, order_items (*), payments (*), shipments (*)')
+      .eq('id', orderId)
+      .single();
+    return fallback || null;
+  }
   return data;
 }
 

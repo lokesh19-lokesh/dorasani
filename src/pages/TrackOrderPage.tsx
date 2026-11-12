@@ -395,6 +395,83 @@ export const TrackOrderPage: React.FC = () => {
             </div>
           </div>
 
+          {/* 3.5. Cancellation Apology & Refund Reference Card (visible when cancelled/refunded) */}
+          {(currentOrder.status === 'cancelled' ||
+            currentOrder.status === 'refunded' ||
+            (currentOrder.refunds && currentOrder.refunds.length > 0)) && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-8">
+              <div className="bg-rose-50/90 rounded-xl border border-rose-200 p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="space-y-1 flex-1">
+                    <h2 className="font-serif-royal text-base sm:text-lg font-bold text-rose-900">
+                      Order Cancelled — Sincere Apologies from DORASANI
+                    </h2>
+                    <p className="text-xs text-[#3A443D] leading-relaxed">
+                      We are truly sorry for disappointing you.{' '}
+                      {currentOrder.cancellationReason
+                        ? `Your order was cancelled because ${currentOrder.cancellationReason}.`
+                        : 'Your order was cancelled by DORASANI as the requested item became unavailable.'}
+                    </p>
+                  </div>
+                </div>
+
+                {currentOrder.refunds && currentOrder.refunds.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {currentOrder.refunds.map((rf) => (
+                      <div
+                        key={rf.id || rf.refundReference || 'refund'}
+                        className="rounded-lg bg-white border border-rose-200 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[#1A3B2B]">
+                              Refund of ₹{rf.amountInr.toLocaleString('en-IN')}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                                rf.status === 'processed'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {rf.status}
+                            </span>
+                          </div>
+                          {rf.refundReference && (
+                            <p className="font-mono text-[11px] text-rose-800 font-semibold">
+                              Refund Reference ID: {rf.refundReference}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-[#647268]">
+                            Credited to your original payment method (typically reflects within 5–7 business days).
+                          </p>
+                        </div>
+                        {rf.refundReference && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(rf.refundReference || '');
+                              showToast('Refund Reference ID copied!');
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#D8C7B5] bg-[#FAF5EE] text-[#285A3C] text-[11px] font-semibold hover:bg-[#D0E9C0]/40"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>Copy Ref</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : currentOrder.paymentStatus === 'refunded' ? (
+                  <div className="rounded-lg bg-white border border-rose-200 p-3 text-xs text-[#1A3B2B]">
+                    A full refund of <strong>₹{currentOrder.total.toLocaleString('en-IN')}</strong> has been initiated to your original payment method.
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+
           {/* 4. Dynamic Horizontal Delivery Progress Bar */}
           {currentOrder.timeline && currentOrder.timeline.length > 0 && (
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -403,6 +480,8 @@ export const TrackOrderPage: React.FC = () => {
                   className={`grid gap-4 relative ${
                     currentOrder.timeline.length <= 2
                       ? 'grid-cols-2'
+                      : currentOrder.timeline.length === 3
+                      ? 'grid-cols-1 sm:grid-cols-3'
                       : currentOrder.timeline.length === 4
                       ? 'grid-cols-2 md:grid-cols-4'
                       : 'grid-cols-2 md:grid-cols-5'
@@ -695,7 +774,9 @@ export const TrackOrderPage: React.FC = () => {
                     </>
                   ) : (
                     <p className="text-[#4F6355] text-[11px] leading-relaxed">
-                      Awaiting dispatch assignment. Your courier partner and tracking ID will appear here once manifested.
+                      {currentOrder.status === 'cancelled' || currentOrder.status === 'refunded'
+                        ? 'This shipment was cancelled along with your order.'
+                        : 'Awaiting dispatch assignment. Your courier partner and tracking ID will appear here once manifested.'}
                     </p>
                   )}
                 </div>

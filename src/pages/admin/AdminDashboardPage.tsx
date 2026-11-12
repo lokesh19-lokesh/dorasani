@@ -56,6 +56,7 @@ import {
   type AdminCouponInput,
   type AdminBannerInput,
   type AdminServiceBenefitInput,
+  type AdminCancelOrderResult,
 } from '../../services/adminService';
 import {
   delhiveryService,
@@ -598,6 +599,17 @@ export const AdminDashboardPage: React.FC = () => {
   const [savingOrder, setSavingOrder] = useState(false);
   const [deleteOrderTarget, setDeleteOrderTarget] = useState<any | null>(null);
   const [deletingOrder, setDeletingOrder] = useState(false);
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<any | null>(null);
+  const [cancelOrderReason, setCancelOrderReason] = useState<string>(
+    'the ordered handloom piece is currently unavailable'
+  );
+  const [cancelOrderMessage, setCancelOrderMessage] = useState<string>('');
+  const [cancelInitiateRefund, setCancelInitiateRefund] = useState<boolean>(true);
+  const [cancelRestoreStock, setCancelRestoreStock] = useState<boolean>(true);
+  const [cancelDelhiveryAwb, setCancelDelhiveryAwb] = useState<boolean>(true);
+  const [cancellingOrder, setCancellingOrder] = useState<boolean>(false);
+  const [cancelOrderError, setCancelOrderError] = useState<string | null>(null);
+  const [cancelOrderResult, setCancelOrderResult] = useState<AdminCancelOrderResult | null>(null);
 
   // Delhivery One Shipping, Manifest, Label, Pickup & Live Sync State
   const [delhiveryManifestTarget, setDelhiveryManifestTarget] = useState<any | null>(null);
@@ -1518,6 +1530,86 @@ export const AdminDashboardPage: React.FC = () => {
       showToast('Failed to delete order: ' + err.message, 'error');
     } finally {
       setDeletingOrder(false);
+    }
+  };
+
+  const buildDefaultCancelApologyMessage = (order: any, reason: string) => {
+    const firstName = String(order?.customer_name || 'Valued Customer').trim() || 'Valued Customer';
+    const itemsList: any[] = Array.isArray(order?.order_items) ? order.order_items : [];
+    const itemsText = itemsList
+      .map((i) => (i?.quantity > 1 ? `${i.product_title} × ${i.quantity}` : i?.product_title))
+      .filter(Boolean)
+      .join(', ');
+    const isPaid = order?.payment_status === 'paid' || order?.payment_status === 'refunded';
+    const totalAmount = Number(order?.total_inr || 0).toLocaleString('en-IN');
+
+    return [
+      `Dear ${firstName},`,
+      '',
+      `We are truly sorry for disappointing you regarding your DORASANI order #${order?.order_number}${itemsText ? ` (${itemsText})` : ''}.`,
+      `Unfortunately, we have had to cancel your order because ${reason}.`,
+      isPaid
+        ? `A full refund of ₹${totalAmount} is being processed to your original payment method. You can view your Refund Reference ID directly on your Track Order & Account pages.`
+        : `No amount will be collected for this cancelled order.`,
+      '',
+      'Please reach out if we can help you select a similar handloom weave from our collection.',
+      'Warm regards,',
+      'Team DORASANI',
+    ].join('\n');
+  };
+
+  const openCancelOrderModal = (order: any) => {
+    const defaultReason =
+      order?.cancellation_reason || 'the ordered handloom piece is currently unavailable';
+    setCancelOrderTarget(order);
+    setCancelOrderReason(defaultReason);
+    setCancelOrderMessage(buildDefaultCancelApologyMessage(order, defaultReason));
+    setCancelInitiateRefund(true);
+    setCancelRestoreStock(true);
+    setCancelDelhiveryAwb(true);
+    setCancelOrderError(null);
+    setCancelOrderResult(null);
+  };
+
+  const handleConfirmCancelOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelOrderTarget) return;
+    const cleanReason =
+      cancelOrderReason.trim() || 'the ordered handloom piece is currently unavailable';
+
+    setCancellingOrder(true);
+    setCancelOrderError(null);
+    try {
+      const res = await adminService.cancelOrder({
+        orderId: cancelOrderTarget.id,
+        reason: cleanReason,
+        customMessage: cancelOrderMessage.trim() || undefined,
+        initiateRefund: cancelInitiateRefund,
+        restoreStock: cancelRestoreStock,
+        cancelDelhiveryAwb,
+        sendEmail: true,
+        sendWhatsApp: true,
+      });
+
+      setCancelOrderResult(res);
+      if (res.order) {
+        setCancelOrderTarget(res.order);
+        if (orderDetailsTarget?.id === res.order.id) {
+          setOrderDetailsTarget(res.order);
+        }
+      }
+      showToast(
+        res.refund?.refundReference
+          ? `Order #${cancelOrderTarget.order_number} cancelled • Refund Ref: ${res.refund.refundReference}`
+          : `Order #${cancelOrderTarget.order_number} cancelled & apology notification ready.`
+      );
+      await loadData();
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to cancel order.';
+      setCancelOrderError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
@@ -3872,6 +3964,16 @@ export const AdminDashboardPage: React.FC = () => {
                               !['cancelled', 'refunded', 'returned', 'delivered'].includes(
                                 String(o.order_status || '').toLowerCase()
                               );
+                            const refundsList: any[] = Array.isArray(o.refunds)
+                              ? o.refunds
+                              : o.refunds
+                              ? [o.refunds]
+                              : [];
+                            const latestRefund = refundsList[0] || null;
+                            const isCancelledOrder = String(o.order_status || '').toLowerCase() === 'cancelled';
+                            const canCancelOrder = !['cancelled', 'refunded', 'returned', 'delivered'].includes(
+                              String(o.order_status || '').toLowerCase()
+                            );
 
                             return (
                               <tr key={o.id} className="hover:bg-[#FAF5EE]/50">
@@ -3889,6 +3991,14 @@ export const AdminDashboardPage: React.FC = () => {
                                         {activeShip.current_location
                                           ? ` • ${activeShip.current_location}`
                                           : ''}
+                                      </span>
+                                    )}
+                                    {isCancelledOrder && o.cancellation_reason && (
+                                      <span
+                                        className="block text-[10px] font-normal text-rose-700 truncate max-w-[200px]"
+                                        title={o.cancellation_reason}
+                                      >
+                                        Reason: {o.cancellation_reason}
                                       </span>
                                     )}
                                   </div>
@@ -3932,6 +4042,14 @@ export const AdminDashboardPage: React.FC = () => {
                                         title={`Razorpay Payment ID: ${primaryPayment.provider_payment_id}`}
                                       >
                                         {primaryPayment.provider_payment_id}
+                                      </span>
+                                    )}
+                                    {latestRefund?.refund_reference && (
+                                      <span
+                                        className="block text-[10px] font-mono text-rose-700 font-semibold truncate max-w-[165px]"
+                                        title={`Refund Reference: ${latestRefund.refund_reference}`}
+                                      >
+                                        Refund: {latestRefund.refund_reference}
                                       </span>
                                     )}
                                   </div>
@@ -4025,6 +4143,27 @@ export const AdminDashboardPage: React.FC = () => {
                                       <Truck className="w-3 h-3 text-[#285A3C]" />
                                       <span>Dispatch</span>
                                     </button>
+                                    {canCancelOrder ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openCancelOrderModal(o)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-semibold hover:bg-rose-100"
+                                        title="Cancel order, issue refund & notify customer via WhatsApp and Email"
+                                      >
+                                        <XCircle className="w-3 h-3" />
+                                        <span>Cancel Order</span>
+                                      </button>
+                                    ) : isCancelledOrder ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openCancelOrderModal(o)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[11px] font-semibold hover:bg-amber-100"
+                                        title="Send cancellation apology via WhatsApp / Email or review refund status"
+                                      >
+                                        <Mail className="w-3 h-3" />
+                                        <span>Notify</span>
+                                      </button>
+                                    ) : null}
                                     <button
                                       type="button"
                                       onClick={() => setDeleteOrderTarget(o)}
@@ -5197,12 +5336,12 @@ export const AdminDashboardPage: React.FC = () => {
                                           </div>
                                           <div className="space-y-1">
                                             <label className="font-semibold text-[#1A3B2B] block">
-                                              Max Cap (₹, 0 = Auto)
+                                              Max Cap (₹, 0 = Auto ₹50L)
                                             </label>
                                             <input
                                               type="number"
                                               min={0}
-                                              value={group.maxPrice ?? 0}
+                                              value={group.maxPrice ?? 5000000}
                                               onChange={(e) =>
                                                 updateFilterGroup(group.id, {
                                                   maxPrice: Math.max(0, Number(e.target.value)),
@@ -5487,7 +5626,7 @@ export const AdminDashboardPage: React.FC = () => {
                                             type="number"
                                             min={0}
                                             value={gOv.maxPrice ?? ''}
-                                            placeholder="Auto"
+                                            placeholder="Auto (₹50L)"
                                             onChange={(e) =>
                                               updateFilterGroupOverride(configScopeSlug, group.id, {
                                                 maxPrice:
@@ -10011,7 +10150,80 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-2 border-t border-[#D8C7B5]">
+              {(() => {
+                const ordRefunds: any[] = Array.isArray(ord.refunds)
+                  ? ord.refunds
+                  : ord.refunds
+                  ? [ord.refunds]
+                  : [];
+                const isCancelled = String(ord.order_status || '').toLowerCase() === 'cancelled';
+                if (!isCancelled && ordRefunds.length === 0) return null;
+
+                return (
+                  <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                        Cancellation &amp; Refund Record
+                      </span>
+                      {ord.cancelled_at && (
+                        <span className="text-[10px] text-rose-700 font-medium">
+                          {new Date(ord.cancelled_at).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    {ord.cancellation_reason && (
+                      <p className="text-xs text-[#1A3B2B]">
+                        <span className="font-semibold">Reason: </span>
+                        {ord.cancellation_reason}
+                      </p>
+                    )}
+                    {ordRefunds.map((rf: any, rIdx: number) => (
+                      <div
+                        key={rf.id || rIdx}
+                        className="p-2.5 rounded-lg bg-white border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-[11px]"
+                      >
+                        <div>
+                          <span className="font-bold uppercase text-rose-800">
+                            Refund ({rf.status || 'initiated'})
+                          </span>
+                          {rf.refund_reference && (
+                            <p className="font-mono text-[10px] text-[#1A3B2B] mt-0.5">
+                              Refund Ref: <strong>{rf.refund_reference}</strong>
+                            </p>
+                          )}
+                          {rf.notes && <p className="text-[10px] text-[#647268]">{rf.notes}</p>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#1A3B2B]">
+                            ₹{Number(rf.amount_inr || 0).toLocaleString('en-IN')}
+                          </span>
+                          {rf.refund_reference && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(String(rf.refund_reference));
+                                showToast('Refund reference copied!');
+                              }}
+                              className="p-1 rounded border border-[#D8C7B5] text-[#285A3C] hover:bg-[#FAF5EE]"
+                              title="Copy refund reference"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              <div className="flex flex-wrap justify-end gap-2.5 pt-2 border-t border-[#D8C7B5]">
                 <button
                   type="button"
                   onClick={() => setOrderDetailsTarget(null)}
@@ -10019,6 +10231,35 @@ export const AdminDashboardPage: React.FC = () => {
                 >
                   Close
                 </button>
+                {!['refunded', 'returned', 'delivered'].includes(
+                  String(ord.order_status || '').toLowerCase()
+                ) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = ord;
+                      setOrderDetailsTarget(null);
+                      openCancelOrderModal(target);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold ${
+                      String(ord.order_status || '').toLowerCase() === 'cancelled'
+                        ? 'border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                        : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    }`}
+                  >
+                    {String(ord.order_status || '').toLowerCase() === 'cancelled' ? (
+                      <>
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Send Apology / Refund Info</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Cancel Order &amp; Refund</span>
+                      </>
+                    )}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -10086,6 +10327,429 @@ export const AdminDashboardPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </ModalDialog>
+
+      {/* ==================== MODAL: CANCEL ORDER, REFUND & NOTIFY CUSTOMER ==================== */}
+      <ModalDialog
+        open={Boolean(cancelOrderTarget)}
+        onClose={() => {
+          if (!cancellingOrder) {
+            setCancelOrderTarget(null);
+            setCancelOrderResult(null);
+            setCancelOrderError(null);
+          }
+        }}
+        labelledBy="cancel-order-title"
+        maxWidthClass="max-w-xl"
+      >
+        {cancelOrderTarget && (() => {
+          const ord = cancelOrderTarget;
+          const activeShip = getActiveShipmentFromOrder(ord);
+          const activeWaybill = activeShip?.tracking_number || ord.tracking_id || '';
+          const paymentsList: any[] = Array.isArray(ord.payments)
+            ? ord.payments
+            : ord.payments
+            ? [ord.payments]
+            : [];
+          const primaryPayment =
+            paymentsList.find((p) => p?.status === 'paid' || p?.status === 'refunded') ||
+            paymentsList[0] ||
+            null;
+          const isPaidOrder = ord.payment_status === 'paid' || ord.payment_status === 'refunded';
+          const alreadyCancelled = String(ord.order_status || '').toLowerCase() === 'cancelled';
+
+          const REASON_PRESETS = [
+            'the ordered handloom piece is currently unavailable',
+            'this saree did not pass our final quality inspection',
+            'stock ran out before dispatch confirmation',
+          ];
+
+          return (
+            <div className="space-y-4 text-xs">
+              <div className="flex items-start justify-between gap-3 border-b border-[#D8C7B5] pb-3">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      cancelOrderResult
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-rose-100 text-rose-700'
+                    }`}
+                  >
+                    {cancelOrderResult ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : (
+                      <XCircle className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <h2
+                      id="cancel-order-title"
+                      className="font-golden text-lg font-bold text-[#1A3B2B]"
+                    >
+                      {cancelOrderResult
+                        ? `Order #${ord.order_number} Cancelled`
+                        : alreadyCancelled
+                          ? `Notify Customer — #${ord.order_number}`
+                          : `Cancel Order #${ord.order_number}`}
+                    </h2>
+                    <p className="text-[11px] text-[#647268] mt-0.5">
+                      {ord.customer_name} • {ord.customer_phone} • {ord.customer_email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={cancellingOrder}
+                  onClick={() => {
+                    setCancelOrderTarget(null);
+                    setCancelOrderResult(null);
+                    setCancelOrderError(null);
+                  }}
+                  aria-label="Close cancel order dialog"
+                  className="p-1.5 rounded-full hover:bg-[#FAF5EE]"
+                >
+                  <X className="w-5 h-5 text-[#647268]" />
+                </button>
+              </div>
+
+              {cancelOrderError && (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 leading-relaxed"
+                >
+                  {cancelOrderError}
+                </div>
+              )}
+
+              {!cancelOrderResult ? (
+                <form onSubmit={handleConfirmCancelOrder} className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-[#647268] block">Order Total &amp; Payment:</span>
+                      <span className="font-bold text-[#1A3B2B]">
+                        ₹{Number(ord.total_inr || 0).toLocaleString('en-IN')} •{' '}
+                        {String(ord.payment_method || '').toUpperCase()} (
+                        {String(ord.payment_status || 'pending').replace(/_/g, ' ')})
+                      </span>
+                      {primaryPayment?.provider_payment_id && (
+                        <span className="block font-mono text-[10px] text-[#647268]">
+                          {primaryPayment.provider_payment_id}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[#647268] block">Shipment Status:</span>
+                      <span className="font-semibold text-[#1A3B2B]">
+                        {activeWaybill
+                          ? `Manifested AWB: ${activeWaybill}`
+                          : 'Not yet manifested'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="cancel-order-reason"
+                      className="font-semibold text-[#1A3B2B] block"
+                    >
+                      Cancellation Reason (Visible to Customer) *
+                    </label>
+                    <input
+                      id="cancel-order-reason"
+                      type="text"
+                      required
+                      value={cancelOrderReason}
+                      onChange={(e) => setCancelOrderReason(e.target.value)}
+                      className="w-full rounded-xl border border-[#D8C7B5] bg-white px-3 py-2 text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
+                    />
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {REASON_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            setCancelOrderReason(preset);
+                            setCancelOrderMessage(buildDefaultCancelApologyMessage(ord, preset));
+                          }}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-[#FAF5EE] border border-[#E8DCCF] text-[#4F6355] hover:border-[#285A3C] hover:text-[#1A3B2B]"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {!alreadyCancelled && (
+                    <div className="space-y-2 p-3 rounded-xl border border-[#E8DCCF] bg-white">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#647268] block">
+                        Automated Actions
+                      </span>
+                      {isPaidOrder && (
+                        <label className="flex items-center gap-2 cursor-pointer text-[#1A3B2B]">
+                          <input
+                            type="checkbox"
+                            checked={cancelInitiateRefund}
+                            onChange={(e) => setCancelInitiateRefund(e.target.checked)}
+                            className="accent-[#285A3C]"
+                          />
+                          <span>
+                            Issue full Razorpay refund of ₹
+                            {Number(ord.total_inr || 0).toLocaleString('en-IN')} &amp; create visible Refund Reference
+                          </span>
+                        </label>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer text-[#1A3B2B]">
+                        <input
+                          type="checkbox"
+                          checked={cancelRestoreStock}
+                          onChange={(e) => setCancelRestoreStock(e.target.checked)}
+                          className="accent-[#285A3C]"
+                        />
+                        <span>Restore ordered item quantities back to inventory stock</span>
+                      </label>
+                      {activeWaybill && (
+                        <label className="flex items-center gap-2 cursor-pointer text-[#1A3B2B]">
+                          <input
+                            type="checkbox"
+                            checked={cancelDelhiveryAwb}
+                            onChange={(e) => setCancelDelhiveryAwb(e.target.checked)}
+                            className="accent-[#285A3C]"
+                          />
+                          <span>Cancel active Delhivery AWB ({activeWaybill})</span>
+                        </label>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label
+                        htmlFor="cancel-order-apology"
+                        className="font-semibold text-[#1A3B2B]"
+                      >
+                        Apology Message for Customer (WhatsApp &amp; Email)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCancelOrderMessage(
+                            buildDefaultCancelApologyMessage(ord, cancelOrderReason.trim())
+                          )
+                        }
+                        className="text-[10px] font-semibold text-[#285A3C] hover:underline"
+                      >
+                        Reset template
+                      </button>
+                    </div>
+                    <textarea
+                      id="cancel-order-apology"
+                      rows={6}
+                      value={cancelOrderMessage}
+                      onChange={(e) => setCancelOrderMessage(e.target.value)}
+                      className="w-full rounded-xl border border-[#D8C7B5] bg-[#FAF5EE] p-3 text-xs text-[#1A3B2B] leading-relaxed focus:outline-none focus:border-[#285A3C]"
+                    />
+                    <p className="text-[10px] text-[#647268]">
+                      Automatically dispatches email/WhatsApp if server messaging secrets are set, and gives you instant one-click WhatsApp &amp; Email launch buttons next.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-[#E8DCCF]">
+                    <button
+                      type="button"
+                      data-autofocus="true"
+                      autoFocus
+                      disabled={cancellingOrder}
+                      onClick={() => {
+                        setCancelOrderTarget(null);
+                        setCancelOrderError(null);
+                      }}
+                      className="px-4 py-2 rounded-xl border border-[#D8C7B5] font-semibold hover:bg-[#FAF5EE]"
+                    >
+                      Keep Order
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={cancellingOrder}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-60"
+                    >
+                      {cancellingOrder ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Cancelling &amp; Refunding...</span>
+                        </>
+                      ) : alreadyCancelled ? (
+                        <>
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Send / Generate Apology Notification</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>
+                            {isPaidOrder && cancelInitiateRefund
+                              ? 'Confirm Cancel & Refund'
+                              : 'Confirm Cancel Order'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-[#F3F8F1] border border-[#BCD8AA] space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-[#4F6355] block">Refund Status:</span>
+                        <span className="font-bold text-[#1A3B2B]">
+                          {cancelOrderResult.refundIssued
+                            ? `₹${Number(
+                                cancelOrderResult.refund?.amountInr ?? ord.total_inr ?? 0
+                              ).toLocaleString('en-IN')} (${
+                                cancelOrderResult.refund?.status || 'refunded'
+                              })`
+                            : 'No online refund required'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#4F6355] block">Inventory &amp; Shipping:</span>
+                        <span className="font-semibold text-[#1A3B2B]">
+                          {cancelOrderResult.stockRestoredUnits > 0
+                            ? `Restored ${cancelOrderResult.stockRestoredUnits} unit(s)`
+                            : 'Stock unchanged'}
+                          {cancelOrderResult.delhiveryCancelled ? ' • Delhivery AWB cancelled' : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {cancelOrderResult.refund?.refundReference && (
+                      <div className="p-2.5 rounded-lg bg-white border border-[#BCD8AA] flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-[#4F6355] block">
+                            Customer-Visible Refund Reference ID
+                          </span>
+                          <span className="font-mono font-bold text-[#1A3B2B] text-xs">
+                            {cancelOrderResult.refund.refundReference}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              String(cancelOrderResult.refund?.refundReference || '')
+                            );
+                            showToast('Refund Reference ID copied!');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FAF5EE] border border-[#D8C7B5] text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/40"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>Copy Ref</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {cancelOrderResult.delhiveryWarning && (
+                      <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                        Delhivery Note: {cancelOrderResult.delhiveryWarning}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* WhatsApp & Email Dispatch Box */}
+                  <div className="p-3.5 rounded-xl border border-[#D8C7B5] bg-white space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-bold text-[#1A3B2B] uppercase tracking-wider text-[10px]">
+                        Send Apology via WhatsApp &amp; Email
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
+                        <span
+                          className={`px-2 py-0.5 rounded-full ${
+                            cancelOrderResult.notifications.emailSent
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {cancelOrderResult.notifications.emailSent
+                            ? `Email auto-sent (${cancelOrderResult.notifications.emailProvider})`
+                            : 'Email: click below to send'}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full ${
+                            cancelOrderResult.notifications.whatsappSent
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {cancelOrderResult.notifications.whatsappSent
+                            ? `WhatsApp auto-sent (${cancelOrderResult.notifications.whatsappProvider})`
+                            : 'WhatsApp: click below to send'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-[#FAF5EE] border border-[#E8DCCF] text-[11px] text-[#3A443D] whitespace-pre-wrap max-h-40 overflow-y-auto">
+                      {cancelOrderResult.notifications.messageText}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {cancelOrderResult.notifications.waMeUrl && (
+                        <a
+                          href={cancelOrderResult.notifications.waMeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EB958] text-white font-bold shadow-xs"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Send on WhatsApp</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {cancelOrderResult.notifications.mailtoUrl && (
+                        <a
+                          href={cancelOrderResult.notifications.mailtoUrl}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#285A3C] hover:bg-[#1E432D] text-white font-bold shadow-xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Send Apology Email</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            cancelOrderResult.notifications.messageText
+                          );
+                          showToast('Apology message copied to clipboard!');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#D8C7B5] bg-white hover:bg-[#FAF5EE] text-[#1A3B2B] font-semibold"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-[#285A3C]" />
+                        <span>Copy Message</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-[#E8DCCF]">
+                    <button
+                      type="button"
+                      data-autofocus="true"
+                      autoFocus
+                      onClick={() => {
+                        setCancelOrderTarget(null);
+                        setCancelOrderResult(null);
+                      }}
+                      className="px-5 py-2 rounded-xl bg-[#285A3C] text-white font-semibold hover:bg-[#1E432D]"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </ModalDialog>
 
       {/* ==================== MODAL: CUSTOMER ACTIVITY LOGS ==================== */}
@@ -11017,6 +11681,40 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="font-medium truncate">
                           {item.product_title}
                           {item.product_sku ? ` (${item.product_sku})` : ''} × {item.quantity}
+                        </span>
+                        <span className="font-semibold shrink-0">
+                          ₹{Number(item.total_price_inr || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {label.warehouse && (
+                  <p className="text-[10px] text-[#647268] border-t border-[#E8DCCF] pt-2">
+                    Return Address (If Undelivered): {label.warehouse.name},{' '}
+                    {label.warehouse.address}, {label.warehouse.cityStatePin}
+                    {label.warehouse.phone ? ` • Tel: ${label.warehouse.phone}` : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </ModalDialog>
+
+      {/* ==================== MODAL: SCHEDULE DELHIVERY PICKUP ==================== */}
+      <ModalDialog
+        open={pickupModalOpen}
+        onClose={() => setPickupModalOpen(false)}
+        labelledBy="delhivery-pickup-title"
+        maxWidthClass="max-w-lg"
+      >
+        <div className="flex items-center justify-between border-b border-[#D8C7B5] pb-3">
+          <div>
+            <h2
+              id="delhivery-pickup-title"
+              className="font-golden text-lg font-bold text-[#1A3B2B]"
             >
               Schedule Delhivery Courier Pickup
             </h2>

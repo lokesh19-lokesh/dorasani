@@ -78,6 +78,47 @@ export interface AdminServiceBenefitInput {
   is_active?: boolean;
 }
 
+export interface AdminCancelOrderParams {
+  orderId: string;
+  reason: string;
+  customMessage?: string;
+  initiateRefund?: boolean;
+  restoreStock?: boolean;
+  cancelDelhiveryAwb?: boolean;
+  sendEmail?: boolean;
+  sendWhatsApp?: boolean;
+}
+
+export interface AdminCancelOrderResult {
+  success: boolean;
+  alreadyCancelled: boolean;
+  order: any;
+  refund: {
+    id: string;
+    amountInr: number;
+    refundReference?: string | null;
+    status: string;
+  } | null;
+  refundIssued: boolean;
+  delhiveryCancelled: boolean;
+  delhiveryWarning: string | null;
+  stockRestoredUnits: number;
+  notifications: {
+    messageText: string;
+    emailSubject: string;
+    customerEmail: string;
+    customerPhone: string;
+    waMeUrl: string | null;
+    mailtoUrl: string | null;
+    emailSent: boolean;
+    emailProvider: string;
+    emailError: string | null;
+    whatsappSent: boolean;
+    whatsappProvider: string;
+    whatsappError: string | null;
+  };
+}
+
 const ROLE_PRIORITY: Record<string, number> = {
   super_admin: 1,
   admin: 2,
@@ -658,7 +699,9 @@ export const adminService = {
         *,
         order_items (*),
         payments (*),
-        shipments (*)
+        shipments (*),
+        refunds (*),
+        order_status_history (*)
       `,
         { count: 'exact' }
       )
@@ -736,6 +779,33 @@ export const adminService = {
     if (historyErr) throw historyErr;
 
     return data;
+  },
+
+  async cancelOrder(params: AdminCancelOrderParams): Promise<AdminCancelOrderResult> {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase.functions.invoke('admin-cancel-order', {
+      body: params,
+    });
+
+    if (error || !data?.success) {
+      let msg = data?.error;
+      if (!msg && error?.context && typeof error.context.clone === 'function') {
+        try {
+          const parsed = await error.context.clone().json();
+          if (parsed?.error) msg = parsed.error;
+        } catch {
+          try {
+            const text = await error.context.clone().text();
+            if (text?.trim()) msg = text.trim();
+          } catch {
+            // ignore
+          }
+        }
+      }
+      throw new Error(msg || error?.message || 'Failed to cancel order.');
+    }
+
+    return data as AdminCancelOrderResult;
   },
 
   // 5. Inventory Management

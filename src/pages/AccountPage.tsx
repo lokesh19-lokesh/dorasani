@@ -491,6 +491,27 @@ export const AccountPage: React.FC = () => {
                                     : ''}
                                 </p>
                               )}
+                              {(ord.status === 'cancelled' || (ord.refunds && ord.refunds.length > 0)) && (
+                                <div className="mt-1.5 rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-1.5 text-[11px] text-rose-900 space-y-0.5">
+                                  {ord.status === 'cancelled' && (
+                                    <p className="font-medium">
+                                      {ord.cancellationReason
+                                        ? `Cancelled by DORASANI: ${ord.cancellationReason}`
+                                        : 'Cancelled by DORASANI — we sincerely apologize for the inconvenience.'}
+                                    </p>
+                                  )}
+                                  {ord.refunds && ord.refunds.length > 0 && (
+                                    <p className="font-semibold text-[#1A3B2B]">
+                                      Refund ₹{ord.refunds[0].amountInr.toLocaleString('en-IN')} ({ord.refunds[0].status})
+                                      {ord.refunds[0].refundReference ? (
+                                        <span className="font-mono text-rose-800">
+                                          {' '}• Ref ID: {ord.refunds[0].refundReference}
+                                        </span>
+                                      ) : null}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -582,6 +603,17 @@ export const AccountPage: React.FC = () => {
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
+                                    ? 'bg-[#D0E9C0] text-[#1A3B2B]'
+                                    : ord.status === 'cancelled' || ord.status === 'refunded'
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                {ord.status.replace(/_/g, ' ')}
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
                                   ord.paymentStatus === 'paid'
                                     ? 'bg-emerald-100 text-emerald-800'
                                     : ord.paymentStatus === 'failed'
@@ -607,6 +639,27 @@ export const AccountPage: React.FC = () => {
                                   ? ` (${ord.shipment.currentStatus})`
                                   : ''}
                               </p>
+                            )}
+                            {(ord.status === 'cancelled' || (ord.refunds && ord.refunds.length > 0)) && (
+                              <div className="mt-1.5 rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-1.5 text-[11px] text-rose-900 space-y-0.5">
+                                {ord.status === 'cancelled' && (
+                                  <p className="font-medium">
+                                    {ord.cancellationReason
+                                      ? `Cancelled by DORASANI: ${ord.cancellationReason}`
+                                      : 'Cancelled by DORASANI — we sincerely apologize for the inconvenience.'}
+                                  </p>
+                                )}
+                                {ord.refunds && ord.refunds.length > 0 && (
+                                  <p className="font-semibold text-[#1A3B2B]">
+                                    Refund ₹{ord.refunds[0].amountInr.toLocaleString('en-IN')} ({ord.refunds[0].status})
+                                    {ord.refunds[0].refundReference ? (
+                                      <span className="font-mono text-rose-800">
+                                        {' '}• Ref ID: {ord.refunds[0].refundReference}
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>

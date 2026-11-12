@@ -313,6 +313,12 @@ serve(async (req: Request) => {
           const isFullRefund = totalPaidPaise > 0 ? refundedPaise >= totalPaidPaise : true;
           const nextPaymentStatus = isFullRefund ? 'refunded' : 'partially_refunded';
 
+          const { data: currentOrd } = await admin
+            .from('orders')
+            .select('order_status')
+            .eq('id', paymentRow.order_id)
+            .maybeSingle();
+
           await admin
             .from('payments')
             .update({ status: nextPaymentStatus, updated_at: nowIso })
@@ -322,11 +328,48 @@ serve(async (req: Request) => {
             payment_status: nextPaymentStatus,
             updated_at: nowIso,
           };
-          if (isFullRefund && eventType === 'refund.processed') {
+          if (
+            isFullRefund &&
+            eventType === 'refund.processed' &&
+            currentOrd?.order_status !== 'cancelled'
+          ) {
             orderPatch.order_status = 'refunded';
           }
 
           await admin.from('orders').update(orderPatch).eq('id', paymentRow.order_id);
+
+          const refundRefId = refundEntity?.id ? String(refundEntity.id) : null;
+          if (refundRefId) {
+            const refundRowStatus =
+              eventType === 'refund.processed'
+                ? 'processed'
+                : String(refundEntity?.status || '') === 'failed'
+                  ? 'failed'
+                  : 'initiated';
+            const refundInr = Math.round(
+              Number(refundEntity?.amount ?? refundedPaise ?? totalPaidPaise) / 100
+            );
+            const { data: existingRefund } = await admin
+              .from('refunds')
+              .select('id')
+              .eq('refund_reference', refundRefId)
+              .maybeSingle();
+
+            if (existingRefund?.id) {
+              await admin
+                .from('refunds')
+                .update({ status: refundRowStatus })
+                .eq('id', existingRefund.id);
+            } else {
+              await admin.from('refunds').insert({
+                order_id: paymentRow.order_id,
+                amount_inr: refundInr,
+                refund_reference: refundRefId,
+                status: refundRowStatus,
+                notes: 'Synced from Razorpay webhook',
+              });
+            }
+          }
 
           await admin.from('payment_events').insert({
             payment_id: paymentRow.id,

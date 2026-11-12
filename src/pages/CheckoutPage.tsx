@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Lock,
@@ -7,10 +7,12 @@ import {
   CreditCard,
   Coins,
   AlertCircle,
+  AlertTriangle,
   Info,
   CheckCircle2,
   Loader2,
   MapPin,
+  X,
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
@@ -194,6 +196,18 @@ export const CheckoutPage: React.FC = () => {
   }, [isCodAvailable, paymentMethod]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutStage, setCheckoutStage] = useState<CheckoutStage>('idle');
+  const [prePaymentConfirmOpen, setPrePaymentConfirmOpen] = useState(false);
+  const prePaymentDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const el = prePaymentDialogRef.current;
+    if (!el) return;
+    if (prePaymentConfirmOpen && !el.open) {
+      el.showModal();
+    } else if (!prePaymentConfirmOpen && el.open) {
+      el.close();
+    }
+  }, [prePaymentConfirmOpen]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [paymentNotice, setPaymentNotice] = useState<{
     type: 'cancelled' | 'error';
@@ -253,7 +267,7 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
+  const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
     setPaymentNotice(null);
@@ -301,6 +315,14 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // Show pre-payment no-cancellation policy notice before going to payment gateway / order submission
+    setPrePaymentConfirmOpen(true);
+  };
+
+  const executePlaceOrder = async () => {
+    setPrePaymentConfirmOpen(false);
+    setSubmitError(null);
+    setPaymentNotice(null);
     setIsSubmitting(true);
     setCheckoutStage('creating_order');
     try {
@@ -1227,7 +1249,7 @@ export const CheckoutPage: React.FC = () => {
 
               {(!isCodAvailable || paymentMethod !== 'cod') && (
                 <p className="text-[10px] text-center text-[#285A3C] font-medium">
-                  A 256-bit SSL encrypted Razorpay popup opens next — your cart stays saved if cancelled.
+                  Note: Orders cannot be cancelled after payment is completed. A 256-bit SSL encrypted Razorpay popup opens after confirmation.
                 </p>
               )}
 
@@ -1249,6 +1271,98 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Pre-Payment Policy & Order Confirmation Notice Modal */}
+      <dialog
+        ref={prePaymentDialogRef}
+        aria-labelledby="pre-payment-policy-title"
+        {...({ closedby: 'any' } as Record<string, string>)}
+        onClose={() => {
+          if (prePaymentDialogRef.current) {
+            prePaymentDialogRef.current.returnValue = '';
+          }
+          setPrePaymentConfirmOpen(false);
+        }}
+        onClick={(e) => {
+          const dlg = prePaymentDialogRef.current;
+          if (!dlg || 'closedBy' in HTMLDialogElement.prototype) return;
+          const r = dlg.getBoundingClientRect();
+          if (
+            e.clientX < r.left ||
+            e.clientX > r.right ||
+            e.clientY < r.top ||
+            e.clientY > r.bottom
+          ) {
+            dlg.close();
+          }
+        }}
+        className="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[#D8C7B5] bg-white p-6 text-left shadow-2xl"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <div>
+                <h2
+                  id="pre-payment-policy-title"
+                  className="font-serif-royal text-lg font-bold text-[#1A3B2B]"
+                >
+                  Important Notice Before Payment
+                </h2>
+                <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wide mt-0.5">
+                  No Order Cancellation After Payment
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPrePaymentConfirmOpen(false)}
+              aria-label="Close pre-payment notice"
+              className="p-1.5 rounded-full hover:bg-[#FAF5EE] text-[#647268]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-[#1A3B2B] space-y-2 leading-relaxed">
+            <p className="font-semibold">
+              Please review your items, quantity ({selectedCartItems.length}), shipping address (PIN{' '}
+              {pincode}), and payable total (₹{payableTotal.toLocaleString('en-IN')}) carefully before proceeding.
+            </p>
+            <p className="text-[#4F6355]">
+              <strong>Once payment is completed, you will not be able to cancel your order or item</strong> as our handloom team immediately reserves and prepares your piece for dispatch.
+            </p>
+            <p className="text-[#4F6355]">
+              In the rare case an item becomes unavailable after your order is placed, DORASANI will notify you and issue an automatic full refund with a visible Refund Reference ID in your order tracking page.
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-2 border-t border-[#E8DCCF] text-xs">
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setPrePaymentConfirmOpen(false)}
+              className="px-4 py-2.5 rounded-lg border border-[#D8C7B5] font-semibold text-[#1A3B2B] hover:bg-[#FAF5EE] transition-colors"
+            >
+              Go Back &amp; Review
+            </button>
+            <button
+              type="button"
+              onClick={() => void executePlaceOrder()}
+              className="px-4 py-2.5 rounded-lg bg-[#285A3C] hover:bg-[#1E432D] text-white font-bold shadow-xs transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>
+                {isCodAvailable && paymentMethod === 'cod'
+                  ? 'I Understand, Place COD Order'
+                  : 'I Understand, Proceed to Payment →'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 };

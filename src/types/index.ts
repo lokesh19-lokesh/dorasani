@@ -266,7 +266,7 @@ export const DEFAULT_FILTER_GROUPS: FilterGroupConfig[] = [
     customOptions: [],
     hiddenOptions: [],
     minPrice: 500,
-    maxPrice: 0,
+    maxPrice: 5000000,
     step: 500,
   },
   {
@@ -786,6 +786,15 @@ export interface OrderItem {
   imageUrl: string;
 }
 
+export interface OrderRefund {
+  id: string;
+  amountInr: number;
+  refundReference?: string;
+  status: string;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -822,6 +831,15 @@ export interface Order {
   trackingUrl?: string;
   shipment?: OrderShipment;
   orderNotes?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  refunds?: OrderRefund[];
+  statusHistory?: {
+    previousStatus?: string;
+    newStatus: string;
+    note?: string;
+    createdAt?: string;
+  }[];
   paymentDetails?: {
     provider: string;
     gatewayOrderId?: string;

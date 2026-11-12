@@ -366,8 +366,8 @@ export const CollectionTemplate: React.FC<CollectionTemplateProps> = ({
     if (priceGroup?.maxPrice && priceGroup.maxPrice > 0) {
       return Math.max(priceMinBound + priceStep, priceGroup.maxPrice);
     }
-    const maxFound = liveProducts.reduce((m, p) => Math.max(m, p.price), 30000);
-    return Math.max(priceMinBound + 1000, 30000, Math.ceil(maxFound / 1000) * 1000);
+    const maxFound = liveProducts.reduce((m, p) => Math.max(m, p.price), 5000000);
+    return Math.max(priceMinBound + 1000, 5000000, Math.ceil(maxFound / 1000) * 1000);
   }, [liveProducts, priceGroup, priceMinBound, priceStep]);
 
   const effectiveMaxPrice =
