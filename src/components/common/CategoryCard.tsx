@@ -14,7 +14,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
   return (
     <Link
       to={`/collections/${category.slug}`}
-      className="group flex flex-col items-center text-center transition-all duration-300 w-full"
+      className="group flex flex-col items-center text-center transition-all duration-300 w-full min-w-0"
     >
       {/* Arch Shaped Image Container - Festive collection is slightly taller matching reference */}
       <div
@@ -42,18 +42,18 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
       </div>
 
       {/* Category Name & Action Arrow */}
-      <div className="mt-2.5 flex items-center justify-center gap-1.5 min-h-[32px]">
+      <div className="mt-2.5 flex items-center justify-center gap-1 min-h-[32px] w-full px-0.5">
         {isFestive ? (
           <div className="text-center leading-tight">
-            <span className="block text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
+            <span className="block text-[11.5px] sm:text-xs xl:text-[12.5px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
               Festive
             </span>
-            <span className="block text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
+            <span className="block text-[11.5px] sm:text-xs xl:text-[12.5px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors">
               Collection
             </span>
           </div>
         ) : (
-          <span className="text-xs sm:text-[13px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors line-clamp-1 max-w-[115px] sm:max-w-[130px]">
+          <span className="text-[11.5px] sm:text-xs xl:text-[12.5px] font-medium text-[#1A3B2B] group-hover:text-[#285A3C] transition-colors leading-tight line-clamp-2 text-center">
             {category.name}
           </span>
         )}

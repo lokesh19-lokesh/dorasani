@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronDown } from 'lucide-react';
+import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
@@ -43,6 +43,35 @@ export const HomePage: React.FC = () => {
 
   const [heroLoading, setHeroLoading] = useState(true);
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollCatsLeft, setCanScrollCatsLeft] = useState(false);
+  const [canScrollCatsRight, setCanScrollCatsRight] = useState(false);
+
+  const updateCategoryScrollState = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setCanScrollCatsLeft(el.scrollLeft > 4);
+    setCanScrollCatsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  const scrollCategoriesBy = useCallback((direction: 'left' | 'right') => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const distance = Math.max(220, Math.round(el.clientWidth * 0.65));
+    el.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(updateCategoryScrollState);
+    window.addEventListener('resize', updateCategoryScrollState);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateCategoryScrollState);
+    };
+  }, [categories, catalogLoading, updateCategoryScrollState]);
 
   useEffect(() => {
     if (storeCategories.length > 0) {
@@ -413,28 +442,63 @@ export const HomePage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            <div className="lg:col-span-8 flex gap-3 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none items-end">
-              {catalogLoading ? (
-                Array.from({ length: 7 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="min-w-[96px] sm:min-w-[106px] xl:min-w-[112px] flex-1 shrink-0 aspect-[3/4] arch-card-shape bg-[#F2E8DC] animate-pulse border border-[#D8C7B5]"
-                  />
-                ))
-              ) : categories.length > 0 ? (
-                categories.map((cat) => (
-                  <div key={cat.id} className="min-w-[96px] sm:min-w-[106px] xl:min-w-[112px] flex-1 shrink-0">
-                    <CategoryCard category={cat} />
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-[#647268] py-8">No categories are active yet.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_410px] gap-4 xl:gap-5 items-stretch">
+            <div className="min-w-0 relative flex items-end">
+              {canScrollCatsLeft && (
+                <button
+                  type="button"
+                  onClick={() => scrollCategoriesBy('left')}
+                  aria-label="Scroll categories left"
+                  className="hidden sm:flex items-center justify-center absolute left-1 top-[42%] -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-[#FAF5EE]/95 hover:bg-white border border-[#D8C7B5] text-[#18482C] shadow-md transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+
+              <div
+                ref={categoryScrollRef}
+                onScroll={updateCategoryScrollState}
+                className="w-full flex gap-2.5 sm:gap-3 lg:gap-2 xl:gap-2.5 overflow-x-auto pb-2 scrollbar-none items-end"
+              >
+                {catalogLoading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="min-w-[92px] sm:min-w-[100px] xl:min-w-0 flex-1 shrink-0 xl:shrink aspect-[3/4] arch-card-shape bg-[#F2E8DC] animate-pulse border border-[#D8C7B5]"
+                    />
+                  ))
+                ) : categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className={
+                        categories.length <= 8
+                          ? 'min-w-[92px] sm:min-w-[100px] xl:min-w-0 flex-1 shrink-0 xl:shrink'
+                          : 'min-w-[92px] sm:min-w-[100px] xl:min-w-[104px] flex-1 shrink-0'
+                      }
+                    >
+                      <CategoryCard category={cat} />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-[#647268] py-8">No categories are active yet.</p>
+                )}
+              </div>
+
+              {canScrollCatsRight && (
+                <button
+                  type="button"
+                  onClick={() => scrollCategoriesBy('right')}
+                  aria-label="Scroll categories right"
+                  className="hidden sm:flex items-center justify-center absolute right-1 top-[42%] -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-[#FAF5EE]/95 hover:bg-white border border-[#D8C7B5] text-[#18482C] shadow-md transition-all"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               )}
             </div>
 
             {/* Right Celebration Banner */}
-            <div className="lg:col-span-4 rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] min-h-[200px] lg:min-h-[225px] xl:min-h-[240px] flex flex-col">
+            <div className="rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] min-h-[200px] lg:min-h-[225px] xl:min-h-[240px] flex flex-col">
               <Link
                 to={celebrationBanner.link}
                 className="block relative w-full h-full flex-1 aspect-[1922/818] lg:aspect-auto"
