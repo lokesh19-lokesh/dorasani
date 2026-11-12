@@ -230,7 +230,14 @@ export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
     orderId: String(raw.order_id || ''),
     courierPartner: String(raw.courier_partner || 'Delhivery One'),
     trackingNumber: String(raw.tracking_number || ''),
-    trackingUrl: raw.tracking_url || undefined,
+    trackingUrl: raw.tracking_url
+      ? String(raw.tracking_url).replace(
+          'https://www.delhivery.com/track/package/',
+          'https://www.delhivery.com/track-v2/package/'
+        )
+      : raw.tracking_number && /delhivery/i.test(String(raw.courier_partner || 'Delhivery One'))
+        ? `https://www.delhivery.com/track-v2/package/${encodeURIComponent(String(raw.tracking_number))}`
+        : undefined,
     currentStatus: String(raw.current_status || 'Manifested'),
     statusCode: raw.status_code || undefined,
     statusType: raw.status_type || undefined,
@@ -387,11 +394,21 @@ export function mapDbOrderToOrder(o: any): Order {
   const shipment = mapDbShipmentRow(activeRawShipment);
 
   const courierName = o.courier_name || (shipment && !shipment.cancelledAt ? shipment.courierPartner : '') || '';
-  const trackingId = o.tracking_id || (shipment && !shipment.cancelledAt ? shipment.trackingNumber : '') || '';
+  const rawTrackingId = o.tracking_id || (shipment && !shipment.cancelledAt ? shipment.trackingNumber : '') || '';
+  const trackingId =
+    rawTrackingId && rawTrackingId.toLowerCase() === String(o.order_number || '').trim().toLowerCase()
+      ? ''
+      : rawTrackingId;
+  const normalizedShipmentUrl = shipment?.trackingUrl
+    ? shipment.trackingUrl.replace(
+        'https://www.delhivery.com/track/package/',
+        'https://www.delhivery.com/track-v2/package/'
+      )
+    : undefined;
   const trackingUrl =
-    shipment?.trackingUrl ||
+    normalizedShipmentUrl ||
     (trackingId && /delhivery/i.test(courierName)
-      ? `https://www.delhivery.com/track/package/${encodeURIComponent(trackingId)}`
+      ? `https://www.delhivery.com/track-v2/package/${encodeURIComponent(trackingId)}`
       : undefined);
 
   return {

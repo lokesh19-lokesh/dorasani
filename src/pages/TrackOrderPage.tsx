@@ -48,9 +48,10 @@ export const TrackOrderPage: React.FC = () => {
     setLookupError(null);
 
     try {
+      const looksLikeOrderNumber = /^dor-\d+/i.test(clean);
       const res = await delhiveryService.trackOrderLive({
         orderNumber: clean,
-        waybill: clean,
+        ...(looksLikeOrderNumber ? {} : { waybill: clean }),
         refresh: true,
       });
 
@@ -134,15 +135,47 @@ export const TrackOrderPage: React.FC = () => {
     };
   }, [targetOrderId, orders]);
 
-  const activeAwb = liveTrackInfo?.awb || currentOrder?.shipment?.trackingNumber || currentOrder?.trackingId || '';
+  const isOrderNumberToken = (val?: string | null) => {
+    const trimmed = String(val || '').trim();
+    if (!trimmed) return false;
+    if (/^dor-\d+/i.test(trimmed)) return true;
+    if (
+      currentOrder?.orderNumber &&
+      trimmed.toLowerCase() === currentOrder.orderNumber.trim().toLowerCase()
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const activeAwb = [
+    currentOrder?.shipment?.trackingNumber,
+    currentOrder?.trackingId,
+    liveTrackInfo?.awb,
+  ]
+    .map((candidate) => String(candidate || '').trim())
+    .find((candidate) => Boolean(candidate) && !isOrderNumberToken(candidate)) || '';
+
   const activeScans =
     (liveTrackInfo?.scans && liveTrackInfo.scans.length > 0
       ? liveTrackInfo.scans
       : currentOrder?.shipment?.scans) || [];
-  const activeTrackingUrl =
-    liveTrackInfo?.trackingUrl ||
-    currentOrder?.trackingUrl ||
-    (activeAwb ? `https://www.delhivery.com/track/package/${encodeURIComponent(activeAwb)}` : '');
+
+  const rawTrackingUrl = liveTrackInfo?.trackingUrl || currentOrder?.trackingUrl || '';
+  const normalizedRawUrl = rawTrackingUrl
+    ? rawTrackingUrl.replace(
+        'https://www.delhivery.com/track/package/',
+        'https://www.delhivery.com/track-v2/package/'
+      )
+    : '';
+  const activeTrackingUrl = activeAwb
+    ? normalizedRawUrl &&
+      (!currentOrder?.orderNumber ||
+        !normalizedRawUrl.includes(encodeURIComponent(currentOrder.orderNumber))) &&
+      !/\/DOR-\d+/i.test(normalizedRawUrl)
+      ? normalizedRawUrl
+      : `https://www.delhivery.com/track-v2/package/${encodeURIComponent(activeAwb)}`
+    : '';
 
   const handleCopyTracking = () => {
     if (!activeAwb) return;

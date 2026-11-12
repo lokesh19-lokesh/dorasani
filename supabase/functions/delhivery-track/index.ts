@@ -3,8 +3,10 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getSupabaseAdmin, getSupabaseClient } from '../_shared/supabaseClient.ts';
 import {
+  buildDelhiveryTrackingUrl,
   formatIstDateTime,
   getDelhiveryRuntimeConfig,
+  normalizeDelhiveryTrackingUrl,
   syncOrderAndShipmentFromDelhivery,
   trackDelhiveryWaybill,
   type DelhiveryTrackingResult,
@@ -101,11 +103,16 @@ function buildPublicTrackingSummary(
     : Array.isArray(activeShipment?.history)
       ? activeShipment.history
       : [];
-  const awb = tracking?.awb || activeShipment?.tracking_number || order?.tracking_id || '';
-  const trackingUrl =
-    tracking?.trackingUrl ||
-    activeShipment?.tracking_url ||
-    (awb ? `https://www.delhivery.com/track/package/${encodeURIComponent(awb)}` : '');
+  const awb = String(
+    (tracking?.found ? tracking.awb : '') ||
+      activeShipment?.tracking_number ||
+      order?.tracking_id ||
+      ''
+  ).trim();
+  const trackingUrl = normalizeDelhiveryTrackingUrl(
+    (tracking?.found ? tracking.trackingUrl : '') || activeShipment?.tracking_url,
+    awb
+  );
 
   return {
     found: Boolean(tracking?.found || activeShipment || order?.tracking_id),
@@ -113,18 +120,29 @@ function buildPublicTrackingSummary(
     awb,
     courierPartner: activeShipment?.courier_partner || order?.courier_name || 'Delhivery One',
     currentStatus:
-      tracking?.currentStatus ||
+      (tracking?.found ? tracking.currentStatus : '') ||
       activeShipment?.current_status ||
       (order?.order_status ? String(order.order_status) : 'Confirmed'),
-    statusType: tracking?.statusType || activeShipment?.status_type || '',
-    statusCode: tracking?.statusCode || activeShipment?.status_code || '',
-    currentLocation: tracking?.currentLocation || activeShipment?.current_location || '',
-    origin: tracking?.origin || activeShipment?.origin_city || 'Hyderabad',
-    destination: tracking?.destination || activeShipment?.destination_pincode || '',
+    statusType: (tracking?.found ? tracking.statusType : '') || activeShipment?.status_type || '',
+    statusCode: (tracking?.found ? tracking.statusCode : '') || activeShipment?.status_code || '',
+    currentLocation:
+      (tracking?.found ? tracking.currentLocation : '') ||
+      activeShipment?.current_location ||
+      '',
+    origin: (tracking?.found ? tracking.origin : '') || activeShipment?.origin_city || 'Hyderabad',
+    destination:
+      (tracking?.found ? tracking.destination : '') ||
+      activeShipment?.destination_pincode ||
+      '',
     estimatedDelivery:
-      tracking?.estimatedDelivery || activeShipment?.estimated_delivery || null,
-    pickedUpDate: tracking?.pickedUpDate || null,
-    deliveryDate: tracking?.deliveryDate || activeShipment?.actual_delivery || null,
+      (tracking?.found ? tracking.estimatedDelivery : null) ||
+      activeShipment?.estimated_delivery ||
+      null,
+    pickedUpDate: tracking?.found ? tracking.pickedUpDate || null : null,
+    deliveryDate:
+      (tracking?.found ? tracking.deliveryDate : null) ||
+      activeShipment?.actual_delivery ||
+      null,
     trackingUrl,
     lastSyncedAt: activeShipment?.last_synced_at || null,
     scans: scans.map((s: any) => ({
@@ -134,7 +152,7 @@ function buildPublicTrackingSummary(
       location: String(s.location || ''),
       instructions: String(s.instructions || ''),
       dateTime: String(s.dateTime || ''),
-      formattedTime: s.formattedTime || formatIstDateTime(s.dateTime),
+      formattedTime: (s.dateTime ? formatIstDateTime(s.dateTime) : '') || s.formattedTime || '',
     })),
   };
 }
@@ -288,8 +306,15 @@ serve(async (req: Request) => {
     );
     const activeShipment = sortedShipments.find((s) => !s.cancelled_at) || sortedShipments[0] || null;
 
+    const cleanSafeWaybillInput =
+      waybillInput &&
+      waybillInput.toLowerCase() !== String(orderRow.order_number || '').trim().toLowerCase() &&
+      !/^dor-\d+/i.test(waybillInput)
+        ? waybillInput
+        : '';
+
     const waybillToTrack = String(
-      waybillInput || activeShipment?.tracking_number || orderRow.tracking_id || ''
+      activeShipment?.tracking_number || orderRow.tracking_id || cleanSafeWaybillInput || ''
     ).trim();
 
     const shouldCheckDelhivery =

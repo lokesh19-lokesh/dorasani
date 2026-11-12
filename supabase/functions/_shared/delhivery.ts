@@ -72,10 +72,45 @@ export function cleanPincode(raw: unknown): string {
   return /^\d{6}$/.test(digits) ? digits : '';
 }
 
+export function buildDelhiveryTrackingUrl(awb?: string | null): string {
+  const cleanAwb = String(awb || '').trim();
+  if (!cleanAwb) return 'https://www.delhivery.com/tracking';
+  return `https://www.delhivery.com/track-v2/package/${encodeURIComponent(cleanAwb)}`;
+}
+
+export function normalizeDelhiveryTrackingUrl(
+  rawUrl?: string | null,
+  fallbackAwb?: string | null
+): string {
+  const trimmed = String(rawUrl || '').trim();
+  if (trimmed) {
+    return trimmed.replace(
+      'https://www.delhivery.com/track/package/',
+      'https://www.delhivery.com/track-v2/package/'
+    );
+  }
+  return buildDelhiveryTrackingUrl(fallbackAwb);
+}
+
+export function parseDelhiveryTimestamp(isoOrDateStr?: string | null): Date | null {
+  if (!isoOrDateStr) return null;
+  const raw = String(isoOrDateStr).trim();
+  if (!raw) return null;
+
+  // Delhivery API scan timestamps like "2026-11-12T10:29:18.321" are IST without timezone offset
+  const normalized =
+    /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(raw)
+      ? `${raw.replace(' ', 'T')}+05:30`
+      : raw;
+
+  const dt = new Date(normalized);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 export function formatIstDateTime(isoOrDateStr?: string | null): string {
   if (!isoOrDateStr) return '';
-  const dt = new Date(isoOrDateStr);
-  if (Number.isNaN(dt.getTime())) return String(isoOrDateStr);
+  const dt = parseDelhiveryTimestamp(isoOrDateStr);
+  if (!dt) return String(isoOrDateStr);
   try {
     return dt.toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -463,8 +498,11 @@ export async function trackDelhiveryWaybill(
   }
 
   const qs = new URLSearchParams();
-  if (awbInput) qs.set('waybill', awbInput);
-  if (refInput) qs.set('ref_ids', refInput);
+  if (awbInput) {
+    qs.set('waybill', awbInput);
+  } else if (refInput) {
+    qs.set('ref_ids', refInput);
+  }
 
   const data = await delhiveryRequest(config, `/api/v1/packages/json/?${qs.toString()}`);
 
@@ -479,7 +517,7 @@ export async function trackDelhiveryWaybill(
       currentStatus: 'Awaiting Scan',
       statusType: '',
       currentLocation: '',
-      trackingUrl: awbInput ? `https://www.delhivery.com/track/package/${encodeURIComponent(awbInput)}` : 'https://www.delhivery.com/tracking',
+      trackingUrl: buildDelhiveryTrackingUrl(awbInput),
       scans: [],
       raw: data,
       message: data?.Error || data?.rmk || 'No tracking data yet for this waybill.',
@@ -512,8 +550,8 @@ export async function trackDelhiveryWaybill(
     })
     .filter((s: NormalizedDelhiveryScan) => Boolean(s.scan || s.location || s.dateTime))
     .sort((a: NormalizedDelhiveryScan, b: NormalizedDelhiveryScan) => {
-      const ta = a.dateTime ? new Date(a.dateTime).getTime() : 0;
-      const tb = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+      const ta = parseDelhiveryTimestamp(a.dateTime)?.getTime() ?? 0;
+      const tb = parseDelhiveryTimestamp(b.dateTime)?.getTime() ?? 0;
       return tb - ta;
     });
 
@@ -535,7 +573,7 @@ export async function trackDelhiveryWaybill(
     pickedUpDate: shipment.PickedUpDate || null,
     deliveryDate: shipment.DeliveryDate || null,
     mappedOrderStatus,
-    trackingUrl: `https://www.delhivery.com/track/package/${encodeURIComponent(awb)}`,
+    trackingUrl: buildDelhiveryTrackingUrl(awb),
     scans,
     raw: shipment,
   };
@@ -596,8 +634,7 @@ export async function syncOrderAndShipmentFromDelhivery(
     orderRow.order_status
   );
 
-  const trackingUrl =
-    trackingResult.trackingUrl || `https://www.delhivery.com/track/package/${encodeURIComponent(waybill)}`;
+  const trackingUrl = normalizeDelhiveryTrackingUrl(trackingResult.trackingUrl, waybill);
 
   const shipmentPatch: Record<string, unknown> = {
     order_id: orderRow.id,
@@ -614,24 +651,19 @@ export async function syncOrderAndShipmentFromDelhivery(
   };
 
   if (trackingResult.estimatedDelivery) {
-    const parsedEst = new Date(trackingResult.estimatedDelivery);
-    if (!Number.isNaN(parsedEst.getTime())) {
+    const parsedEst = parseDelhiveryTimestamp(trackingResult.estimatedDelivery);
+    if (parsedEst) {
       shipmentPatch.estimated_delivery = parsedEst.toISOString();
     }
   }
   if (trackingResult.deliveryDate && nextOrderStatus === 'delivered') {
-    const parsedDel = new Date(trackingResult.deliveryDate);
-    if (!Number.isNaN(parsedDel.getTime())) {
+    const parsedDel = parseDelhiveryTimestamp(trackingResult.deliveryDate);
+    if (parsedDel) {
       shipmentPatch.actual_delivery = parsedDel.toISOString();
     }
   } else if (nextOrderStatus === 'delivered' && !shipmentPatch.actual_delivery) {
-    const parsedStatusDt = trackingResult.statusDateTime
-      ? new Date(trackingResult.statusDateTime)
-      : null;
-    shipmentPatch.actual_delivery =
-      parsedStatusDt && !Number.isNaN(parsedStatusDt.getTime())
-        ? parsedStatusDt.toISOString()
-        : nowIso;
+    const parsedStatusDt = parseDelhiveryTimestamp(trackingResult.statusDateTime);
+    shipmentPatch.actual_delivery = parsedStatusDt ? parsedStatusDt.toISOString() : nowIso;
   }
 
   const { data: existingShipment } = await admin
@@ -720,9 +752,10 @@ export async function manifestDelhiveryShipmentForOrder(
       alreadyManifested: true,
       waybill: activeExisting.tracking_number,
       shipment: activeExisting,
-      trackingUrl:
-        activeExisting.tracking_url ||
-        `https://www.delhivery.com/track/package/${activeExisting.tracking_number}`,
+      trackingUrl: normalizeDelhiveryTrackingUrl(
+        activeExisting.tracking_url,
+        activeExisting.tracking_number
+      ),
     };
   }
 
@@ -869,7 +902,7 @@ export async function manifestDelhiveryShipmentForOrder(
   }
 
   const nowIso = new Date().toISOString();
-  const trackingUrl = `https://www.delhivery.com/track/package/${encodeURIComponent(waybill)}`;
+  const trackingUrl = buildDelhiveryTrackingUrl(waybill);
 
   const initialHistory: NormalizedDelhiveryScan[] = [
     {

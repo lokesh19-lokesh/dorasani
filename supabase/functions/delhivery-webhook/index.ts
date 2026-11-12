@@ -3,8 +3,10 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getSupabaseAdmin } from '../_shared/supabaseClient.ts';
 import {
+  buildDelhiveryTrackingUrl,
   formatIstDateTime,
   mapDelhiveryScanToOrderStatus,
+  parseDelhiveryTimestamp,
   syncOrderAndShipmentFromDelhivery,
   type DelhiveryTrackingResult,
   type NormalizedDelhiveryScan,
@@ -153,14 +155,14 @@ serve(async (req: Request) => {
         seenKeys.add(key);
         mergedScans.push({
           ...scan,
-          formattedTime: scan.formattedTime || formatIstDateTime(scan.dateTime),
+          formattedTime: (scan.dateTime ? formatIstDateTime(scan.dateTime) : '') || scan.formattedTime || '',
         });
       }
     }
 
     mergedScans.sort((a, b) => {
-      const ta = a.dateTime ? new Date(a.dateTime).getTime() : 0;
-      const tb = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+      const ta = parseDelhiveryTimestamp(a.dateTime)?.getTime() ?? 0;
+      const tb = parseDelhiveryTimestamp(b.dateTime)?.getTime() ?? 0;
       return tb - ta;
     });
 
@@ -180,7 +182,7 @@ serve(async (req: Request) => {
       pickedUpDate: shipment?.PickedUpDate || null,
       deliveryDate: shipment?.DeliveryDate || null,
       mappedOrderStatus: mapDelhiveryScanToOrderStatus(currentStatus, statusType, statusCode),
-      trackingUrl: `https://www.delhivery.com/track/package/${encodeURIComponent(awb)}`,
+      trackingUrl: buildDelhiveryTrackingUrl(awb),
       scans: mergedScans,
     };
 
