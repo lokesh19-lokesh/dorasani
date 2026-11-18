@@ -1,4 +1,4 @@
-# DORASANI Heritage Handlooms — Crawler & AI Search Policy
+# Dorasani Sarees A Symbol of Tradition | Dorasani Collections — Crawler & AI Search Policy
 # Canonical Domain: https://dorasanicollections.com
 
 User-agent: *
@@ -69,7 +69,19 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
+User-agent: GoogleOther
+Allow: /
+
 User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: Amazonbot
 Allow: /
 
 # Discovery Sitemaps & LLM Context Files

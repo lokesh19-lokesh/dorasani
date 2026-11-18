@@ -26,32 +26,32 @@ export interface CheckoutPayload {
 
 export type InitiateCheckoutResult =
   | {
-      success: true;
-      flow: 'cod';
-      orderId: string;
-      orderNumber: string;
-      total: number;
-      order?: Order;
-    }
+    success: true;
+    flow: 'cod';
+    orderId: string;
+    orderNumber: string;
+    total: number;
+    order?: Order;
+  }
   | {
-      success: true;
-      flow: 'razorpay';
-      alreadyPaid?: boolean;
-      checkoutSessionId: string;
-      keyId: string;
-      razorpayOrderId: string;
-      amountInPaise: number;
-      currency: string;
-      total: number;
-      orderId?: string;
-      orderNumber?: string;
-      order?: Order;
-    }
+    success: true;
+    flow: 'razorpay';
+    alreadyPaid?: boolean;
+    checkoutSessionId: string;
+    keyId: string;
+    razorpayOrderId: string;
+    amountInPaise: number;
+    currency: string;
+    total: number;
+    orderId?: string;
+    orderNumber?: string;
+    order?: Order;
+  }
   | {
-      success: false;
-      error: string;
-      code?: string;
-    };
+    success: false;
+    error: string;
+    code?: string;
+  };
 
 export interface VerifyRazorpayResult {
   success: boolean;
@@ -72,10 +72,10 @@ export function saveRecentOrderToSession(order: Order): void {
     const existing: Order[] = raw ? JSON.parse(raw) : [];
     const filtered = Array.isArray(existing)
       ? existing.filter(
-          (o) =>
-            o?.orderNumber?.toLowerCase() !== order.orderNumber.toLowerCase() &&
-            o?.id !== order.id
-        )
+        (o) =>
+          o?.orderNumber?.toLowerCase() !== order.orderNumber.toLowerCase() &&
+          o?.id !== order.id
+      )
       : [];
     const next = [order, ...filtered].slice(0, 10);
     window.sessionStorage.setItem(RECENT_ORDERS_SESSION_KEY, JSON.stringify(next));
@@ -164,9 +164,8 @@ export function mapDbCouponToCoupon(row: any): Coupon {
   const discountLabel =
     discountType === 'fixed'
       ? `Get ₹${discountValue.toLocaleString('en-IN')} off`
-      : `Get ${discountValue}% off${
-          maxDiscountInr ? ` (up to ₹${maxDiscountInr.toLocaleString('en-IN')})` : ''
-        }`;
+      : `Get ${discountValue}% off${maxDiscountInr ? ` (up to ₹${maxDiscountInr.toLocaleString('en-IN')})` : ''
+      }`;
 
   const minLabel =
     minOrderValue > 0 ? ` above ₹${minOrderValue.toLocaleString('en-IN')}` : '';
@@ -227,10 +226,10 @@ export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
   const packageDimensions =
     rawDim && typeof rawDim === 'object' && !Array.isArray(rawDim)
       ? {
-          length: Number(rawDim.length || 34),
-          breadth: Number(rawDim.breadth || 26),
-          height: Number(rawDim.height || 6),
-        }
+        length: Number(rawDim.length || 34),
+        breadth: Number(rawDim.breadth || 26),
+        height: Number(rawDim.height || 6),
+      }
       : undefined;
 
   return {
@@ -240,9 +239,9 @@ export function mapDbShipmentRow(raw: any): OrderShipment | undefined {
     trackingNumber: String(raw.tracking_number || ''),
     trackingUrl: raw.tracking_url
       ? String(raw.tracking_url).replace(
-          'https://www.delhivery.com/track/package/',
-          'https://www.delhivery.com/track-v2/package/'
-        )
+        'https://www.delhivery.com/track/package/',
+        'https://www.delhivery.com/track-v2/package/'
+      )
       : raw.tracking_number && /delhivery/i.test(String(raw.courier_partner || 'Delhivery One'))
         ? `https://www.delhivery.com/track-v2/package/${encodeURIComponent(String(raw.tracking_number))}`
         : undefined,
@@ -281,12 +280,12 @@ function buildOrderTimeline(
   const formatTimestamp = (raw?: string | null) =>
     raw
       ? new Date(raw).toLocaleString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
       : '';
 
   const createdFormatted = formatTimestamp(o.created_at || new Date().toISOString());
@@ -333,9 +332,8 @@ function buildOrderTimeline(
       const isProcessed = primaryRefund?.status === 'processed';
       steps.push({
         title: isProcessed ? 'Refund Processed' : 'Refund Initiated',
-        description: `Refund of ₹${amt.toLocaleString('en-IN')} has been ${
-          isProcessed ? 'credited' : 'initiated'
-        } to your original payment method${refPart}.`,
+        description: `Refund of ₹${amt.toLocaleString('en-IN')} has been ${isProcessed ? 'credited' : 'initiated'
+          } to your original payment method${refPart}.`,
         timestamp: formatTimestamp(primaryRefund?.createdAt) || cancelledFormatted,
         completed: true,
         current: true,
@@ -414,8 +412,8 @@ export function mapDbOrderToOrder(o: any): Order {
   const paymentsList: any[] = Array.isArray(o.payments)
     ? o.payments
     : o.payments
-    ? [o.payments]
-    : [];
+      ? [o.payments]
+      : [];
 
   const primaryPayment =
     paymentsList.find((p) => p?.status === 'paid' || p?.status === 'refunded') ||
@@ -424,8 +422,8 @@ export function mapDbOrderToOrder(o: any): Order {
 
   const shipmentsList: any[] = Array.isArray(o.shipments)
     ? [...o.shipments].sort(
-        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
-      )
+      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+    )
     : o.shipments
       ? [o.shipments]
       : [];
@@ -442,9 +440,9 @@ export function mapDbOrderToOrder(o: any): Order {
       : rawTrackingId;
   const normalizedShipmentUrl = shipment?.trackingUrl
     ? shipment.trackingUrl.replace(
-        'https://www.delhivery.com/track/package/',
-        'https://www.delhivery.com/track-v2/package/'
-      )
+      'https://www.delhivery.com/track/package/',
+      'https://www.delhivery.com/track-v2/package/'
+    )
     : undefined;
   const trackingUrl =
     normalizedShipmentUrl ||
@@ -454,8 +452,8 @@ export function mapDbOrderToOrder(o: any): Order {
 
   const rawRefunds: any[] = Array.isArray(o.refunds)
     ? [...o.refunds].sort(
-        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
-      )
+      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+    )
     : o.refunds
       ? [o.refunds]
       : [];
@@ -473,8 +471,8 @@ export function mapDbOrderToOrder(o: any): Order {
 
   const rawHistory: any[] = Array.isArray(o.order_status_history)
     ? [...o.order_status_history].sort(
-        (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
-      )
+      (a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime()
+    )
     : [];
 
   const statusHistory = rawHistory.map((h) => ({
@@ -498,10 +496,10 @@ export function mapDbOrderToOrder(o: any): Order {
     o.cancellation_reason || extractedFromRefund || adminNoteMatch?.[1]?.trim() || undefined;
   const hasAdminCancelledSignal = Boolean(
     o.cancelled_by ||
-      o.cancelled_at ||
-      adminRefundNote ||
-      adminNoteMatch ||
-      statusHistory.some((h) => h.newStatus === 'cancelled')
+    o.cancelled_at ||
+    adminRefundNote ||
+    adminNoteMatch ||
+    statusHistory.some((h) => h.newStatus === 'cancelled')
   );
   const derivedStatus =
     hasAdminCancelledSignal && !['cancelled', 'returned', 'refunded'].includes(String(o.order_status || '').toLowerCase())
@@ -570,10 +568,10 @@ export function mapDbOrderToOrder(o: any): Order {
     statusHistory: statusHistory.length > 0 ? statusHistory : undefined,
     paymentDetails: primaryPayment
       ? {
-          provider: primaryPayment.provider,
-          gatewayOrderId: primaryPayment.provider_order_id || undefined,
-          paymentId: primaryPayment.provider_payment_id || undefined,
-        }
+        provider: primaryPayment.provider,
+        gatewayOrderId: primaryPayment.provider_order_id || undefined,
+        paymentId: primaryPayment.provider_payment_id || undefined,
+      }
       : undefined,
   };
 }
