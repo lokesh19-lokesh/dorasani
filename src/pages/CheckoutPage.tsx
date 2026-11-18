@@ -13,13 +13,16 @@ import {
   Loader2,
   MapPin,
   Tag,
+  BookmarkCheck,
+  Plus,
+  Trash2,
   X,
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { delhiveryService } from '../services/delhiveryService';
-import { getColorImage, getStockStatusMeta, type DelhiveryServiceabilityResult } from '../types';
+import { getColorImage, getStockStatusMeta, type Address, type DelhiveryServiceabilityResult } from '../types';
 
 const INDIAN_STATE_CODE_MAP: Record<string, string> = {
   AP: 'Andhra Pradesh',
@@ -83,7 +86,11 @@ export const CheckoutPage: React.FC = () => {
     refreshCoupons,
     applyCoupon,
     removeCoupon,
+    addresses,
+    addAddress,
+    deleteAddress,
     selectedAddress,
+    setSelectedAddress,
     siteSettings,
     placeOrder,
     user,
@@ -137,6 +144,82 @@ export const CheckoutPage: React.FC = () => {
   const [stateName, setStateName] = useState(selectedAddress.state || '');
   const [pincode, setPincode] = useState(selectedAddress.pincode || '');
   const [landmark, setLandmark] = useState(selectedAddress.landmark || '');
+  const [activeSavedAddressId, setActiveSavedAddressId] = useState<string | null>(
+    selectedAddress?.streetAddress ? selectedAddress.id : null
+  );
+  const [saveAddressForFuture, setSaveAddressForFuture] = useState<boolean>(true);
+
+  const applySavedAddress = (addr: Address) => {
+    setActiveSavedAddressId(addr.id);
+    setSelectedAddress(addr);
+    setAddressType(addr.addressType || 'Home');
+    if (addr.fullName?.trim()) setFullName(addr.fullName);
+    if (addr.phone?.trim()) setPhone(addr.phone);
+    setStreetAddress(addr.streetAddress || '');
+    setCity(addr.city || '');
+    setStateName(addr.state || '');
+    setPincode(addr.pincode || '');
+    setLandmark(addr.landmark || '');
+    setFieldErrors((prev) => ({
+      ...prev,
+      streetAddress: '',
+      pincode: '',
+      city: '',
+      stateName: '',
+    }));
+  };
+
+  const handleStartNewAddress = () => {
+    setActiveSavedAddressId(null);
+    setStreetAddress('');
+    setCity('');
+    setStateName('');
+    setPincode('');
+    setLandmark('');
+    setSaveAddressForFuture(true);
+    setFieldErrors((prev) => ({
+      ...prev,
+      streetAddress: '',
+      pincode: '',
+      city: '',
+      stateName: '',
+    }));
+    document.getElementById('checkout-street')?.focus();
+  };
+
+  const isCurrentAddressAlreadySaved = addresses.some(
+    (a) =>
+      a.streetAddress.trim().toLowerCase() === streetAddress.trim().toLowerCase() &&
+      a.pincode.trim() === pincode.trim() &&
+      a.city.trim().toLowerCase() === city.trim().toLowerCase() &&
+      a.state.trim().toLowerCase() === stateName.trim().toLowerCase() &&
+      (a.addressType || 'Home') === addressType
+  );
+
+  const handleSaveCurrentAddress = () => {
+    const addrErrors: Record<string, string> = {};
+    if (!streetAddress.trim()) addrErrors.streetAddress = 'Please enter your full street address.';
+    if (!/^\d{6}$/.test(pincode.trim())) addrErrors.pincode = 'PIN code must be 6 digits.';
+    if (!city.trim()) addrErrors.city = 'Please enter your city.';
+    if (!stateName.trim()) addrErrors.stateName = 'Please enter your state.';
+
+    if (Object.keys(addrErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...addrErrors }));
+      return;
+    }
+
+    addAddress({
+      addressType,
+      fullName: fullName.trim() || user?.fullName || 'DORASANI Customer',
+      phone: phone.trim() || user?.phone || '',
+      streetAddress: streetAddress.trim(),
+      city: city.trim(),
+      state: stateName.trim(),
+      pincode: pincode.trim(),
+      landmark: landmark.trim() || undefined,
+      isDefault: addresses.length === 0,
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -150,13 +233,15 @@ export const CheckoutPage: React.FC = () => {
     if (selectedAddress?.streetAddress) {
       setFullName((prev) => prev || selectedAddress.fullName || '');
       setPhone((prev) => prev || selectedAddress.phone || '');
+      setAddressType((prev) => (streetAddress ? prev : selectedAddress.addressType || 'Home'));
       setStreetAddress((prev) => prev || selectedAddress.streetAddress || '');
       setCity((prev) => prev || selectedAddress.city || '');
       setStateName((prev) => prev || selectedAddress.state || '');
       setPincode((prev) => prev || selectedAddress.pincode || '');
       setLandmark((prev) => prev || selectedAddress.landmark || '');
+      setActiveSavedAddressId((prev) => prev || selectedAddress.id);
     }
-  }, [selectedAddress]);
+  }, [selectedAddress, streetAddress]);
 
   const [pinServiceability, setPinServiceability] =
     useState<DelhiveryServiceabilityResult | null>(null);
@@ -351,6 +436,21 @@ export const CheckoutPage: React.FC = () => {
     setPrePaymentConfirmOpen(false);
     setSubmitError(null);
     setPaymentNotice(null);
+
+    if (saveAddressForFuture && !isCurrentAddressAlreadySaved && streetAddress.trim()) {
+      addAddress({
+        addressType,
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        streetAddress: streetAddress.trim(),
+        city: city.trim(),
+        state: stateName.trim(),
+        pincode: pincode.trim(),
+        landmark: landmark.trim() || undefined,
+        isDefault: addresses.length === 0,
+      });
+    }
+
     setIsSubmitting(true);
     setCheckoutStage('creating_order');
     try {
@@ -745,6 +845,86 @@ export const CheckoutPage: React.FC = () => {
                 </fieldset>
               </div>
 
+              {/* Saved Addresses Quick Selector */}
+              {addresses.length > 0 && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#285A3C] flex items-center gap-1.5">
+                      <BookmarkCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Saved Addresses ({addresses.length})</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleStartNewAddress}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#285A3C] hover:text-[#1E432D] hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Use New Address</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {addresses.map((addr) => {
+                      const isSelected =
+                        activeSavedAddressId === addr.id ||
+                        (addr.streetAddress.trim().toLowerCase() === streetAddress.trim().toLowerCase() &&
+                          addr.pincode.trim() === pincode.trim());
+                      return (
+                        <div
+                          key={addr.id}
+                          className={`relative rounded-lg border p-3 transition-all text-xs flex flex-col justify-between gap-1.5 ${
+                            isSelected
+                              ? 'border-[#285A3C] bg-[#D0E9C0]/30 ring-1 ring-[#285A3C]'
+                              : 'border-[#D8C7B5] bg-[#FAF5EE]/70 hover:border-[#285A3C]/60'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => applySavedAddress(addr)}
+                              className="text-left flex-1 min-w-0 space-y-1 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-2 py-0.5 rounded bg-[#285A3C] text-white text-[10px] font-bold uppercase">
+                                  {addr.addressType || 'Home'}
+                                </span>
+                                <span className="font-bold text-[#1A3B2B] truncate">
+                                  {addr.fullName}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#3A443D] leading-snug line-clamp-2">
+                                {addr.streetAddress}
+                                {addr.landmark ? `, ${addr.landmark}` : ''}
+                              </p>
+                              <p className="text-[11px] text-[#4F6355] font-medium">
+                                {addr.city}, {addr.state} — {addr.pincode}
+                              </p>
+                              {addr.phone && (
+                                <p className="text-[10px] text-[#647268]">Phone: {addr.phone}</p>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (activeSavedAddressId === addr.id) {
+                                  setActiveSavedAddressId(null);
+                                }
+                                deleteAddress(addr.id);
+                              }}
+                              aria-label={`Remove saved ${addr.addressType} address`}
+                              title="Remove saved address"
+                              className="p-1 rounded text-[#8E9B92] hover:text-rose-700 hover:bg-rose-50 transition-colors shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="sm:col-span-2">
                   <label htmlFor="checkout-street" className="block text-[#1A3B2B] font-semibold mb-1.5">
@@ -892,6 +1072,34 @@ export const CheckoutPage: React.FC = () => {
                     className="w-full bg-[#FAF5EE] border border-[#BCD8AA] rounded p-2.5 text-base sm:text-xs text-[#1A3B2B] focus:outline-none focus:border-[#285A3C]"
                   />
                 </div>
+              </div>
+
+              {/* Save Address Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#F0E6DA]">
+                <label className="flex items-center gap-2 text-xs text-[#4F6355] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="saveAddressForFuture"
+                    checked={saveAddressForFuture}
+                    onChange={(e) => setSaveAddressForFuture(e.target.checked)}
+                    className="accent-[#285A3C] rounded w-4 h-4"
+                  />
+                  <span>Save this address for future orders</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleSaveCurrentAddress}
+                  disabled={isCurrentAddressAlreadySaved && Boolean(streetAddress.trim())}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/45 hover:bg-[#D0E9C0] disabled:opacity-60 disabled:cursor-default text-xs font-semibold text-[#1A3B2B] transition-colors"
+                >
+                  <BookmarkCheck className="w-3.5 h-3.5 text-[#285A3C]" aria-hidden="true" />
+                  <span>
+                    {isCurrentAddressAlreadySaved && streetAddress.trim()
+                      ? 'Address Saved'
+                      : 'Save Address'}
+                  </span>
+                </button>
               </div>
 
               {(checkingPin || pinServiceability || pinCheckWarning) && (
