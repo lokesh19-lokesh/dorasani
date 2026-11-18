@@ -101,8 +101,8 @@ export const userSyncService = {
           products (
             *,
             categories:category_id (id, name, slug),
-            product_media (url, alt_text, display_order, is_primary),
-            product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity)
+            product_media (id, url, alt_text, title, display_order, is_primary, variant_id),
+            product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity, price_adjustment_inr, is_active)
           )
         `
         )
@@ -306,8 +306,8 @@ export const userSyncService = {
           products (
             *,
             categories:category_id (id, name, slug),
-            product_media (url, alt_text, display_order, is_primary),
-            product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity)
+            product_media (id, url, alt_text, title, display_order, is_primary, variant_id),
+            product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity, price_adjustment_inr, is_active)
           )
         `
         )

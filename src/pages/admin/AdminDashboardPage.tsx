@@ -416,6 +416,13 @@ const CommaListInput: React.FC<CommaListInputProps> = ({
   );
 };
 
+interface ProductColorDraft {
+  id?: string;
+  name: string;
+  hex: string;
+  image: string;
+}
+
 interface ProductFormState {
   title: string;
   slug: string;
@@ -439,6 +446,7 @@ interface ProductFormState {
   is_festive: boolean;
   specificationsSubCategory: string;
   specificationsTagsText: string;
+  colors: ProductColorDraft[];
   imagesText: string;
   description: string;
 }
@@ -466,6 +474,7 @@ const DEFAULT_PRODUCT_FORM: ProductFormState = {
   is_festive: false,
   specificationsSubCategory: '',
   specificationsTagsText: '',
+  colors: [],
   imagesText: '/assets/products/kanjivaram_silk_saree.jpg',
   description: '',
 };
@@ -1153,17 +1162,62 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const openEditProductModal = (p: any) => {
-    const sortedUrls = (p.product_media || [])
+    const sortedMedia = (p.product_media || [])
       .slice()
-      .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
-      .map((m: any) => m.url)
-      .filter(Boolean);
+      .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const sortedUrls = Array.from(
+      new Set(sortedMedia.map((m: any) => m.url).filter(Boolean))
+    ) as string[];
 
     const existingSpecs =
       p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)
         ? p.specifications
         : {};
     setEditingProductSpecs(existingSpecs);
+
+    const specColorsMap = new Map<string, { hex: string; image: string }>();
+    if (Array.isArray(existingSpecs.colors)) {
+      for (const sc of existingSpecs.colors) {
+        if (sc && typeof sc.name === 'string' && sc.name.trim()) {
+          specColorsMap.set(sc.name.trim().toLowerCase(), {
+            hex: typeof sc.hex === 'string' && sc.hex.trim() ? sc.hex.trim() : '#D2A138',
+            image:
+              (typeof sc.image === 'string' && sc.image.trim()) ||
+              (Array.isArray(sc.images) && typeof sc.images[0] === 'string' ? sc.images[0].trim() : '') ||
+              '',
+          });
+        }
+      }
+    }
+
+    const activeVariants = (p.product_variants || []).filter((v: any) => v && v.is_active !== false);
+    const initialColors: ProductColorDraft[] =
+      activeVariants.length > 0 && activeVariants.some((v: any) => v.color_name)
+        ? activeVariants.map((v: any) => {
+            const name = String(v.color_name || v.variant_name || '').trim();
+            const matchedMedia = sortedMedia.find((m: any) => m.variant_id && m.variant_id === v.id);
+            const specMatch = specColorsMap.get(name.toLowerCase());
+            return {
+              id: v.id ? String(v.id) : undefined,
+              name,
+              hex: v.color_hex || specMatch?.hex || '#D2A138',
+              image: matchedMedia?.url || specMatch?.image || '',
+            };
+          })
+        : Array.isArray(existingSpecs.colors)
+          ? existingSpecs.colors
+              .filter((sc: any) => sc && typeof sc.name === 'string' && sc.name.trim())
+              .map((sc: any) => ({
+                name: sc.name.trim(),
+                hex: typeof sc.hex === 'string' && sc.hex.trim() ? sc.hex.trim() : '#D2A138',
+                image:
+                  (typeof sc.image === 'string' && sc.image.trim()) ||
+                  (Array.isArray(sc.images) && typeof sc.images[0] === 'string'
+                    ? sc.images[0].trim()
+                    : '') ||
+                  '',
+              }))
+          : [];
 
     setEditingProductId(p.id);
     setProductSlugTouched(true);
@@ -1206,6 +1260,7 @@ export const AdminDashboardPage: React.FC = () => {
       specificationsTagsText: Array.isArray(existingSpecs.tags)
         ? existingSpecs.tags.join(', ')
         : '',
+      colors: initialColors,
       imagesText:
         sortedUrls.length > 0
           ? sortedUrls.join('\n')
@@ -1243,6 +1298,15 @@ export const AdminDashboardPage: React.FC = () => {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const cleanColors = productForm.colors
+      .map((c) => ({
+        id: c.id,
+        name: c.name.trim(),
+        hex: (c.hex || '#D2A138').trim() || '#D2A138',
+        image: c.image.trim() || undefined,
+      }))
+      .filter((c) => Boolean(c.name));
+
     const nextSpecs: Record<string, any> = {
       ...(editingProductSpecs || {}),
     };
@@ -1253,6 +1317,15 @@ export const AdminDashboardPage: React.FC = () => {
       .split(',')
       .map((t) => t.trim())
       .filter(Boolean);
+    if (cleanColors.length > 0) {
+      nextSpecs.colors = cleanColors.map((c) => ({
+        name: c.name,
+        hex: c.hex,
+        ...(c.image ? { image: c.image, images: [c.image] } : {}),
+      }));
+    } else {
+      delete nextSpecs.colors;
+    }
 
     const finalStatus =
       stock <= 0 && productForm.status === 'active'
@@ -1284,6 +1357,7 @@ export const AdminDashboardPage: React.FC = () => {
       is_festive: productForm.is_festive,
       specifications: nextSpecs,
       images: parsedImages,
+      colors: cleanColors,
       description: productForm.description,
     };
 
@@ -8265,6 +8339,157 @@ export const AdminDashboardPage: React.FC = () => {
               ))}
             </div>
           </fieldset>
+
+          {/* Color Swatches & Per-Color Photos (Colour Shifting) */}
+          <div className="space-y-2 rounded-xl border border-[#D8C7B5] bg-[#FAF5EE]/70 p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold text-[#1A3B2B]">
+                  Color Swatches &amp; Color-Specific Photos
+                </p>
+                <p className="text-[11px] text-[#4F6355]">
+                  Assign a photo to each color so clicking a swatch on the product page shifts to that color&apos;s photo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setProductForm((prev) => ({
+                    ...prev,
+                    colors: [
+                      ...prev.colors,
+                      {
+                        name: '',
+                        hex: prev.colors.length === 0 ? '#AC1443' : prev.colors.length === 1 ? '#7A1230' : '#C8A236',
+                        image: '',
+                      },
+                    ],
+                  }))
+                }
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/50 hover:bg-[#D0E9C0] text-[11px] font-semibold text-[#1A3B2B] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Color</span>
+              </button>
+            </div>
+
+            {productForm.colors.length === 0 ? (
+              <p className="text-[11px] text-[#647268] italic">
+                No color swatches configured yet. Click &ldquo;Add Color&rdquo; to add color variants and assign photos.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {productForm.colors.map((colorRow, cIdx) => {
+                  const uploadKey = `product-color-${cIdx}`;
+                  return (
+                    <div
+                      key={colorRow.id || `color-row-${cIdx}`}
+                      className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-lg border border-[#E8DCCF] bg-white"
+                    >
+                      <div className="flex items-center gap-2 shrink-0">
+                        <input
+                          type="color"
+                          value={/^#[0-9a-fA-F]{6}$/.test(colorRow.hex) ? colorRow.hex : '#D2A138'}
+                          onChange={(e) =>
+                            setProductForm((prev) => ({
+                              ...prev,
+                              colors: prev.colors.map((item, idx) =>
+                                idx === cIdx ? { ...item, hex: e.target.value } : item
+                              ),
+                            }))
+                          }
+                          aria-label={`Pick color swatch ${cIdx + 1}`}
+                          className="w-8 h-8 rounded border border-[#D8C7B5] cursor-pointer p-0.5 bg-white shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={colorRow.name}
+                          onChange={(e) =>
+                            setProductForm((prev) => ({
+                              ...prev,
+                              colors: prev.colors.map((item, idx) =>
+                                idx === cIdx ? { ...item, name: e.target.value } : item
+                              ),
+                            }))
+                          }
+                          placeholder="Color name (e.g. Royal Gold)"
+                          className="w-36 sm:w-40 p-1.5 rounded border border-[#D8C7B5] text-xs bg-[#FAF5EE]/50 focus:outline-none focus:border-[#285A3C]"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <input
+                          type="text"
+                          value={colorRow.image}
+                          onChange={(e) =>
+                            setProductForm((prev) => ({
+                              ...prev,
+                              colors: prev.colors.map((item, idx) =>
+                                idx === cIdx ? { ...item, image: e.target.value } : item
+                              ),
+                            }))
+                          }
+                          placeholder="Color photo URL (or upload)"
+                          className="flex-1 min-w-0 p-1.5 rounded border border-[#D8C7B5] font-mono text-[11px] bg-[#FAF5EE]/50 focus:outline-none focus:border-[#285A3C]"
+                        />
+                        <label
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded border border-[#285A3C] bg-[#D0E9C0]/40 hover:bg-[#D0E9C0] text-[11px] font-semibold text-[#1A3B2B] cursor-pointer shrink-0 transition-colors ${
+                            uploadingTarget === uploadKey ? 'opacity-60 pointer-events-none' : ''
+                          }`}
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>{uploadingTarget === uploadKey ? '...' : 'Upload'}</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                            className="sr-only"
+                            disabled={uploadingTarget === uploadKey}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              void handleUploadSingleImage(
+                                file,
+                                'product-images',
+                                'catalog',
+                                uploadKey,
+                                (url) =>
+                                  setProductForm((prev) => ({
+                                    ...prev,
+                                    colors: prev.colors.map((item, idx) =>
+                                      idx === cIdx ? { ...item, image: url } : item
+                                    ),
+                                  }))
+                              );
+                            }}
+                          />
+                        </label>
+                        {colorRow.image && (
+                          <img
+                            src={colorRow.image}
+                            alt={colorRow.name || `Color ${cIdx + 1}`}
+                            className="w-8 h-10 object-cover object-top rounded border border-[#D8C7B5] bg-[#FAF5EE] shrink-0"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProductForm((prev) => ({
+                              ...prev,
+                              colors: prev.colors.filter((_, idx) => idx !== cIdx),
+                            }))
+                          }
+                          aria-label={`Remove color ${colorRow.name || cIdx + 1}`}
+                          className="p-1.5 rounded border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">

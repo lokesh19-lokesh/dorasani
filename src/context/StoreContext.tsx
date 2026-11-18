@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   DEFAULT_SITE_SETTINGS,
+  getColorImage,
   type Product,
   type CartItem,
   type WishlistItem,
@@ -990,7 +991,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           variantColor: item.selectedColor,
           price: item.product.price,
           quantity: item.quantity,
-          imageUrl: item.product.primaryImage,
+          imageUrl: getColorImage(item.product, item.selectedColor),
         })),
         shippingAddress: chosenAddress,
         deliveryOption: chosenDelivery,

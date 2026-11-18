@@ -5,6 +5,7 @@ import {
   normalizeCollectionFiltersConfig,
   normalizeProductTypes,
   type Product,
+  type ProductColorVariant,
   type Category,
   type ServiceBenefit,
   type ProductReview,
@@ -216,34 +217,158 @@ function buildSubcategoryOrParts(subCat: RawCategoryRow, allCats: RawCategoryRow
 
 // Convert Supabase database product row + media + variants to Frontend Product model
 export function mapDatabaseToProduct(row: any, media: any[] = [], variants: any[] = []): Product {
-  const images =
-    media.length > 0
-      ? [...media]
-          .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-          .map((m) => m.url)
-          .filter(Boolean)
-      : ['/assets/products/kanjivaram_silk_saree.jpg'];
+  const sortedMedia = [...(media || [])]
+    .filter((m) => m && typeof m.url === 'string' && m.url.trim())
+    .sort((a, b) => {
+      const orderDiff = (a.display_order ?? 0) - (b.display_order ?? 0);
+      if (orderDiff !== 0) return orderDiff;
+      return (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0);
+    });
 
-  const safeImages = images.length > 0 ? images : ['/assets/products/kanjivaram_silk_saree.jpg'];
+  const baseImages = Array.from(new Set(sortedMedia.map((m) => String(m.url).trim())));
 
   const specs =
     row.specifications && typeof row.specifications === 'object' && !Array.isArray(row.specifications)
       ? row.specifications
       : {};
 
-  const specColors = Array.isArray(specs.colors)
-    ? specs.colors.filter((c: any) => c && typeof c.name === 'string' && c.name.trim())
+  const specColors: Array<{
+    name: string;
+    hex: string;
+    image?: string;
+    images?: string[];
+    sku?: string;
+    stock?: number;
+    priceAdjustment?: number;
+  }> = Array.isArray(specs.colors)
+    ? specs.colors
+        .filter((c: any) => c && typeof c.name === 'string' && c.name.trim())
+        .map((c: any) => {
+          const explicitImages: string[] = [];
+          if (typeof c.image === 'string' && c.image.trim()) {
+            explicitImages.push(c.image.trim());
+          }
+          if (Array.isArray(c.images)) {
+            for (const u of c.images) {
+              if (typeof u === 'string' && u.trim()) explicitImages.push(u.trim());
+            }
+          }
+          const uniqueColorImages = Array.from(new Set(explicitImages));
+          return {
+            name: c.name.trim(),
+            hex: typeof c.hex === 'string' && c.hex.trim() ? c.hex.trim() : '#D2A138',
+            image: uniqueColorImages[0],
+            images: uniqueColorImages.length > 0 ? uniqueColorImages : undefined,
+            sku: typeof c.sku === 'string' && c.sku.trim() ? c.sku.trim() : undefined,
+            stock:
+              c.stock !== undefined && c.stock !== null && Number.isFinite(Number(c.stock))
+                ? Math.max(0, Math.round(Number(c.stock)))
+                : undefined,
+            priceAdjustment:
+              c.priceAdjustment !== undefined &&
+              c.priceAdjustment !== null &&
+              Number.isFinite(Number(c.priceAdjustment))
+                ? Number(c.priceAdjustment)
+                : undefined,
+          };
+        })
     : [];
 
-  const colors =
-    variants.length > 0 && variants.some((v) => v.color_name)
-      ? variants.map((v) => ({
-          name: v.color_name || 'Standard',
-          hex: v.color_hex || '#D2A138',
-        }))
+  const specColorByName = new Map(specColors.map((c) => [c.name.toLowerCase(), c]));
+  const activeVariants = (variants || []).filter((v) => v && v.is_active !== false);
+
+  const findMediaMatchingColorName = (colorName: string): string[] => {
+    const clean = colorName.trim().toLowerCase();
+    if (clean.length < 3) return [];
+    return sortedMedia
+      .filter((m) => {
+        const meta = `${m.alt_text || ''} ${m.title || ''}`.toLowerCase();
+        return meta.includes(clean);
+      })
+      .map((m) => String(m.url).trim());
+  };
+
+  let colors: ProductColorVariant[] =
+    activeVariants.length > 0 && activeVariants.some((v) => v.color_name)
+      ? activeVariants.map((v) => {
+          const name = String(v.color_name || v.variant_name || 'Standard').trim();
+          const specMatch = specColorByName.get(name.toLowerCase());
+          const variantMediaUrls = sortedMedia
+            .filter((m) => m.variant_id && m.variant_id === v.id)
+            .map((m) => String(m.url).trim());
+          const altMatchedUrls =
+            variantMediaUrls.length === 0 && !(specMatch?.images && specMatch.images.length > 0)
+              ? findMediaMatchingColorName(name)
+              : [];
+
+          const combinedImages = Array.from(
+            new Set([
+              ...variantMediaUrls,
+              ...(specMatch?.images || []),
+              ...(specMatch?.image ? [specMatch.image] : []),
+              ...altMatchedUrls,
+            ])
+          );
+
+          return {
+            id: v.id ? String(v.id) : undefined,
+            name,
+            hex: v.color_hex || specMatch?.hex || '#D2A138',
+            image: combinedImages[0],
+            images: combinedImages.length > 0 ? combinedImages : undefined,
+            sku: v.sku || specMatch?.sku || undefined,
+            stock:
+              v.stock_quantity !== null && v.stock_quantity !== undefined
+                ? Math.max(0, Number(v.stock_quantity))
+                : specMatch?.stock,
+            priceAdjustment:
+              v.price_adjustment_inr !== null && v.price_adjustment_inr !== undefined
+                ? Number(v.price_adjustment_inr)
+                : specMatch?.priceAdjustment,
+          };
+        })
       : specColors.length > 0
-      ? specColors.map((c: any) => ({ name: c.name, hex: c.hex || '#D2A138' }))
+      ? specColors.map((c) => {
+          const altMatchedUrls =
+            !c.images || c.images.length === 0 ? findMediaMatchingColorName(c.name) : [];
+          const combinedImages = Array.from(
+            new Set([...(c.images || []), ...(c.image ? [c.image] : []), ...altMatchedUrls])
+          );
+          return {
+            ...c,
+            image: combinedImages[0],
+            images: combinedImages.length > 0 ? combinedImages : undefined,
+          };
+        })
       : [{ name: row.color_description || 'Classic', hex: '#D2A138' }];
+
+  // Deduplicate colors by lowercase name while keeping richer metadata
+  const seenColorNames = new Set<string>();
+  colors = colors.filter((c) => {
+    const key = c.name.trim().toLowerCase();
+    if (!key || seenColorNames.has(key)) return false;
+    seenColorNames.add(key);
+    return true;
+  });
+
+  // Positional fallback: when multiple gallery photos exist without explicit color mapping,
+  // associate each color swatch with its corresponding gallery image so shifting works immediately.
+  const hasAnyExplicitColorImage = colors.some((c) => Boolean(c.image));
+  if (!hasAnyExplicitColorImage && colors.length > 1 && baseImages.length > 1) {
+    colors = colors.map((c, idx) => {
+      const mappedImg = baseImages[idx];
+      return mappedImg ? { ...c, image: mappedImg, images: [mappedImg] } : c;
+    });
+  }
+
+  const allImages = Array.from(
+    new Set([
+      ...baseImages,
+      ...colors.flatMap((c) => c.images || (c.image ? [c.image] : [])),
+    ])
+  );
+  const safeImages =
+    allImages.length > 0 ? allImages : ['/assets/products/kanjivaram_silk_saree.jpg'];
 
   const mrp = Number(row.mrp_inr ?? row.price_inr ?? 0);
   const price = Number(row.price_inr ?? 0);
@@ -320,8 +445,8 @@ export const productService = {
             `
           *,
           categories:category_id (id, name, slug, parent_id),
-          product_media (url, alt_text, display_order, is_primary),
-          product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity)
+          product_media (id, url, alt_text, title, display_order, is_primary, variant_id),
+          product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity, price_adjustment_inr, is_active)
         `,
             { count: 'exact' }
           )
@@ -450,8 +575,8 @@ export const productService = {
             `
           *,
           categories:category_id (id, name, slug),
-          product_media (url, alt_text, display_order, is_primary),
-          product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity)
+          product_media (id, url, alt_text, title, display_order, is_primary, variant_id),
+          product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity, price_adjustment_inr, is_active)
         `
           )
           .eq('slug', slug)

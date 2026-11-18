@@ -25,12 +25,32 @@ import { delhiveryService } from '../services/delhiveryService';
 import { buildProductPageGraph } from '../utils/seo';
 import {
   LOW_STOCK_THRESHOLD,
+  getColorImage,
+  getColorVariant,
   getProductTypeLabel,
   getStockStatusMeta,
   type DelhiveryServiceabilityResult,
   type Product,
+  type ProductColorVariant,
   type ProductReview,
 } from '../types';
+
+function isLightHexColor(hex: string): boolean {
+  const clean = (hex || '').replace('#', '').trim();
+  if (clean.length !== 6 && clean.length !== 3) return false;
+  const full =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((ch) => ch + ch)
+          .join('')
+      : clean;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  if ([r, g, b].some((v) => Number.isNaN(v))) return false;
+  return (r * 299 + g * 587 + b * 114) / 1000 > 170;
+}
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -87,8 +107,9 @@ export const ProductDetailPage: React.FC = () => {
           return;
         }
         setProduct(live);
-        setSelectedImage(live.primaryImage);
-        setSelectedColor(live.colors[0]?.name || 'Standard');
+        const initialColor = live.colors[0];
+        setSelectedColor(initialColor?.name || 'Standard');
+        setSelectedImage(initialColor?.image || initialColor?.images?.[0] || live.primaryImage);
 
         const [related, prodReviews] = await Promise.all([
           productService.getRelatedProducts(live.categorySlug, live.id, 4),
@@ -162,12 +183,56 @@ export const ProductDetailPage: React.FC = () => {
   }
 
   const isWishlisted = isInWishlist(product.id);
+  const activeColorVariant = getColorVariant(product, selectedColor);
+  const activePriceAdjustment = Number(activeColorVariant?.priceAdjustment ?? 0) || 0;
+  const activePrice = Math.max(0, product.price + activePriceAdjustment);
+  const activeMrp =
+    product.mrp > 0 ? Math.max(activePrice, product.mrp + activePriceAdjustment) : product.mrp;
+  const activeDiscountPercent =
+    activeMrp > activePrice && activeMrp > 0
+      ? Math.round(((activeMrp - activePrice) / activeMrp) * 100)
+      : product.discountPercent;
+  const activeSku = activeColorVariant?.sku || product.sku;
+  const effectiveStock =
+    activeColorVariant?.stock !== undefined ? activeColorVariant.stock : product.stock;
   const stockMeta = getStockStatusMeta(
-    product.stock,
+    effectiveStock,
     product.inStock ? 'active' : 'out_of_stock'
   );
   const isAvailable = product.inStock && !stockMeta.isOutOfStock;
   const maxAllowedQty = isAvailable ? stockMeta.qty : 0;
+
+  const galleryImages = Array.from(
+    new Set([
+      ...(activeColorVariant?.images || (activeColorVariant?.image ? [activeColorVariant.image] : [])),
+      ...product.images,
+    ])
+  );
+  const displayedMainImage =
+    selectedImage && galleryImages.includes(selectedImage)
+      ? selectedImage
+      : activeColorVariant?.image || activeColorVariant?.images?.[0] || product.primaryImage;
+
+  const handleSelectColor = (colorVariant: ProductColorVariant) => {
+    setSelectedColor(colorVariant.name);
+    const nextImage = colorVariant.image || colorVariant.images?.[0] || product.primaryImage;
+    if (nextImage) {
+      setSelectedImage(nextImage);
+    }
+    if (colorVariant.stock !== undefined && colorVariant.stock > 0 && quantity > colorVariant.stock) {
+      setQuantity(colorVariant.stock);
+    }
+  };
+
+  const handleSelectImage = (img: string) => {
+    setSelectedImage(img);
+    const matchingColors = product.colors.filter(
+      (c) => c.image === img || (c.images && c.images.includes(img))
+    );
+    if (matchingColors.length === 1 && matchingColors[0].name !== selectedColor) {
+      setSelectedColor(matchingColors[0].name);
+    }
+  };
   const typeLabel = getProductTypeLabel(product.productType, siteSettings.productTypes);
   const isSaree =
     product.productType === 'saree' ||
@@ -194,7 +259,19 @@ export const ProductDetailPage: React.FC = () => {
       showToast('This item is currently out of stock.', 'info');
       return;
     }
-    addToCart(product, selectedColor, Math.min(quantity, maxAllowedQty));
+    const cartProduct =
+      activePrice !== product.price ||
+      activeSku !== product.sku ||
+      getColorImage(product, selectedColor) !== product.primaryImage
+        ? {
+            ...product,
+            price: activePrice,
+            mrp: activeMrp,
+            sku: activeSku,
+            primaryImage: getColorImage(product, selectedColor),
+          }
+        : product;
+    addToCart(cartProduct, selectedColor, Math.min(quantity, maxAllowedQty));
   };
 
   const handleBuyNow = () => {
@@ -202,7 +279,19 @@ export const ProductDetailPage: React.FC = () => {
       showToast('This item is currently out of stock.', 'info');
       return;
     }
-    addToCart(product, selectedColor, Math.min(quantity, maxAllowedQty));
+    const cartProduct =
+      activePrice !== product.price ||
+      activeSku !== product.sku ||
+      getColorImage(product, selectedColor) !== product.primaryImage
+        ? {
+            ...product,
+            price: activePrice,
+            mrp: activeMrp,
+            sku: activeSku,
+            primaryImage: getColorImage(product, selectedColor),
+          }
+        : product;
+    addToCart(cartProduct, selectedColor, Math.min(quantity, maxAllowedQty));
     navigate('/checkout');
   };
 
@@ -309,15 +398,15 @@ export const ProductDetailPage: React.FC = () => {
           {/* Left Column: Image Gallery */}
           <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 items-start">
             <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto no-scrollbar w-full sm:w-20 shrink-0">
-              {product.images.map((img, idx) => (
+              {galleryImages.map((img, idx) => (
                 <button
                   key={`${img}-${idx}`}
                   type="button"
-                  onClick={() => setSelectedImage(img)}
+                  onClick={() => handleSelectImage(img)}
                   aria-label={`View photo ${idx + 1} of ${product.title}`}
-                  aria-pressed={selectedImage === img}
+                  aria-pressed={displayedMainImage === img}
                   className={`w-16 h-20 sm:w-20 sm:h-24 rounded-md overflow-hidden border-2 transition-all shrink-0 bg-[#FAF5EE] ${
-                    selectedImage === img
+                    displayedMainImage === img
                       ? 'border-[#285A3C] shadow-sm'
                       : 'border-[#BCD8AA] hover:border-[#285A3C]/60'
                   }`}
@@ -338,14 +427,25 @@ export const ProductDetailPage: React.FC = () => {
 
             <div className="flex-1 w-full rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm bg-[#FAF5EE] relative aspect-[4/5] group">
               <OptimizedPicture
-                src={selectedImage || product.primaryImage}
-                alt={`${product.title} — ${product.fabric || product.category}`}
+                key={`${displayedMainImage}-${selectedColor}`}
+                src={displayedMainImage}
+                alt={`${product.title} — ${selectedColor} — ${product.fabric || product.category}`}
                 sizes="(max-width: 1024px) 94vw, 56vw"
                 fetchPriority="high"
                 loading="eager"
                 pictureClassName="w-full h-full block"
                 className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
               />
+              {product.colors.length > 1 && activeColorVariant && (
+                <div className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/92 backdrop-blur-xs border border-[#D8C7B5] shadow-sm text-xs font-semibold text-[#1A3B2B]">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
+                    style={{ backgroundColor: activeColorVariant.hex }}
+                    aria-hidden="true"
+                  />
+                  <span>{activeColorVariant.name}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -439,22 +539,22 @@ export const ProductDetailPage: React.FC = () => {
             <div className="pt-2 border-t border-[#D8C7B5]">
               <div className="flex items-baseline gap-2.5">
                 <span className="text-2xl sm:text-3xl font-bold text-[#1A3B2B]">
-                  ₹{product.price.toLocaleString('en-IN')}
+                  ₹{activePrice.toLocaleString('en-IN')}
                 </span>
-                {product.mrp > product.price && (
+                {activeMrp > activePrice && (
                   <span className="text-sm sm:text-base text-[#8E9B92] line-through">
-                    ₹{product.mrp.toLocaleString('en-IN')}
+                    ₹{activeMrp.toLocaleString('en-IN')}
                   </span>
                 )}
-                {Boolean(product.discountPercent && product.discountPercent > 0) && (
+                {Boolean(activeDiscountPercent && activeDiscountPercent > 0) && (
                   <span className="text-xs font-bold text-[#1A3B2B] bg-[#D0E9C0] px-2 py-0.5 rounded border border-[#BCD8AA]">
-                    {product.discountPercent}% OFF
+                    {activeDiscountPercent}% OFF
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-[#4F6355] mt-0.5">
                 Inclusive of all taxes • Free shipping above ₹
-                {siteSettings.freeShippingThreshold.toLocaleString('en-IN')} • SKU: {product.sku}
+                {siteSettings.freeShippingThreshold.toLocaleString('en-IN')} • SKU: {activeSku}
               </p>
             </div>
 
@@ -492,22 +592,36 @@ export const ProductDetailPage: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-2">
-                {product.colors.map((c) => (
-                  <button
-                    key={c.name}
-                    type="button"
-                    onClick={() => setSelectedColor(c.name)}
-                    className={`w-7 h-7 rounded-full border transition-all ${
-                      selectedColor === c.name
-                        ? 'ring-2 ring-[#285A3C] ring-offset-2 scale-110'
-                        : 'border-black/10 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                    title={c.name}
-                    aria-label={`Select color ${c.name}`}
-                  />
-                ))}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {product.colors.map((c) => {
+                  const isSelected = selectedColor === c.name;
+                  const isLight = isLightHexColor(c.hex);
+                  const isVariantOut = c.stock !== undefined && c.stock <= 0;
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => handleSelectColor(c)}
+                      aria-pressed={isSelected}
+                      className={`relative w-8 h-8 rounded-full border transition-all flex items-center justify-center cursor-pointer ${
+                        isSelected
+                          ? 'ring-2 ring-[#285A3C] ring-offset-2 scale-110 border-black/20'
+                          : 'border-black/15 hover:scale-105'
+                      } ${isVariantOut ? 'opacity-50' : ''}`}
+                      style={{ backgroundColor: c.hex }}
+                      title={isVariantOut ? `${c.name} (Out of stock)` : c.name}
+                      aria-label={`Select color ${c.name}${isVariantOut ? ' (Out of stock)' : ''}`}
+                    >
+                      {isSelected && (
+                        <Check
+                          className={`w-3.5 h-3.5 ${isLight ? 'text-[#1A3B2B]' : 'text-white'}`}
+                          strokeWidth={3}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

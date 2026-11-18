@@ -4,7 +4,7 @@ import { Trash2, Tag, ShieldCheck, ArrowRight, Check, ShoppingBag, AlertCircle }
 import { useStore } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
-import { getStockStatusMeta } from '../types';
+import { getColorImage, getStockStatusMeta } from '../types';
 
 export const CartPage: React.FC = () => {
   const {
@@ -151,8 +151,8 @@ export const CartPage: React.FC = () => {
                           className="accent-[#285A3C] w-4 h-4 cursor-pointer"
                         />
                         <OptimizedPicture
-                          src={item.product.primaryImage}
-                          alt={item.product.title}
+                          src={getColorImage(item.product, item.selectedColor)}
+                          alt={`${item.product.title} — ${item.selectedColor}`}
                           width={800}
                           height={1000}
                           sizes="80px"

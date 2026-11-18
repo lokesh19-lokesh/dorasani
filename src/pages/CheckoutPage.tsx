@@ -18,7 +18,7 @@ import { useStore, type CheckoutStage } from '../context/StoreContext';
 import { SeoHead } from '../components/common/SeoHead';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { delhiveryService } from '../services/delhiveryService';
-import { getStockStatusMeta, type DelhiveryServiceabilityResult } from '../types';
+import { getColorImage, getStockStatusMeta, type DelhiveryServiceabilityResult } from '../types';
 
 const INDIAN_STATE_CODE_MAP: Record<string, string> = {
   AP: 'Andhra Pradesh',
@@ -1184,8 +1184,8 @@ export const CheckoutPage: React.FC = () => {
                     <div key={item.id} className="pt-2 flex items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <OptimizedPicture
-                          src={item.product.primaryImage}
-                          alt={item.product.title}
+                          src={getColorImage(item.product, item.selectedColor)}
+                          alt={`${item.product.title} — ${item.selectedColor}`}
                           sizes="48px"
                           loading="lazy"
                           pictureClassName="shrink-0 block"

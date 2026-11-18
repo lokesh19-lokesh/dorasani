@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { invalidateStorefrontCache } from './productService';
 import type { Json, TablesUpdate, UserRoleType } from '../types/supabase';
-import type { UserRole } from '../types';
+import type { ProductColorVariant, UserRole } from '../types';
 
 export interface AdminProductInput {
   title: string;
@@ -30,6 +30,7 @@ export interface AdminProductInput {
   is_festive?: boolean;
   specifications?: any;
   images?: string[];
+  colors?: ProductColorVariant[];
 }
 
 export interface AdminCategoryInput {
@@ -327,7 +328,8 @@ export const adminService = {
         `
         *,
         categories (id, name, slug),
-        product_media (id, url, alt_text, display_order, is_primary)
+        product_media (id, url, alt_text, title, display_order, is_primary, variant_id),
+        product_variants (id, variant_name, color_name, color_hex, size, sku, stock_quantity, price_adjustment_inr, is_active)
       `,
         { count: 'exact' }
       )
@@ -336,6 +338,189 @@ export const adminService = {
 
     if (error) throw error;
     return { products: data || [], total: count || 0 };
+  },
+
+  async syncProductVariantsAndMedia(params: {
+    productId: string;
+    title: string;
+    baseSku: string;
+    defaultStock: number;
+    images?: string[];
+    colors?: ProductColorVariant[];
+  }) {
+    const { productId, title, baseSku, defaultStock, images, colors } = params;
+
+    const variantIdByColorKey = new Map<string, string>();
+    const colorImageEntries: Array<{ url: string; variantId: string | null; colorName: string }> = [];
+
+    if (colors !== undefined) {
+      const cleanColors = colors
+        .filter((c) => c && typeof c.name === 'string' && c.name.trim())
+        .map((c) => ({
+          id: c.id,
+          name: c.name.trim(),
+          hex: (c.hex || '#D2A138').trim() || '#D2A138',
+          image: (c.image || c.images?.[0] || '').trim(),
+          sku: c.sku?.trim() || undefined,
+          stock:
+            c.stock !== undefined && c.stock !== null && Number.isFinite(Number(c.stock))
+              ? Math.max(0, Math.round(Number(c.stock)))
+              : undefined,
+          priceAdjustment:
+            c.priceAdjustment !== undefined &&
+            c.priceAdjustment !== null &&
+            Number.isFinite(Number(c.priceAdjustment))
+              ? Number(c.priceAdjustment)
+              : 0,
+        }));
+
+      const { data: existingVariants } = await supabase
+        .from('product_variants')
+        .select('id, color_name, sku')
+        .eq('product_id', productId);
+
+      const existingRows = existingVariants || [];
+      const retainedVariantIds = new Set<string>();
+
+      for (let i = 0; i < cleanColors.length; i++) {
+        const c = cleanColors[i];
+        const colorKey = c.name.toLowerCase();
+        const existingMatch =
+          (c.id ? existingRows.find((v) => v.id === c.id) : undefined) ||
+          existingRows.find(
+            (v) =>
+              !retainedVariantIds.has(v.id) &&
+              String(v.color_name || '').trim().toLowerCase() === colorKey
+          );
+
+        const variantStock = c.stock !== undefined ? c.stock : defaultStock;
+        const colorSlugPart = c.name
+          .toUpperCase()
+          .replace(/[^A-Z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 12);
+        const variantSku =
+          c.sku || existingMatch?.sku || `${baseSku}-${colorSlugPart || `C${i + 1}`}`;
+
+        if (existingMatch) {
+          retainedVariantIds.add(existingMatch.id);
+          const { error: updVarErr } = await supabase
+            .from('product_variants')
+            .update({
+              variant_name: c.name,
+              color_name: c.name,
+              color_hex: c.hex,
+              stock_quantity: variantStock,
+              price_adjustment_inr: c.priceAdjustment,
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingMatch.id);
+          if (updVarErr) throw updVarErr;
+          variantIdByColorKey.set(colorKey, existingMatch.id);
+        } else {
+          const { data: insertedVar, error: insVarErr } = await supabase
+            .from('product_variants')
+            .insert({
+              product_id: productId,
+              variant_name: c.name,
+              color_name: c.name,
+              color_hex: c.hex,
+              sku: variantSku,
+              stock_quantity: variantStock,
+              price_adjustment_inr: c.priceAdjustment,
+              is_active: true,
+            })
+            .select('id')
+            .single();
+          if (insVarErr) throw insVarErr;
+          if (insertedVar?.id) {
+            retainedVariantIds.add(insertedVar.id);
+            variantIdByColorKey.set(colorKey, insertedVar.id);
+          }
+        }
+
+        if (c.image) {
+          colorImageEntries.push({
+            url: c.image,
+            variantId: variantIdByColorKey.get(colorKey) || null,
+            colorName: c.name,
+          });
+        }
+      }
+
+      const removedIds = existingRows
+        .map((v) => v.id)
+        .filter((vid) => !retainedVariantIds.has(vid));
+      if (removedIds.length > 0) {
+        const { error: delVarErr } = await supabase
+          .from('product_variants')
+          .delete()
+          .in('id', removedIds);
+        if (delVarErr) throw delVarErr;
+      }
+    }
+
+    if (images !== undefined || colorImageEntries.length > 0) {
+      const cleanBaseImages = (images || []).map((u) => u.trim()).filter(Boolean);
+      const { error: delMediaErr } = await supabase
+        .from('product_media')
+        .delete()
+        .eq('product_id', productId);
+      if (delMediaErr) throw delMediaErr;
+
+      const mediaRows: Array<{
+        product_id: string;
+        variant_id: string | null;
+        url: string;
+        alt_text: string;
+        title: string | null;
+        display_order: number;
+        is_primary: boolean;
+      }> = [];
+      const seenKeys = new Set<string>();
+
+      const pushRow = (url: string, variantId: string | null, colorName?: string) => {
+        const cleanUrl = url.trim();
+        if (!cleanUrl) return;
+        const dedupeKey = `${cleanUrl}::${variantId || ''}`;
+        if (seenKeys.has(dedupeKey)) return;
+        seenKeys.add(dedupeKey);
+        const idx = mediaRows.length;
+        mediaRows.push({
+          product_id: productId,
+          variant_id: variantId,
+          url: cleanUrl,
+          alt_text: colorName ? `${title} — ${colorName}` : `${title} View ${idx + 1}`,
+          title: colorName || null,
+          display_order: idx,
+          is_primary: idx === 0,
+        });
+      };
+
+      // Map base gallery images (attaching variant_id if URL matches a color's assigned photo)
+      const colorByUrl = new Map<string, { variantId: string | null; colorName: string }>();
+      for (const entry of colorImageEntries) {
+        if (!colorByUrl.has(entry.url)) {
+          colorByUrl.set(entry.url, { variantId: entry.variantId, colorName: entry.colorName });
+        }
+      }
+
+      for (const url of cleanBaseImages) {
+        const matched = colorByUrl.get(url);
+        pushRow(url, matched?.variantId || null, matched?.colorName);
+      }
+
+      // Ensure every color-assigned photo is saved in product_media linked to its variant_id
+      for (const entry of colorImageEntries) {
+        pushRow(entry.url, entry.variantId, entry.colorName);
+      }
+
+      if (mediaRows.length > 0) {
+        const { error: insMediaErr } = await supabase.from('product_media').insert(mediaRows);
+        if (insMediaErr) throw insMediaErr;
+      }
+    }
   },
 
   async createProduct(input: AdminProductInput) {
@@ -395,18 +580,14 @@ export const adminService = {
 
     if (error) throw error;
 
-    const cleanImages = (input.images || []).map((u) => u.trim()).filter(Boolean);
-    if (cleanImages.length > 0) {
-      const mediaRows = cleanImages.map((url, idx) => ({
-        product_id: prod.id,
-        url,
-        alt_text: `${prod.title} View ${idx + 1}`,
-        display_order: idx,
-        is_primary: idx === 0,
-      }));
-      const { error: mediaErr } = await supabase.from('product_media').insert(mediaRows);
-      if (mediaErr) throw mediaErr;
-    }
+    await this.syncProductVariantsAndMedia({
+      productId: prod.id,
+      title: prod.title,
+      baseSku: prod.sku || `DOR-${prod.slug.toUpperCase()}`,
+      defaultStock: stockQty,
+      images: input.images || [],
+      colors: input.colors,
+    });
 
     const { error: ledgerErr } = await supabase.from('inventory_movements').insert({
       product_id: prod.id,
@@ -426,13 +607,13 @@ export const adminService = {
 
     const { data: existing, error: fetchErr } = await supabase
       .from('products')
-      .select('price_inr, mrp_inr, stock_quantity, title, status')
+      .select('price_inr, mrp_inr, stock_quantity, title, status, sku')
       .eq('id', id)
       .single();
 
     if (fetchErr || !existing) throw fetchErr || new Error('Product not found');
 
-    const { images, ...rawFields } = updates;
+    const { images, colors, ...rawFields } = updates;
     const payload: TablesUpdate<'products'> = {};
 
     const assignIfDefined = <K extends keyof TablesUpdate<'products'>>(
@@ -528,25 +709,15 @@ export const adminService = {
 
     if (error) throw error;
 
-    if (images !== undefined) {
-      const cleanImages = images.map((u) => u.trim()).filter(Boolean);
-      const { error: delMediaErr } = await supabase
-        .from('product_media')
-        .delete()
-        .eq('product_id', id);
-      if (delMediaErr) throw delMediaErr;
-
-      if (cleanImages.length > 0) {
-        const mediaRows = cleanImages.map((url, idx) => ({
-          product_id: id,
-          url,
-          alt_text: `${payload.title || existing.title} View ${idx + 1}`,
-          display_order: idx,
-          is_primary: idx === 0,
-        }));
-        const { error: insMediaErr } = await supabase.from('product_media').insert(mediaRows);
-        if (insMediaErr) throw insMediaErr;
-      }
+    if (images !== undefined || colors !== undefined) {
+      await this.syncProductVariantsAndMedia({
+        productId: id,
+        title: String(payload.title || existing.title || 'Product'),
+        baseSku: String(payload.sku || existing.sku || `DOR-${id.slice(0, 8)}`),
+        defaultStock: nextStock,
+        images,
+        colors,
+      });
     }
 
     if (rawFields.stock_quantity !== undefined && stockDelta !== 0) {

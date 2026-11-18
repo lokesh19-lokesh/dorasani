@@ -1,3 +1,14 @@
+export interface ProductColorVariant {
+  id?: string;
+  name: string;
+  hex: string;
+  image?: string;
+  images?: string[];
+  sku?: string;
+  stock?: number;
+  priceAdjustment?: number;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -31,10 +42,30 @@ export interface Product {
   sizes?: string[];
   primaryImage: string;
   images: string[];
-  colors: {
-    name: string;
-    hex: string;
-  }[];
+  colors: ProductColorVariant[];
+}
+
+export function getColorVariant(
+  product: Product | null | undefined,
+  selectedColor?: string | null
+): ProductColorVariant | undefined {
+  if (!product || !Array.isArray(product.colors) || product.colors.length === 0) {
+    return undefined;
+  }
+  const normalized = (selectedColor || '').trim().toLowerCase();
+  if (!normalized) return product.colors[0];
+  return (
+    product.colors.find((c) => c.name.trim().toLowerCase() === normalized) || product.colors[0]
+  );
+}
+
+export function getColorImage(
+  product: Product | null | undefined,
+  selectedColor?: string | null
+): string {
+  if (!product) return '';
+  const variant = getColorVariant(product, selectedColor);
+  return variant?.image || variant?.images?.[0] || product.primaryImage;
 }
 
 export const LOW_STOCK_THRESHOLD = 3;
