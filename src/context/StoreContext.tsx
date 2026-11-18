@@ -90,6 +90,7 @@ interface StoreContextType {
   // Addresses
   addresses: Address[];
   addAddress: (address: Omit<Address, 'id'>) => void;
+  deleteAddress: (addressId: string) => void;
   selectedAddress: Address;
   setSelectedAddress: (address: Address) => void;
 
@@ -184,8 +185,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return combined.includes('type=recovery') || combined.includes('type=invite');
   });
   const clearPasswordRecovery = useCallback(() => setPasswordRecoveryPending(false), []);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<Address>(EMPTY_ADDRESS);
+  const [addresses, setAddresses] = useState<Address[]>(() => {
+    try {
+      const saved = localStorage.getItem('dorasani_saved_addresses_v1');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed)
+        ? parsed.filter((a: any) => a && typeof a.streetAddress === 'string' && a.streetAddress.trim())
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedAddress, setSelectedAddress] = useState<Address>(() => {
+    try {
+      const saved = localStorage.getItem('dorasani_saved_addresses_v1');
+      if (!saved) return EMPTY_ADDRESS;
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.find((a: any) => a?.isDefault) || parsed[0];
+      }
+      return EMPTY_ADDRESS;
+    } catch {
+      return EMPTY_ADDRESS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('dorasani_saved_addresses_v1', JSON.stringify(addresses));
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [addresses]);
 
   const [orders, setOrders] = useState<Order[]>(() => {
     if (isSupabaseConfigured) {
@@ -404,7 +436,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           isDefault: Boolean(a.is_default),
         }));
         setAddresses(mappedAddresses);
-        setSelectedAddress(mappedAddresses[0]);
+        setSelectedAddress(mappedAddresses.find((a) => a.isDefault) || mappedAddresses[0]);
       }
 
       return hydratedUser;
@@ -450,7 +482,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } else {
           setUser(null);
           setOrders([]);
-          setAddresses([]);
           setAuthLoading(false);
         }
       })
@@ -892,12 +923,44 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addAddress = (addr: Omit<Address, 'id'>) => {
+    const normalizeKey = (a: {
+      streetAddress?: string;
+      pincode?: string;
+      city?: string;
+      state?: string;
+      addressType?: string;
+    }) =>
+      [
+        (a.streetAddress || '').trim().toLowerCase(),
+        (a.pincode || '').trim(),
+        (a.city || '').trim().toLowerCase(),
+        (a.state || '').trim().toLowerCase(),
+        (a.addressType || 'Home').trim().toLowerCase(),
+      ].join('|');
+
+    const incomingKey = normalizeKey(addr);
+    const existingMatch = addresses.find((a) => normalizeKey(a) === incomingKey);
+    if (existingMatch) {
+      const updatedExisting: Address = {
+        ...existingMatch,
+        ...addr,
+        id: existingMatch.id,
+      };
+      setAddresses((prev) =>
+        prev.map((a) => (a.id === existingMatch.id ? updatedExisting : a))
+      );
+      setSelectedAddress(updatedExisting);
+      showToast('Saved address selected');
+      return;
+    }
+
     const tempId = `addr-${Date.now()}`;
     const newAddr: Address = {
       ...addr,
       id: tempId,
+      isDefault: addr.isDefault ?? addresses.length === 0,
     };
-    setAddresses((prev) => [...prev, newAddr]);
+    setAddresses((prev) => [newAddr, ...prev]);
     setSelectedAddress(newAddr);
 
     if (isSupabaseConfigured && user?.id) {
@@ -913,7 +976,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           city: addr.city,
           state: addr.state,
           pincode: addr.pincode,
-          is_default: Boolean(addr.isDefault),
+          is_default: Boolean(newAddr.isDefault),
         })
         .select()
         .single()
@@ -922,11 +985,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setAddresses((prev) =>
               prev.map((a) => (a.id === tempId ? { ...a, id: data.id } : a))
             );
+            setSelectedAddress((prev) =>
+              prev.id === tempId ? { ...prev, id: data.id } : prev
+            );
           }
         });
     }
 
-    showToast('Address saved successfully');
+    showToast('Address saved for future orders');
+  };
+
+  const deleteAddress = (addressId: string) => {
+    setAddresses((prev) => {
+      const next = prev.filter((a) => a.id !== addressId);
+      setSelectedAddress((cur) =>
+        cur.id === addressId ? next[0] || EMPTY_ADDRESS : cur
+      );
+      return next;
+    });
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      addressId
+    );
+    if (isSupabaseConfigured && user?.id && isUuid) {
+      supabase
+        .from('customer_addresses')
+        .delete()
+        .eq('id', addressId)
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) console.warn('Failed to delete saved address:', error.message);
+        });
+    }
+
+    showToast('Saved address removed', 'info');
   };
 
   const placeOrder = async (
@@ -1290,6 +1382,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateProfile,
         addresses,
         addAddress,
+        deleteAddress,
         selectedAddress,
         setSelectedAddress,
         siteSettings,

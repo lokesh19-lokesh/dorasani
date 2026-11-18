@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Loader2,
   MapPin,
+  Tag,
   X,
 } from 'lucide-react';
 import { useStore, type CheckoutStage } from '../context/StoreContext';
@@ -77,11 +78,41 @@ export const CheckoutPage: React.FC = () => {
     cart,
     subtotal,
     discount,
+    appliedCoupon,
+    availableCoupons,
+    refreshCoupons,
+    applyCoupon,
+    removeCoupon,
     selectedAddress,
     siteSettings,
     placeOrder,
     user,
   } = useStore();
+
+  const [couponInput, setCouponInput] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+  useEffect(() => {
+    void refreshCoupons();
+  }, [refreshCoupons]);
+
+  const handleApplyCouponCode = async (codeRaw: string) => {
+    const clean = codeRaw.trim();
+    if (!clean) return;
+    setCouponError('');
+    setApplyingCoupon(true);
+    try {
+      const res = await applyCoupon(clean);
+      if (!res.success) {
+        setCouponError(res.message);
+      } else {
+        setCouponInput('');
+      }
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   const selectedCartItems = cart.filter((i) => i.selected);
   const stockBlockedItems = selectedCartItems.filter((item) => {
@@ -1120,6 +1151,95 @@ export const CheckoutPage: React.FC = () => {
                 })}
               </div>
 
+              {/* Coupon Code Box */}
+              <div className="pt-3 border-t border-[#D8C7B5] space-y-2.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1A3B2B] uppercase tracking-wider">
+                  <Tag className="w-3.5 h-3.5 text-[#285A3C]" aria-hidden="true" />
+                  <span>Apply Coupon Code</span>
+                </div>
+
+                <div className="flex">
+                  <input
+                    id="checkout-coupon-code"
+                    type="text"
+                    aria-label="Coupon code"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value);
+                      if (couponError) setCouponError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void handleApplyCouponCode(couponInput);
+                      }
+                    }}
+                    placeholder="Enter coupon code"
+                    className="flex-1 min-w-0 bg-[#FAF5EE] border border-r-0 border-[#BCD8AA] rounded-l px-3 py-2 text-xs text-[#1A3B2B] uppercase focus:outline-none focus:border-[#285A3C]"
+                  />
+                  <button
+                    type="button"
+                    disabled={applyingCoupon || !couponInput.trim()}
+                    onClick={() => void handleApplyCouponCode(couponInput)}
+                    className="bg-[#285A3C] hover:bg-[#1E432D] disabled:opacity-50 text-white px-4 rounded-r font-semibold text-xs transition-colors shrink-0"
+                  >
+                    {applyingCoupon ? 'Checking...' : 'Apply'}
+                  </button>
+                </div>
+
+                {couponError && (
+                  <p role="alert" className="text-[11px] text-rose-700 font-medium">
+                    {couponError}
+                  </p>
+                )}
+
+                {appliedCoupon && (
+                  <div className="bg-[#D0E9C0]/40 border border-[#BCD8AA] p-2.5 rounded-lg flex items-center justify-between gap-2 text-xs">
+                    <div className="min-w-0">
+                      <span className="font-bold text-[#1A3B2B] block">
+                        {appliedCoupon.code} applied!
+                      </span>
+                      {appliedCoupon.description && (
+                        <p className="text-[10px] text-[#4F6355] truncate">
+                          {appliedCoupon.description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-[#285A3C] font-bold text-xs hover:underline shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
+                {availableCoupons.length > 0 && !appliedCoupon && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] font-bold text-[#4F6355] uppercase tracking-wider block">
+                      Available Offers
+                    </span>
+                    <div className="space-y-1.5 max-h-28 overflow-y-auto pr-0.5">
+                      {availableCoupons.map((cp) => (
+                        <button
+                          key={cp.code}
+                          type="button"
+                          disabled={applyingCoupon}
+                          onClick={() => void handleApplyCouponCode(cp.code)}
+                          className="w-full text-left flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-[#FAF5EE] hover:bg-[#D0E9C0]/40 disabled:opacity-50 transition-colors text-[11px] border border-[#E8DCCF] hover:border-[#BCD8AA]"
+                        >
+                          <span className="font-bold text-[#285A3C] shrink-0">{cp.code}</span>
+                          <span className="text-[10px] text-[#4F6355] text-right truncate">
+                            {cp.description}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2 text-xs text-[#4F6355] pt-3 border-t border-[#D8C7B5]">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -1128,7 +1248,9 @@ export const CheckoutPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between text-[#285A3C]">
-                  <span>Discount</span>
+                  <span>
+                    Discount{appliedCoupon ? ` (${appliedCoupon.code})` : ''}
+                  </span>
                   <span className="font-semibold">-₹{discount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between">
