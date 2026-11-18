@@ -1,84 +1,86 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { RootLayout } from './layouts/RootLayout';
 import { ToastContainer } from './components/common/ToastContainer';
+import { AppErrorBoundary } from './components/common/AppErrorBoundary';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Eager Landing Route + Route-Split Secondary Pages
+// Eager Landing Route + Route-Split Secondary Pages (with automatic stale-chunk retry/recovery)
 import { HomePage } from './pages/HomePage';
 
-const ShopPage = lazy(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
-const SareesPage = lazy(() => import('./pages/SareesPage').then((m) => ({ default: m.SareesPage })));
-const EthnicWearPage = lazy(() =>
+const ShopPage = lazyWithRetry(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
+const SareesPage = lazyWithRetry(() => import('./pages/SareesPage').then((m) => ({ default: m.SareesPage })));
+const EthnicWearPage = lazyWithRetry(() =>
   import('./pages/EthnicWearPage').then((m) => ({ default: m.EthnicWearPage }))
 );
-const KurtisPage = lazy(() => import('./pages/KurtisPage').then((m) => ({ default: m.KurtisPage })));
-const LehengasPage = lazy(() =>
+const KurtisPage = lazyWithRetry(() => import('./pages/KurtisPage').then((m) => ({ default: m.KurtisPage })));
+const LehengasPage = lazyWithRetry(() =>
   import('./pages/LehengasPage').then((m) => ({ default: m.LehengasPage }))
 );
-const KidsWearPage = lazy(() =>
+const KidsWearPage = lazyWithRetry(() =>
   import('./pages/KidsWearPage').then((m) => ({ default: m.KidsWearPage }))
 );
-const FestivePage = lazy(() =>
+const FestivePage = lazyWithRetry(() =>
   import('./pages/FestivePage').then((m) => ({ default: m.FestivePage }))
 );
-const NewArrivalsPage = lazy(() =>
+const NewArrivalsPage = lazyWithRetry(() =>
   import('./pages/NewArrivalsPage').then((m) => ({ default: m.NewArrivalsPage }))
 );
-const BestsellersPage = lazy(() =>
+const BestsellersPage = lazyWithRetry(() =>
   import('./pages/BestsellersPage').then((m) => ({ default: m.BestsellersPage }))
 );
-const DynamicCollectionPage = lazy(() =>
+const DynamicCollectionPage = lazyWithRetry(() =>
   import('./pages/DynamicCollectionPage').then((m) => ({ default: m.DynamicCollectionPage }))
 );
-const HeritagePage = lazy(() =>
+const HeritagePage = lazyWithRetry(() =>
   import('./pages/HeritagePage').then((m) => ({ default: m.HeritagePage }))
 );
-const ProductDetailPage = lazy(() =>
+const ProductDetailPage = lazyWithRetry(() =>
   import('./pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage }))
 );
-const SearchResultsPage = lazy(() =>
+const SearchResultsPage = lazyWithRetry(() =>
   import('./pages/SearchResultsPage').then((m) => ({ default: m.SearchResultsPage }))
 );
-const WishlistPage = lazy(() =>
+const WishlistPage = lazyWithRetry(() =>
   import('./pages/WishlistPage').then((m) => ({ default: m.WishlistPage }))
 );
-const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })));
-const CheckoutPage = lazy(() =>
+const CartPage = lazyWithRetry(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazyWithRetry(() =>
   import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage }))
 );
-const OrderConfirmationPage = lazy(() =>
+const OrderConfirmationPage = lazyWithRetry(() =>
   import('./pages/OrderConfirmationPage').then((m) => ({ default: m.OrderConfirmationPage }))
 );
-const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
-const RegisterPage = lazy(() =>
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazyWithRetry(() =>
   import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage }))
 );
-const AccountPage = lazy(() =>
+const AccountPage = lazyWithRetry(() =>
   import('./pages/AccountPage').then((m) => ({ default: m.AccountPage }))
 );
-const TrackOrderPage = lazy(() =>
+const TrackOrderPage = lazyWithRetry(() =>
   import('./pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage }))
 );
-const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
-const ContactPage = lazy(() =>
+const AboutPage = lazyWithRetry(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazyWithRetry(() =>
   import('./pages/ContactPage').then((m) => ({ default: m.ContactPage }))
 );
-const FAQPage = lazy(() => import('./pages/FAQPage').then((m) => ({ default: m.FAQPage })));
-const ShippingPolicyPage = lazy(() =>
+const FAQPage = lazyWithRetry(() => import('./pages/FAQPage').then((m) => ({ default: m.FAQPage })));
+const ShippingPolicyPage = lazyWithRetry(() =>
   import('./pages/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage }))
 );
-const ReturnsPolicyPage = lazy(() =>
+const ReturnsPolicyPage = lazyWithRetry(() =>
   import('./pages/ReturnsPolicyPage').then((m) => ({ default: m.ReturnsPolicyPage }))
 );
-const PrivacyPolicyPage = lazy(() =>
+const PrivacyPolicyPage = lazyWithRetry(() =>
   import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage }))
 );
-const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
-const NotFoundPage = lazy(() =>
+const TermsPage = lazyWithRetry(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
+const NotFoundPage = lazyWithRetry(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
-const AdminDashboardPage = lazy(() =>
+const AdminDashboardPage = lazyWithRetry(() =>
   import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage }))
 );
 
@@ -125,13 +127,23 @@ const AuthCallbackHandler: React.FC = () => {
   return null;
 };
 
+const RouteAwareBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  return (
+    <AppErrorBoundary resetKey={`${location.pathname}${location.search}`}>
+      {children}
+    </AppErrorBoundary>
+  );
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <StoreProvider>
         <AuthCallbackHandler />
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
+        <RouteAwareBoundary>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
             <Route path="/" element={<RootLayout />}>
             {/* Primary Landing & Catalog Pages */}
             <Route index element={<HomePage />} />
@@ -222,8 +234,9 @@ export const App: React.FC = () => {
               </>
             }
           />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+        </RouteAwareBoundary>
       </StoreProvider>
     </BrowserRouter>
   );

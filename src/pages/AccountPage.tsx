@@ -176,7 +176,7 @@ export const AccountPage: React.FC = () => {
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = newEmailInput.trim().toLowerCase();
-    if (!cleaned || cleaned === user.email.toLowerCase()) {
+    if (!cleaned || cleaned === (user.email || '').toLowerCase()) {
       showToast('Please enter a different valid email address.', 'error');
       return;
     }
@@ -218,7 +218,7 @@ export const AccountPage: React.FC = () => {
             {/* User Profile Card */}
             <div className="flex items-center gap-3 pb-4 border-b border-[#E8DCCF]">
               <div className="w-12 h-12 rounded-full bg-[#285A3C] text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0">
-                {user.fullName.charAt(0).toUpperCase()}
+                {(user.fullName || user.email || 'D').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -456,8 +456,8 @@ export const AccountPage: React.FC = () => {
                         >
                           <div className="flex items-center gap-3">
                             <OptimizedPicture
-                              src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
-                              alt={ord.items[0]?.productTitle || 'Order Item'}
+                              src={ord.items?.[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
+                              alt={ord.items?.[0]?.productTitle || 'Order Item'}
                               sizes="64px"
                               loading="lazy"
                               pictureClassName="shrink-0 block"
@@ -476,7 +476,7 @@ export const AccountPage: React.FC = () => {
                                       : 'bg-gray-100 text-gray-700'
                                     }`}
                                 >
-                                  {ord.status.replace(/_/g, ' ')}
+                                  {(ord.status || 'confirmed').replace(/_/g, ' ')}
                                 </span>
                                 <span
                                   className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
@@ -490,7 +490,7 @@ export const AccountPage: React.FC = () => {
                                 </span>
                               </div>
                               <p className="text-xs font-medium text-[#1A3B2B]">
-                                {ord.items[0]?.productTitle}
+                                {ord.items?.[0]?.productTitle || 'DORASANI Handloom Order'}
                               </p>
                               <p className="text-[11px] text-[#4F6355]">
                                 {ord.date}
@@ -516,8 +516,8 @@ export const AccountPage: React.FC = () => {
                                   )}
                                   {ord.refunds && ord.refunds.length > 0 && (
                                     <p className="font-semibold text-[#1A3B2B]">
-                                      Refund ₹{ord.refunds[0].amountInr.toLocaleString('en-IN')} ({ord.refunds[0].status})
-                                      {ord.refunds[0].refundReference ? (
+                                      Refund ₹{Number(ord.refunds[0]?.amountInr ?? 0).toLocaleString('en-IN')} ({ord.refunds[0]?.status || 'initiated'})
+                                      {ord.refunds[0]?.refundReference ? (
                                         <span className="font-mono text-rose-800">
                                           {' '}• Ref ID: {ord.refunds[0].refundReference}
                                         </span>
@@ -531,7 +531,7 @@ export const AccountPage: React.FC = () => {
 
                           <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
                             <span className="font-bold text-sm text-[#285A3C]">
-                              ₹{ord.total.toLocaleString('en-IN')}
+                              ₹{Number(ord.total ?? 0).toLocaleString('en-IN')}
                             </span>
                             <Link
                               to={`/track-order/${ord.orderNumber}`}
@@ -632,8 +632,8 @@ export const AccountPage: React.FC = () => {
                       >
                         <div className="flex items-center gap-3">
                           <OptimizedPicture
-                            src={ord.items[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
-                            alt={ord.items[0]?.productTitle || 'Order Item'}
+                            src={ord.items?.[0]?.imageUrl || '/assets/products/kanjivaram_silk_saree.jpg'}
+                            alt={ord.items?.[0]?.productTitle || 'Order Item'}
                             sizes="64px"
                             loading="lazy"
                             pictureClassName="shrink-0 block"
@@ -652,7 +652,7 @@ export const AccountPage: React.FC = () => {
                                     : 'bg-gray-100 text-gray-700'
                                   }`}
                               >
-                                {ord.status.replace(/_/g, ' ')}
+                                {(ord.status || 'confirmed').replace(/_/g, ' ')}
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
@@ -666,7 +666,7 @@ export const AccountPage: React.FC = () => {
                               </span>
                             </div>
                             <p className="text-xs text-[#4F6355]">
-                              {ord.items.map((i) => i.productTitle).join(', ')}
+                              {(ord.items || []).map((i) => i.productTitle).join(', ') || 'DORASANI Handloom Order'}
                             </p>
                             <p className="text-[11px] text-[#4F6355]">
                               {ord.date}
@@ -692,8 +692,8 @@ export const AccountPage: React.FC = () => {
                                 )}
                                 {ord.refunds && ord.refunds.length > 0 && (
                                   <p className="font-semibold text-[#1A3B2B]">
-                                    Refund ₹{ord.refunds[0].amountInr.toLocaleString('en-IN')} ({ord.refunds[0].status})
-                                    {ord.refunds[0].refundReference ? (
+                                    Refund ₹{Number(ord.refunds[0]?.amountInr ?? 0).toLocaleString('en-IN')} ({ord.refunds[0]?.status || 'initiated'})
+                                    {ord.refunds[0]?.refundReference ? (
                                       <span className="font-mono text-rose-800">
                                         {' '}• Ref ID: {ord.refunds[0].refundReference}
                                       </span>
@@ -706,7 +706,7 @@ export const AccountPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-sm text-[#285A3C]">
-                            ₹{ord.total.toLocaleString('en-IN')}
+                            ₹{Number(ord.total ?? 0).toLocaleString('en-IN')}
                           </span>
                           <Link
                             to={`/track-order/${ord.orderNumber}`}

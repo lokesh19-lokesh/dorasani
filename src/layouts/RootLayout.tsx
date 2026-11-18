@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnnouncementBar } from '../components/common/AnnouncementBar';
 import { Header } from '../components/common/Header';
@@ -9,11 +9,12 @@ import { FloatingActionButtons } from '../components/common/FloatingActionButton
 import { ToastContainer } from '../components/common/ToastContainer';
 import { BaseStoreSchema } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-const Preloader = lazy(() =>
+const Preloader = lazyWithRetry(() =>
   import('../components/common/Preloader').then((m) => ({ default: m.Preloader }))
 );
-const CartDrawer = lazy(() =>
+const CartDrawer = lazyWithRetry(() =>
   import('../components/cart/CartDrawer').then((m) => ({ default: m.CartDrawer }))
 );
 
@@ -105,7 +106,18 @@ export const RootLayout: React.FC = () => {
       </div>
 
       <main id="main-content" tabIndex={-1} className="flex-1 pb-16 lg:pb-0 focus:outline-none">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="min-h-[60vh] flex items-center justify-center bg-[#FAF5EE] px-4">
+              <div
+                className="w-8 h-8 rounded-full border-2 border-[#285A3C] border-t-transparent animate-spin"
+                aria-label="Loading page"
+              />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
 
       <Footer />
