@@ -58,14 +58,34 @@ serve(async (req: Request) => {
 
     // Fetch analytical aggregates
     const [ordersRes, lowStockRes, topSellersRes, couponsRes] = await Promise.all([
-      admin.from('orders').select('id, total_inr, order_status, payment_status, created_at').order('created_at', { ascending: false }).limit(200),
+      admin
+        .from('orders')
+        .select('id, total_inr, order_status, payment_status, admin_notes, created_at, refunds (id, status, notes), order_status_history (new_status)')
+        .order('created_at', { ascending: false })
+        .limit(200),
       admin.from('products').select('id, title, stock_quantity, sku, mrp_inr, price_inr').filter('stock_quantity', 'lte', 5).limit(20),
       admin.from('products').select('id, title, sold_count, price_inr').order('sold_count', { ascending: false }).limit(10),
       admin.from('coupons').select('code, used_count, discount_value, is_active')
     ]);
 
     const orders = ordersRes.data || [];
-    const validOrders = orders.filter((o: any) => o.order_status !== 'cancelled');
+    const isOrderCancelledOrRefunded = (o: any): boolean => {
+      const status = String(o?.order_status || '').toLowerCase();
+      const payStatus = String(o?.payment_status || '').toLowerCase();
+      const refunds = Array.isArray(o?.refunds) ? o.refunds : [];
+      const history = Array.isArray(o?.order_status_history) ? o.order_status_history : [];
+      return (
+        status === 'cancelled' ||
+        status === 'refunded' ||
+        status === 'returned' ||
+        payStatus === 'refunded' ||
+        (typeof o?.admin_notes === 'string' && /\[Cancelled by admin/i.test(o.admin_notes)) ||
+        history.some((h: any) => String(h?.new_status || '').toLowerCase() === 'cancelled') ||
+        refunds.some((r: any) => String(r?.status || '').toLowerCase() !== 'failed')
+      );
+    };
+
+    const validOrders = orders.filter((o: any) => !isOrderCancelledOrRefunded(o));
 
     const totalRevenue = validOrders.reduce((sum: number, o: any) => sum + (o.total_inr || 0), 0);
     const averageOrderValue = validOrders.length ? Math.round(totalRevenue / validOrders.length) : 0;
@@ -76,8 +96,9 @@ serve(async (req: Request) => {
           totalRevenue,
           averageOrderValue,
           totalOrdersCount: orders.length,
-          deliveredOrders: orders.filter((o: any) => o.order_status === 'delivered').length,
-          pendingOrders: orders.filter((o: any) => o.order_status === 'pending' || o.order_status === 'confirmed').length
+          deliveredOrders: validOrders.filter((o: any) => o.order_status === 'delivered').length,
+          pendingOrders: validOrders.filter((o: any) => o.order_status === 'pending' || o.order_status === 'confirmed').length,
+          cancelledOrRefundedOrders: orders.length - validOrders.length,
         },
         lowStockAlerts: lowStockRes.data || [],
         topSellingProducts: topSellersRes.data || [],

@@ -231,18 +231,65 @@ function createEmptyBucket(
   };
 }
 
-function classifyOrderStatus(statusRaw: unknown): 'delivered' | 'cancelled' | 'returned' | 'in_progress' {
-  const status = String(statusRaw || 'pending').toLowerCase().trim();
+export function getOrderRefunds(order: any): any[] {
+  const direct = Array.isArray(order?.refunds) ? order.refunds : [];
+  const fromPayments = Array.isArray(order?.payments)
+    ? order.payments.flatMap((p: any) => (Array.isArray(p?.refunds) ? p.refunds : []))
+    : [];
+  const byKey = new Map<string, any>();
+  for (const r of [...direct, ...fromPayments]) {
+    if (!r) continue;
+    const key = String(r.id || r.gateway_refund_id || `${r.amount_inr}-${r.created_at}`);
+    if (!byKey.has(key)) byKey.set(key, r);
+  }
+  return Array.from(byKey.values());
+}
+
+export function resolveEffectiveOrderStatus(
+  order: any
+): 'delivered' | 'cancelled' | 'returned' | 'in_progress' {
+  const status = String(order?.order_status || 'pending').toLowerCase().trim();
+  const payStatus = String(order?.payment_status || '').toLowerCase().trim();
+  const refunds = getOrderRefunds(order);
+  const historyList: any[] = Array.isArray(order?.order_status_history)
+    ? order.order_status_history
+    : [];
+
+  const hasAdminRefundNote = refunds.some((r) =>
+    /^Admin cancelled order:/i.test(String(r?.notes || ''))
+  );
+  const hasAdminCancelNote =
+    typeof order?.admin_notes === 'string' && /\[Cancelled by admin/i.test(order.admin_notes);
+  const hasCancelledHistory = historyList.some(
+    (h) => String(h?.new_status || '').toLowerCase() === 'cancelled'
+  );
+
+  if (
+    status === 'cancelled' ||
+    Boolean(order?.cancelled_by) ||
+    Boolean(order?.cancelled_at) ||
+    hasAdminRefundNote ||
+    hasAdminCancelNote ||
+    hasCancelledHistory
+  ) {
+    return 'cancelled';
+  }
+
+  const hasActiveRefund =
+    payStatus === 'refunded' ||
+    refunds.some((r) => String(r?.status || '').toLowerCase() !== 'failed');
+
+  if (status === 'returned' || status === 'refunded' || hasActiveRefund) {
+    return 'returned';
+  }
   if (status === 'delivered') return 'delivered';
-  if (status === 'cancelled') return 'cancelled';
-  if (status === 'returned' || status === 'refunded') return 'returned';
   return 'in_progress';
 }
 
 function addOrderToBucket(bucket: AnalyticsBucket, order: any): void {
   const totalInr = Number(order?.total_inr || 0);
   const safeTotal = Number.isFinite(totalInr) ? totalInr : 0;
-  const statusKind = classifyOrderStatus(order?.order_status);
+  const statusKind = resolveEffectiveOrderStatus(order);
   const method = String(order?.payment_method || '').toLowerCase().trim();
 
   bucket.ordersCame += 1;
@@ -263,7 +310,6 @@ function addOrderToBucket(bucket: AnalyticsBucket, order: any): void {
   } else if (statusKind === 'returned') {
     bucket.returnedOrders += 1;
     bucket.returnedValueInr += safeTotal;
-    bucket.netRevenueInr += safeTotal;
   } else {
     bucket.inProgressOrders += 1;
     bucket.netRevenueInr += safeTotal;
@@ -271,7 +317,10 @@ function addOrderToBucket(bucket: AnalyticsBucket, order: any): void {
 }
 
 function finalizeBucketRates(bucket: AnalyticsBucket): AnalyticsBucket {
-  const activeNonCancelled = bucket.ordersCame - bucket.cancelledOrders;
+  const activeRevenueOrders = Math.max(
+    0,
+    bucket.ordersCame - bucket.cancelledOrders - bucket.returnedOrders
+  );
   bucket.cancelRatePct =
     bucket.ordersCame > 0
       ? Number(((bucket.cancelledOrders / bucket.ordersCame) * 100).toFixed(1))
@@ -281,7 +330,7 @@ function finalizeBucketRates(bucket: AnalyticsBucket): AnalyticsBucket {
       ? Number(((bucket.deliveredOrders / bucket.ordersCame) * 100).toFixed(1))
       : 0;
   bucket.avgOrderValueInr =
-    activeNonCancelled > 0 ? Math.round(bucket.netRevenueInr / activeNonCancelled) : 0;
+    activeRevenueOrders > 0 ? Math.round(bucket.netRevenueInr / activeRevenueOrders) : 0;
   return bucket;
 }
 
@@ -591,10 +640,11 @@ export function buildAnalyticsBreakdown(orders: any[], products: any[]): Analyti
   const productPerfMap = new Map<string, TopOrderedProductStat>();
 
   for (const order of safeOrders) {
-    const statusKind = classifyOrderStatus(order?.order_status);
+    const statusKind = resolveEffectiveOrderStatus(order);
     const totalInr = Number(order?.total_inr || 0);
     const safeTotal = Number.isFinite(totalInr) ? totalInr : 0;
     const isCancelled = statusKind === 'cancelled';
+    const isExcludedFromRevenue = statusKind === 'cancelled' || statusKind === 'returned';
 
     if (statusKind === 'delivered') deliveredCount += 1;
     else if (statusKind === 'cancelled') cancelledCount += 1;
@@ -606,13 +656,13 @@ export function buildAnalyticsBreakdown(orders: any[], products: any[]): Analyti
     if (method === 'cod') {
       codOrders += 1;
       if (isCancelled) codCancelled += 1;
-      else codRevenue += safeTotal;
-      if (payStatus === 'paid') codPaid += 1;
+      if (!isExcludedFromRevenue) codRevenue += safeTotal;
+      if (payStatus === 'paid' && !isExcludedFromRevenue) codPaid += 1;
     } else {
       onlineOrders += 1;
       if (isCancelled) onlineCancelled += 1;
-      else onlineRevenue += safeTotal;
-      if (payStatus === 'paid') onlinePaid += 1;
+      if (!isExcludedFromRevenue) onlineRevenue += safeTotal;
+      if (payStatus === 'paid' && !isExcludedFromRevenue) onlinePaid += 1;
     }
 
     const items = Array.isArray(order?.order_items) ? order.order_items : [];
@@ -633,8 +683,8 @@ export function buildAnalyticsBreakdown(orders: any[], products: any[]): Analyti
         revenueInr: 0,
       };
       existing.unitsOrdered += qty;
-      if (isCancelled) {
-        existing.unitsCancelled += qty;
+      if (isExcludedFromRevenue) {
+        if (isCancelled) existing.unitsCancelled += qty;
       } else {
         existing.netUnits += qty;
         existing.revenueInr += Number.isFinite(lineTotal) ? lineTotal : 0;

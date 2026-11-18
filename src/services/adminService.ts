@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { invalidateStorefrontCache } from './productService';
+import { resolveEffectiveOrderStatus } from '../utils/adminAnalytics';
 import type { Json, TablesUpdate, UserRoleType } from '../types/supabase';
 import type { ProductColorVariant, UserRole } from '../types';
 
@@ -215,9 +216,7 @@ export const adminService = {
       ] = await Promise.all([
         supabase
           .from('orders')
-          .select(
-            'id, total_inr, order_status, created_at, customer_name, customer_email, customer_phone, order_number, user_id'
-          )
+          .select('*, refunds (*), order_status_history (*)')
           .order('created_at', { ascending: false }),
         supabase.from('products').select('id, status, in_stock, stock_quantity'),
         supabase.from('profiles').select('id'),
@@ -258,24 +257,37 @@ export const adminService = {
       const publishedReviews = reviews.filter((r) => r.status === 'approved').length;
       const pendingReviews = reviews.filter((r) => r.status === 'pending').length;
 
-      const totalSales = orders
-        .filter((o) => o.order_status !== 'cancelled')
-        .reduce((sum, o) => sum + (o.total_inr || 0), 0);
+      const classifiedOrders = orders.map((o) => ({
+        order: o,
+        effectiveStatus: resolveEffectiveOrderStatus(o),
+      }));
 
-      const pendingOrders = orders.filter(
-        (o) => o.order_status === 'pending' || o.order_status === 'confirmed'
+      const totalSales = classifiedOrders
+        .filter(
+          ({ effectiveStatus }) =>
+            effectiveStatus !== 'cancelled' && effectiveStatus !== 'returned'
+        )
+        .reduce((sum, { order }) => sum + (Number(order.total_inr) || 0), 0);
+
+      const pendingOrders = classifiedOrders.filter(
+        ({ order, effectiveStatus }) =>
+          effectiveStatus === 'in_progress' &&
+          (order.order_status === 'pending' || order.order_status === 'confirmed')
       ).length;
-      const processingOrders = orders.filter(
-        (o) =>
-          o.order_status === 'processing' ||
-          o.order_status === 'packed' ||
-          o.order_status === 'shipped' ||
-          o.order_status === 'out_for_delivery'
+      const processingOrders = classifiedOrders.filter(
+        ({ order, effectiveStatus }) =>
+          effectiveStatus === 'in_progress' &&
+          order.order_status !== 'pending' &&
+          order.order_status !== 'confirmed'
       ).length;
-      const deliveredOrders = orders.filter((o) => o.order_status === 'delivered').length;
-      const cancelledOrders = orders.filter((o) => o.order_status === 'cancelled').length;
-      const returnedOrders = orders.filter(
-        (o) => o.order_status === 'returned' || o.order_status === 'refunded'
+      const deliveredOrders = classifiedOrders.filter(
+        ({ effectiveStatus }) => effectiveStatus === 'delivered'
+      ).length;
+      const cancelledOrders = classifiedOrders.filter(
+        ({ effectiveStatus }) => effectiveStatus === 'cancelled'
+      ).length;
+      const returnedOrders = classifiedOrders.filter(
+        ({ effectiveStatus }) => effectiveStatus === 'returned'
       ).length;
 
       const activeProducts = products.filter((p) => p.status === 'active').length;

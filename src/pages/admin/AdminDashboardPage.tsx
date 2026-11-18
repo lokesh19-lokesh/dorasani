@@ -3455,6 +3455,7 @@ export const AdminDashboardPage: React.FC = () => {
                       <span>
                         {metrics.totalOrders} orders came
                         {metrics.cancelledOrders > 0 ? ` • ${metrics.cancelledOrders} cancelled` : ' • 0 cancelled'}
+                        {metrics.returnedOrders > 0 ? ` • ${metrics.returnedOrders} refunded` : ''}
                       </span>
                     </p>
                   </div>
