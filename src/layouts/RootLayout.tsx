@@ -5,6 +5,7 @@ import { Header } from '../components/common/Header';
 import { Navbar } from '../components/common/Navbar';
 import { Footer } from '../components/common/Footer';
 import { MobileBottomBar } from '../components/common/MobileBottomBar';
+import { FloatingActionButtons } from '../components/common/FloatingActionButtons';
 import { ToastContainer } from '../components/common/ToastContainer';
 import { BaseStoreSchema } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
@@ -108,6 +109,7 @@ export const RootLayout: React.FC = () => {
       </main>
 
       <Footer />
+      <FloatingActionButtons />
       <MobileBottomBar />
 
       {hasOpenedCart && (
