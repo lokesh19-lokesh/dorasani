@@ -77,7 +77,6 @@ export const CheckoutPage: React.FC = () => {
     cart,
     subtotal,
     discount,
-    shippingFee,
     selectedAddress,
     siteSettings,
     placeOrder,
@@ -128,7 +127,6 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [selectedAddress]);
 
-  const [deliveryOption, setDeliveryOption] = useState<'standard' | 'express'>('standard');
   const [pinServiceability, setPinServiceability] =
     useState<DelhiveryServiceabilityResult | null>(null);
   const [checkingPin, setCheckingPin] = useState(false);
@@ -215,8 +213,7 @@ export const CheckoutPage: React.FC = () => {
   } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const effectiveShipping =
-    deliveryOption === 'express' ? siteSettings.expressShippingFee : shippingFee;
+  const effectiveShipping = 0;
   const payableTotal = Math.max(0, subtotal - discount + effectiveShipping);
 
   const validateSingleField = (field: string, val: string): string => {
@@ -328,7 +325,7 @@ export const CheckoutPage: React.FC = () => {
     try {
       const res = await placeOrder(
         {
-          deliveryOption,
+          deliveryOption: 'standard',
           paymentMethod: isCodAvailable ? paymentMethod : 'razorpay',
           orderNotes: orderNotes.trim() || undefined,
           customerEmail: email.trim(),
@@ -932,96 +929,7 @@ export const CheckoutPage: React.FC = () => {
               )}
             </div>
 
-            {/* Section 3: Delivery Options */}
-            <fieldset className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-[#D8C7B5]">
-                <span
-                  aria-hidden="true"
-                  className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center"
-                >
-                  3
-                </span>
-                <legend className="font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
-                  Delivery Options
-                </legend>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div
-                  className={`relative p-3.5 rounded-lg border flex items-center justify-between transition-all min-h-[52px] ${deliveryOption === 'standard'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      id="checkout-delivery-standard"
-                      type="radio"
-                      name="deliveryOption"
-                      value="standard"
-                      checked={deliveryOption === 'standard'}
-                      onChange={() => setDeliveryOption('standard')}
-                      aria-describedby="checkout-delivery-standard-desc"
-                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
-                    />
-                    <div>
-                      <label
-                        htmlFor="checkout-delivery-standard"
-                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
-                      >
-                        Standard Delivery
-                      </label>
-                      <p id="checkout-delivery-standard-desc" className="text-[11px] text-[#4F6355]">
-                        {pinServiceability && !pinServiceability.fallback && pinServiceability.standardEstimatedWindow
-                          ? `Est. ${pinServiceability.standardEstimatedWindow} (${pinServiceability.standardTatDays}–${pinServiceability.standardTatDays + 1} Business Days)`
-                          : '3-5 Business Days'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-[#285A3C]">
-                    {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
-                  </span>
-                </div>
-
-                <div
-                  className={`relative p-3.5 rounded-lg border flex items-center justify-between transition-all min-h-[52px] ${deliveryOption === 'express'
-                    ? 'border-[#285A3C] bg-[#D0E9C0]/35 ring-1 ring-[#285A3C]'
-                    : 'border-[#BCD8AA] bg-[#FAF5EE]'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      id="checkout-delivery-express"
-                      type="radio"
-                      name="deliveryOption"
-                      value="express"
-                      checked={deliveryOption === 'express'}
-                      onChange={() => setDeliveryOption('express')}
-                      aria-describedby="checkout-delivery-express-desc"
-                      className="accent-[#285A3C] w-4 h-4 relative z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#285A3C]"
-                    />
-                    <div>
-                      <label
-                        htmlFor="checkout-delivery-express"
-                        className="font-bold text-[#1A3B2B] cursor-pointer after:content-[''] after:absolute after:inset-0"
-                      >
-                        Express Delivery
-                      </label>
-                      <p id="checkout-delivery-express-desc" className="text-[11px] text-[#4F6355]">
-                        {pinServiceability && !pinServiceability.fallback && pinServiceability.expressEstimatedWindow
-                          ? `Est. ${pinServiceability.expressEstimatedWindow} (${pinServiceability.expressTatDays}–${pinServiceability.expressTatDays + 1} Business Days)`
-                          : '1-2 Business Days'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-bold text-[#285A3C]">
-                    ₹{siteSettings.expressShippingFee.toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-            </fieldset>
-
-            {/* Section 4: Payment Method */}
+            {/* Section 3: Payment Method */}
             <fieldset className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#D8C7B5]">
                 <div className="flex items-center gap-2.5">
@@ -1029,7 +937,7 @@ export const CheckoutPage: React.FC = () => {
                     aria-hidden="true"
                     className="w-6 h-6 rounded-full bg-[#285A3C] text-white text-xs font-bold flex items-center justify-center"
                   >
-                    4
+                    3
                   </span>
                   <legend className="font-bold text-sm text-[#1A3B2B] uppercase tracking-wide">
                     Payment Method

@@ -11,12 +11,11 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { cart, updateQuantity, removeFromCart, subtotal, cartCount, siteSettings } = useStore();
+  const { cart, updateQuantity, removeFromCart, subtotal, cartCount } = useStore();
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
-  const freeThreshold = siteSettings.freeShippingThreshold;
   const hasStockIssues = cart.some((item) => {
     if (!item.selected) return false;
     const meta = getStockStatusMeta(
@@ -55,14 +54,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         {/* Free Shipping Alert in Pastel Pistachio */}
         <div className="bg-[#D0E9C0] px-4 py-2 text-center text-xs text-[#1A3B2B] font-medium border-b border-[#BCD8AA]">
-          {subtotal >= freeThreshold ? (
-            <span>🎉 Congratulations! You have unlocked FREE Pan-India Shipping!</span>
-          ) : (
-            <span>
-              Add ₹{(freeThreshold - subtotal).toLocaleString('en-IN')} more to unlock FREE
-              Shipping!
-            </span>
-          )}
+          <span>🎉 FREE Pan-India Shipping on every order!</span>
         </div>
 
         {/* Items List */}

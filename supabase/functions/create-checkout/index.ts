@@ -56,9 +56,7 @@ serve(async (req: Request) => {
     const rawItems = Array.isArray(body.items) ? body.items : [];
     const couponCode = body.couponCode ? String(body.couponCode).trim() : null;
     const paymentMethod = normalizePaymentMethod(body.paymentMethod, 'razorpay');
-    const deliveryOption = ALLOWED_DELIVERY.has(String(body.deliveryOption || '').toLowerCase())
-      ? String(body.deliveryOption).toLowerCase()
-      : 'standard';
+    const deliveryOption = 'standard';
     const customerNotes = body.orderNotes ? String(body.orderNotes).trim() : null;
     const rawIdem =
       String(body.idempotencyKey || req.headers.get('idempotency-key') || '').trim() ||

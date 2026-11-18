@@ -701,10 +701,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [appliedCoupon, subtotal, showToast]);
 
   const discount = appliedCoupon ? calculateCouponDiscount(appliedCoupon, subtotal) : 0;
-  const shippingFee =
-    subtotal === 0 || subtotal >= siteSettings.freeShippingThreshold
-      ? 0
-      : siteSettings.standardShippingFee;
+  const shippingFee = 0;
   const total = Math.max(0, subtotal - discount + shippingFee);
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
@@ -958,8 +955,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: false, error: msg };
     }
     const chosenPayment = requestedPayment;
-    const effectiveShipping =
-      chosenDelivery === 'express' ? siteSettings.expressShippingFee : shippingFee;
+    const effectiveShipping = 0;
     const computedTotal = Math.max(0, subtotal - discount + effectiveShipping);
     const idempotencyKey = `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const customerName = chosenAddress.fullName || user?.fullName || '';
