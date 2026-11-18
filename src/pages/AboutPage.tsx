@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { SeoHead } from '../components/common/SeoHead';
+import { FounderSection } from '../components/common/FounderSection';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SITE_ORIGIN, buildBreadcrumbSchema, buildCanonicalUrl } from '../utils/seo';
 
@@ -105,6 +106,9 @@ export const AboutPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* 2.5. Meet Our Founder Section */}
+      <FounderSection variant="about" />
 
       {/* 3. What We Bring to You Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">

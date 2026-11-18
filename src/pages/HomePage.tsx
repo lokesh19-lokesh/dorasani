@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Sparkles, ShieldCheck, Truck, Headphones, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 import { CategoryCard } from '../components/common/CategoryCard';
+import { FounderSection } from '../components/common/FounderSection';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { SeoHead } from '../components/common/SeoHead';
 import { useStore } from '../context/StoreContext';
@@ -744,7 +745,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. AEO HERITAGE & HANDLOOM QUICK ANSWERS */}
-      <section className="below-fold-section max-w-4xl mx-auto px-4 sm:px-8 pb-12 sm:pb-16">
+      <section className="below-fold-section max-w-4xl mx-auto px-4 sm:px-8 pb-8 sm:pb-10">
         <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 sm:p-8 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-[#E8DCCF] pb-4">
             <div>
@@ -782,6 +783,9 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* 7. FOUNDER SECTION — ABOVE FOOTER */}
+      <FounderSection variant="home" />
     </div>
   );
 };
