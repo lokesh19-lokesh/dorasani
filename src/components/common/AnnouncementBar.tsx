@@ -8,10 +8,14 @@ export const AnnouncementBar: React.FC = () => {
   const { user, siteSettings } = useStore();
   const formattedThreshold = siteSettings.freeShippingThreshold.toLocaleString('en-IN');
   const resolvedItems = (siteSettings.announcementItems || []).map((item) =>
-    item.replace(/\{threshold\}/gi, formattedThreshold)
+    /free\s+shipping\s+above/i.test(item)
+      ? 'Free Pan-India Shipping'
+      : item.replace(/\{threshold\}/gi, formattedThreshold)
   );
   const desktopItems = resolvedItems.slice(0, 4);
-  const mobileItems = resolvedItems.slice(0, 3);
+  const mobileItems = resolvedItems.slice(0, 3).map((item) =>
+    item.replace(/^Free Pan-India Shipping$/i, 'Free Shipping')
+  );
   const announcementIcons = [Truck, RotateCcw, ShieldCheck, Headphones];
 
   return (
@@ -25,7 +29,7 @@ export const AnnouncementBar: React.FC = () => {
                 <Shield className="w-3 h-3" />
                 <span>{(user.role || 'admin').replace(/_/g, ' ')}</span>
               </span>
-              <span className="truncate text-[#D0E9C0] font-medium">
+              <span className="hidden sm:inline truncate text-[#D0E9C0] font-medium">
                 Signed in as <strong className="text-white">{user.email}</strong>
               </span>
             </div>
@@ -33,7 +37,7 @@ export const AnnouncementBar: React.FC = () => {
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <Link
                 to="/admin"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D0E9C0] hover:bg-white text-[#113520] font-bold text-[10.5px] sm:text-[11px] transition-colors shadow-xs whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-[#D0E9C0] hover:bg-white text-[#113520] font-bold text-[10px] sm:text-[11px] transition-colors shadow-xs whitespace-nowrap"
               >
                 <LayoutDashboard className="w-3 h-3" />
                 <span>Open {getRoleConfig(user.role).portalTitle}</span>
@@ -84,15 +88,15 @@ export const AnnouncementBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Clean Announcement Bar - No scrollbar, elegant compact perks */}
-        <div className="sm:hidden flex items-center justify-between py-0.5 text-[10.5px] font-medium">
+        {/* Mobile Clean Announcement Bar - Fits cleanly on 360px with zero clipping */}
+        <div className="sm:hidden flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 py-0.5 text-[10px] font-medium leading-tight">
           {mobileItems.map((label, idx) => {
             const Icon = announcementIcons[idx] || ShieldCheck;
             return (
               <React.Fragment key={`m-${label}-${idx}`}>
-                {idx > 0 && <span className="text-[#18482C]/25">•</span>}
-                <span className="flex items-center gap-1 whitespace-nowrap text-[#18482C]">
-                  <Icon className="w-3 h-3 text-[#18482C]" /> {label}
+                {idx > 0 && <span className="text-[#18482C]/30" aria-hidden="true">•</span>}
+                <span className="inline-flex items-center gap-1 whitespace-nowrap text-[#18482C]">
+                  <Icon className="w-3 h-3 shrink-0 text-[#18482C]" /> {label}
                 </span>
               </React.Fragment>
             );

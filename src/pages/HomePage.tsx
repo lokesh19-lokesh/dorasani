@@ -381,7 +381,7 @@ export const HomePage: React.FC = () => {
                     {activeSlide.description}
                   </p>
 
-                  <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 pt-2.5 sm:pt-3.5 xl:pt-5 pointer-events-auto">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 pt-2.5 sm:pt-3.5 xl:pt-5 pointer-events-auto">
                     <Link
                       to={activeSlide.primaryCta.href}
                       className="bg-[#18482C] hover:bg-[#113520] text-white px-3.5 sm:px-5 xl:px-6 py-1.5 sm:py-2 xl:py-2.5 rounded-[4px] text-xs sm:text-[13px] xl:text-sm font-semibold tracking-wide transition-all shadow-md flex items-center gap-1 group whitespace-nowrap"
@@ -517,10 +517,10 @@ export const HomePage: React.FC = () => {
             </div>
 
             {/* Right Celebration Banner */}
-            <div className="rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] min-h-[200px] lg:min-h-[225px] xl:min-h-[240px] flex flex-col">
+            <div className="rounded-xl overflow-hidden border border-[#D8C7B5] shadow-sm relative group bg-[#FAF5EE] min-h-[205px] lg:min-h-[225px] xl:min-h-[240px] flex flex-col">
               <Link
                 to={celebrationBanner.link}
-                className="block relative w-full h-full flex-1 aspect-[1922/818] lg:aspect-auto"
+                className="relative flex flex-col justify-center w-full h-full flex-1 min-h-[205px] lg:min-h-[225px]"
               >
                 <OptimizedPicture
                   src={celebrationBanner.image}
@@ -529,13 +529,13 @@ export const HomePage: React.FC = () => {
                   height={818}
                   sizes="(max-width: 1024px) 100vw, 33vw"
                   loading="lazy"
-                  pictureClassName="w-full h-full block"
+                  pictureClassName="absolute inset-0 w-full h-full block"
                   className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-102"
                 />
-                <div className="absolute inset-y-0 left-0 w-[72%] sm:w-[65%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
+                <div className="absolute inset-y-0 left-0 w-[78%] sm:w-[68%] bg-gradient-to-r from-[#FAF5EE]/95 via-[#FAF5EE]/80 to-transparent pointer-events-none z-[1]" />
 
-                <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-6 md:px-7 lg:px-4 xl:px-5 z-10 max-w-[62%] sm:max-w-[58%] lg:max-w-[58%] xl:max-w-[56%] pointer-events-none">
-                  <h3 className="font-serif-royal text-base sm:text-xl lg:text-[18px] xl:text-[21px] font-bold text-[#0D2818] leading-[1.14] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
+                <div className="relative z-10 flex flex-col justify-center px-4 py-5 sm:px-6 sm:py-6 md:px-7 lg:px-4 xl:px-5 max-w-[68%] sm:max-w-[58%] lg:max-w-[58%] xl:max-w-[56%] pointer-events-none">
+                  <h3 className="font-serif-royal text-base sm:text-xl lg:text-[18px] xl:text-[21px] font-bold text-[#0D2818] leading-[1.16] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                     {celebrationBanner.title1}
                     {celebrationBanner.title2 && (
                       <>
@@ -545,18 +545,18 @@ export const HomePage: React.FC = () => {
                     )}
                   </h3>
 
-                  <div className="flex items-center gap-1.5 my-1 sm:my-1.5 xl:my-2">
+                  <div className="flex items-center gap-1.5 my-1.5 xl:my-2">
                     <div className="w-6 sm:w-10 h-px bg-[#C29336]/80" />
                     <span className="text-[#966d1f] text-[8px] sm:text-[9px] leading-none">✦</span>
                     <div className="w-6 sm:w-10 h-px bg-[#C29336]/80" />
                   </div>
 
-                  <p className="text-[11px] sm:text-[12px] xl:text-[13px] text-[#14321F] font-semibold sm:font-medium leading-snug mb-2 sm:mb-2.5 xl:mb-3 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
+                  <p className="text-[11px] sm:text-[12px] xl:text-[13px] text-[#14321F] font-semibold sm:font-medium leading-snug mb-2.5 xl:mb-3 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                     {celebrationBanner.description}
                   </p>
 
                   <div>
-                    <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1 sm:py-1.5 rounded shadow-md transition-colors pointer-events-auto">
+                    <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-3.5 py-1.5 rounded shadow-md transition-colors pointer-events-auto">
                       <span>{celebrationBanner.ctaLabel}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
@@ -609,10 +609,10 @@ export const HomePage: React.FC = () => {
               )}
             </div>
 
-            <div className="w-full lg:w-[45%] xl:w-[46%] rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col">
+            <div className="w-full lg:w-[45%] xl:w-[46%] rounded-xl overflow-hidden border border-[#D8C7B5] shadow-xs relative group bg-[#FAF5EE] flex flex-col min-h-[210px] lg:min-h-[200px]">
               <Link
                 to={legacyBanner.link}
-                className="block relative w-full h-full aspect-[2097/750] lg:aspect-auto min-h-0 lg:min-h-[200px]"
+                className="relative flex flex-col justify-center w-full h-full flex-1 min-h-[210px] lg:min-h-[200px]"
               >
                 <OptimizedPicture
                   src={legacyBanner.image}
@@ -621,14 +621,14 @@ export const HomePage: React.FC = () => {
                   height={750}
                   sizes="(max-width: 1024px) 100vw, 45vw"
                   loading="lazy"
-                  pictureClassName="w-full h-full block"
+                  pictureClassName="absolute inset-0 w-full h-full block"
                   className="w-full h-full object-cover object-left transition-transform duration-500 group-hover:scale-102"
                 />
-                <div className="absolute inset-y-0 right-0 w-[72%] sm:w-[65%] bg-gradient-to-l from-[#FAF5EE]/95 via-[#FAF5EE]/75 to-transparent pointer-events-none z-[1]" />
+                <div className="absolute inset-y-0 right-0 w-[78%] sm:w-[68%] bg-gradient-to-l from-[#FAF5EE]/95 via-[#FAF5EE]/85 to-transparent pointer-events-none z-[1]" />
 
-                <div className="absolute inset-0 flex flex-col justify-center items-end pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 z-10 pointer-events-none">
-                  <div className="max-w-[58%] sm:max-w-[54%] md:max-w-[52%] text-left">
-                    <h3 className="font-serif-royal text-xs sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#0D2818] leading-[1.18] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
+                <div className="relative z-10 flex flex-col justify-center items-end py-5 sm:py-6 pr-3.5 sm:pr-5 md:pr-6 lg:pr-4 xl:pr-6 pl-4 pointer-events-none">
+                  <div className="max-w-[66%] sm:max-w-[56%] md:max-w-[52%] text-left">
+                    <h3 className="font-serif-royal text-sm sm:text-base md:text-lg lg:text-[17px] xl:text-[20px] font-bold text-[#0D2818] leading-[1.18] tracking-tight [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                       {legacyBanner.title1}
                       {legacyBanner.title2 && (
                         <>
@@ -638,12 +638,12 @@ export const HomePage: React.FC = () => {
                       )}
                     </h3>
 
-                    <p className="text-[10px] sm:text-[11.5px] xl:text-xs text-[#14321F] font-semibold sm:font-medium leading-relaxed my-1 sm:my-2 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
+                    <p className="text-[11px] sm:text-[11.5px] xl:text-xs text-[#14321F] font-semibold sm:font-medium leading-relaxed my-1.5 sm:my-2 [text-shadow:_0_1px_2px_rgba(255,255,255,0.95)]">
                       {legacyBanner.description}
                     </p>
 
-                    <div className="pt-0.5">
-                      <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10px] sm:text-xs font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-[#18482C] group-hover:bg-[#113520] text-white text-[10.5px] sm:text-xs font-semibold px-3 sm:px-4 py-1.5 rounded shadow-sm transition-colors pointer-events-auto">
                         <span>{legacyBanner.ctaLabel}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </span>

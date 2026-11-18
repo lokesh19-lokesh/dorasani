@@ -73,7 +73,7 @@ export const RootLayout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B]">
+    <div className="flex flex-col min-h-screen bg-[#FAF5EE] text-[#1A3B2B] overflow-x-clip">
       <BaseStoreSchema settings={siteSettings} />
       <a
         href="#main-content"

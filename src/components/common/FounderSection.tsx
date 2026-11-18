@@ -21,15 +21,15 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ variant = 'home'
     >
       <div className="bg-white rounded-2xl border border-[#D8C7B5] shadow-xs overflow-hidden">
         {/* Section Header Strip */}
-        <div className="bg-gradient-to-r from-[#FAF5EE] via-[#D0E9C0]/35 to-[#FAF5EE] border-b border-[#E8DCCF] px-6 sm:px-10 py-6 sm:py-8 text-center">
-          <div className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold tracking-[0.22em] text-[#285A3C] uppercase">
+        <div className="bg-gradient-to-r from-[#FAF5EE] via-[#D0E9C0]/35 to-[#FAF5EE] border-b border-[#E8DCCF] px-4 sm:px-10 py-5 sm:py-8 text-center">
+          <div className="inline-flex items-center gap-2 text-[10.5px] sm:text-xs font-bold tracking-[0.2em] sm:tracking-[0.22em] text-[#285A3C] uppercase">
             <span className="text-[#C29336]">✦</span>
             <span>Meet Our Founder</span>
             <span className="text-[#C29336]">✦</span>
           </div>
           <h2
             id="founder-section-heading"
-            className="font-serif-royal text-2xl sm:text-3xl lg:text-[34px] font-bold text-[#1A3B2B] mt-2 leading-tight tracking-tight max-w-3xl mx-auto"
+            className="font-serif-royal text-xl sm:text-3xl lg:text-[34px] font-bold text-[#1A3B2B] mt-2 leading-tight tracking-tight max-w-3xl mx-auto"
           >
             The Heart Behind Dorasani Collections: Jyothi’s Journey
           </h2>
@@ -41,7 +41,7 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ variant = 'home'
         </div>
 
         {/* Main Editorial Split */}
-        <div className="p-6 sm:p-8 lg:p-10 xl:p-12">
+        <div className="p-4 sm:p-8 lg:p-10 xl:p-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
             {/* Founder Portrait & Highlights */}
             <div className="lg:col-span-5 lg:sticky lg:top-28 space-y-4">
@@ -70,25 +70,25 @@ export const FounderSection: React.FC<FounderSectionProps> = ({ variant = 'home'
               </div>
 
               {/* Key Pillars Strip */}
-              <div className="grid grid-cols-2 gap-3 max-w-[440px] mx-auto">
-                <div className="rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] p-3.5 flex items-start gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 max-w-[440px] mx-auto">
+                <div className="rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] p-3 sm:p-3.5 flex flex-col sm:flex-row items-start gap-2 sm:gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center shrink-0">
                     <Award className="w-4 h-4" aria-hidden="true" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#1A3B2B]">Affordability</p>
-                    <p className="text-[11px] text-[#4F6355] leading-snug mt-0.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#1A3B2B] break-words">Affordability</p>
+                    <p className="text-[11px] text-[#4F6355] leading-snug mt-0.5 break-words">
                       Elegant sarees &amp; custom frocks at pocket-friendly prices
                     </p>
                   </div>
                 </div>
-                <div className="rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] p-3.5 flex items-start gap-2.5">
+                <div className="rounded-xl bg-[#FAF5EE] border border-[#E8DCCF] p-3 sm:p-3.5 flex flex-col sm:flex-row items-start gap-2 sm:gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-full bg-[#D0E9C0] text-[#285A3C] flex items-center justify-center shrink-0">
                     <HeartHandshake className="w-4 h-4" aria-hidden="true" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#1A3B2B]">Empowerment</p>
-                    <p className="text-[11px] text-[#4F6355] leading-snug mt-0.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#1A3B2B] break-words">Empowerment</p>
+                    <p className="text-[11px] text-[#4F6355] leading-snug mt-0.5 break-words">
                       Training &amp; dignified livelihoods for women
                     </p>
                   </div>
