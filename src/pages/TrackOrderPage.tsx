@@ -20,6 +20,7 @@ import { checkoutService } from '../services/checkoutService';
 import { delhiveryService, type LiveTrackResponse } from '../services/delhiveryService';
 import { SeoHead } from '../components/common/SeoHead';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
+import { extractShipmentCancellationInfo } from '../utils/orderCancellation';
 import type { Order } from '../types';
 
 export const TrackOrderPage: React.FC = () => {
@@ -205,7 +206,48 @@ export const TrackOrderPage: React.FC = () => {
     }
   };
 
-  const reversedTimeline = currentOrder ? [...currentOrder.timeline].reverse() : [];
+  const courierCancelInfo = extractShipmentCancellationInfo([
+    liveTrackInfo,
+    currentOrder?.shipment,
+  ]);
+  const isOrderCancelled = Boolean(
+    currentOrder &&
+      (currentOrder.status === 'cancelled' ||
+        currentOrder.status === 'refunded' ||
+        courierCancelInfo.isCancelledInCourier)
+  );
+  const effectiveDisplayStatus =
+    currentOrder?.status === 'refunded'
+      ? 'refunded'
+      : isOrderCancelled
+        ? 'cancelled'
+        : currentOrder?.status || 'confirmed';
+  const effectiveCancellationReason =
+    currentOrder?.cancellationReason || courierCancelInfo.reason;
+
+  const effectiveTimeline = currentOrder
+    ? isOrderCancelled && currentOrder.status !== 'cancelled' && currentOrder.status !== 'refunded'
+      ? [
+          {
+            title: 'Order Placed',
+            description: 'Your order was received.',
+            timestamp: currentOrder.date,
+            completed: true,
+          },
+          {
+            title: 'Order Cancelled',
+            description: effectiveCancellationReason
+              ? `Order cancelled: ${effectiveCancellationReason}.`
+              : 'This order was cancelled.',
+            timestamp: courierCancelInfo.cancelledAt || currentOrder.date,
+            completed: true,
+            current: true,
+          },
+        ]
+      : currentOrder.timeline
+    : [];
+
+  const reversedTimeline = [...effectiveTimeline].reverse();
 
   return (
     <div className="space-y-8 pb-16">
@@ -388,16 +430,21 @@ export const TrackOrderPage: React.FC = () => {
                 <span className="text-[11px] text-[#4F6355] font-bold uppercase flex items-center gap-1.5">
                   <Truck className="w-3.5 h-3.5 text-[#285A3C]" /> Order Status
                 </span>
-                <p className="font-bold text-sm text-[#285A3C] mt-0.5 uppercase">
-                  {currentOrder.status.replace(/_/g, ' ')}
+                <p
+                  className={`font-bold text-sm mt-0.5 uppercase ${
+                    isOrderCancelled ? 'text-rose-700' : 'text-[#285A3C]'
+                  }`}
+                >
+                  {isOrderCancelled && effectiveDisplayStatus === 'cancelled'
+                    ? 'Order Cancelled'
+                    : effectiveDisplayStatus.replace(/_/g, ' ')}
                 </p>
               </div>
             </div>
           </div>
 
           {/* 3.5. Cancellation Apology & Refund Reference Card (visible when cancelled/refunded) */}
-          {(currentOrder.status === 'cancelled' ||
-            currentOrder.status === 'refunded' ||
+          {(isOrderCancelled ||
             (currentOrder.refunds && currentOrder.refunds.length > 0)) && (
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
               <div className="bg-rose-50/90 rounded-xl border border-rose-200 p-5 sm:p-6 shadow-xs space-y-4">
@@ -409,8 +456,8 @@ export const TrackOrderPage: React.FC = () => {
                     </h2>
                     <p className="text-xs text-[#3A443D] leading-relaxed">
                       We are truly sorry for disappointing you.{' '}
-                      {currentOrder.cancellationReason
-                        ? `Your order was cancelled because ${currentOrder.cancellationReason}.`
+                      {effectiveCancellationReason
+                        ? `Cancellation details: ${effectiveCancellationReason}.`
                         : 'Your order was cancelled by DORASANI as the requested item became unavailable.'}
                     </p>
                   </div>
@@ -473,48 +520,55 @@ export const TrackOrderPage: React.FC = () => {
           )}
 
           {/* 4. Dynamic Horizontal Delivery Progress Bar */}
-          {currentOrder.timeline && currentOrder.timeline.length > 0 && (
+          {effectiveTimeline.length > 0 && (
             <div className="max-w-7xl mx-auto px-4 sm:px-8">
               <div className="bg-white rounded-xl border border-[#D8C7B5] p-6 shadow-xs">
                 <div
                   className={`grid gap-4 relative ${
-                    currentOrder.timeline.length <= 2
+                    effectiveTimeline.length <= 2
                       ? 'grid-cols-2'
-                      : currentOrder.timeline.length === 3
+                      : effectiveTimeline.length === 3
                       ? 'grid-cols-1 sm:grid-cols-3'
-                      : currentOrder.timeline.length === 4
+                      : effectiveTimeline.length === 4
                       ? 'grid-cols-2 md:grid-cols-4'
                       : 'grid-cols-2 md:grid-cols-5'
                   }`}
                 >
-                  {currentOrder.timeline.map((step, idx) => (
-                    <div
-                      key={step.title}
-                      className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1"
-                    >
+                  {effectiveTimeline.map((step, idx) => {
+                    const isCancelStep = /cancel/i.test(step.title);
+                    return (
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
-                          step.completed
-                            ? 'bg-[#285A3C] text-white shadow-sm'
-                            : 'bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92]'
-                        } ${step.current ? 'ring-4 ring-[#D0E9C0]' : ''}`}
+                        key={step.title}
+                        className="flex flex-col items-center sm:items-start text-center sm:text-left space-y-1"
                       >
-                        {step.completed ? '✓' : idx + 1}
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
+                            isCancelStep
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : step.completed
+                                ? 'bg-[#285A3C] text-white shadow-sm'
+                                : 'bg-[#FAF5EE] border border-[#BCD8AA] text-[#8E9B92]'
+                          } ${step.current ? (isCancelStep ? 'ring-4 ring-rose-200' : 'ring-4 ring-[#D0E9C0]') : ''}`}
+                        >
+                          {isCancelStep ? '✕' : step.completed ? '✓' : idx + 1}
+                        </div>
+                        <h2
+                          className={`font-bold text-xs ${
+                            isCancelStep
+                              ? 'text-rose-700'
+                              : step.current
+                                ? 'text-[#285A3C]'
+                                : step.completed
+                                  ? 'text-[#1A3B2B]'
+                                  : 'text-[#8E9B92]'
+                          }`}
+                        >
+                          {step.title}
+                        </h2>
+                        <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
                       </div>
-                      <h2
-                        className={`font-bold text-xs ${
-                          step.current
-                            ? 'text-[#285A3C]'
-                            : step.completed
-                            ? 'text-[#1A3B2B]'
-                            : 'text-[#8E9B92]'
-                        }`}
-                      >
-                        {step.title}
-                      </h2>
-                      <p className="text-[10px] text-[#4F6355]">{step.timestamp}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -577,26 +631,44 @@ export const TrackOrderPage: React.FC = () => {
                 </div>
 
                 {activeAwb && (
-                  <div className="rounded-lg bg-[#FAF5EE] border border-[#D8C7B5] p-3 text-xs space-y-1.5">
+                  <div
+                    className={`rounded-lg border p-3 text-xs space-y-1.5 ${
+                      isOrderCancelled
+                        ? 'bg-rose-50/80 border-rose-200'
+                        : 'bg-[#FAF5EE] border-[#D8C7B5]'
+                    }`}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-bold text-[#1A3B2B]">
-                        {liveTrackInfo?.currentStatus || currentOrder.shipment?.currentStatus || 'Manifested'}
+                      <span
+                        className={`font-bold ${
+                          isOrderCancelled ? 'text-rose-800' : 'text-[#1A3B2B]'
+                        }`}
+                      >
+                        {isOrderCancelled
+                          ? 'Order Cancelled'
+                          : liveTrackInfo?.currentStatus || currentOrder.shipment?.currentStatus || 'Manifested'}
                       </span>
-                      {(liveTrackInfo?.estimatedDelivery || currentOrder.shipment?.estimatedDelivery) && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#D0E9C0] text-[#1A3B2B]">
-                          Est. Delivery:{' '}
-                          {new Date(
-                            liveTrackInfo?.estimatedDelivery ||
-                              currentOrder.shipment?.estimatedDelivery ||
-                              ''
-                          ).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      )}
+                      {!isOrderCancelled &&
+                        (liveTrackInfo?.estimatedDelivery || currentOrder.shipment?.estimatedDelivery) && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#D0E9C0] text-[#1A3B2B]">
+                            Est. Delivery:{' '}
+                            {new Date(
+                              liveTrackInfo?.estimatedDelivery ||
+                                currentOrder.shipment?.estimatedDelivery ||
+                                ''
+                            ).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
                     </div>
+                    {isOrderCancelled && effectiveCancellationReason && (
+                      <p className="text-[11px] font-medium text-rose-700">
+                        {effectiveCancellationReason}
+                      </p>
+                    )}
                     <p className="text-[11px] text-[#4F6355]">
                       Route:{' '}
                       <strong className="text-[#1A3B2B]">

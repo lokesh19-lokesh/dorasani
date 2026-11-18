@@ -216,7 +216,7 @@ export const adminService = {
       ] = await Promise.all([
         supabase
           .from('orders')
-          .select('*, refunds (*), order_status_history (*)')
+          .select('*, refunds (*), order_status_history (*), shipments (*)')
           .order('created_at', { ascending: false }),
         supabase.from('products').select('id, status, in_stock, stock_quantity'),
         supabase.from('profiles').select('id'),

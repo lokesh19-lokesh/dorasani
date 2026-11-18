@@ -1,4 +1,5 @@
 import { LOW_STOCK_THRESHOLD } from '../types';
+import { extractShipmentCancellationInfo } from './orderCancellation';
 
 export type AnalyticsGranularity = 'weekly' | 'monthly' | 'yearly';
 export type AnalyticsMetricView = 'volume' | 'revenue';
@@ -263,6 +264,7 @@ export function resolveEffectiveOrderStatus(
   const hasCancelledHistory = historyList.some(
     (h) => String(h?.new_status || '').toLowerCase() === 'cancelled'
   );
+  const courierCancel = extractShipmentCancellationInfo(order?.shipments);
 
   if (
     status === 'cancelled' ||
@@ -270,7 +272,8 @@ export function resolveEffectiveOrderStatus(
     Boolean(order?.cancelled_at) ||
     hasAdminRefundNote ||
     hasAdminCancelNote ||
-    hasCancelledHistory
+    hasCancelledHistory ||
+    courierCancel.isCancelledInCourier
   ) {
     return 'cancelled';
   }

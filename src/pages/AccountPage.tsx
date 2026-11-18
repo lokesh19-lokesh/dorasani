@@ -476,7 +476,9 @@ export const AccountPage: React.FC = () => {
                                       : 'bg-gray-100 text-gray-700'
                                     }`}
                                 >
-                                  {(ord.status || 'confirmed').replace(/_/g, ' ')}
+                                  {ord.status === 'cancelled'
+                                    ? 'Order Cancelled'
+                                    : (ord.status || 'confirmed').replace(/_/g, ' ')}
                                 </span>
                                 <span
                                   className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
@@ -500,9 +502,11 @@ export const AccountPage: React.FC = () => {
                                 <p className="text-[11px] text-[#285A3C] font-semibold">
                                   {ord.courierPartner || 'Delhivery One'}
                                   {ord.trackingId ? ` • AWB: ${ord.trackingId}` : ''}
-                                  {ord.shipment?.currentStatus && !ord.shipment.cancelledAt
-                                    ? ` (${ord.shipment.currentStatus})`
-                                    : ''}
+                                  {ord.status === 'cancelled'
+                                    ? ' (Order Cancelled)'
+                                    : ord.shipment?.currentStatus && !ord.shipment.cancelledAt
+                                      ? ` (${ord.shipment.currentStatus})`
+                                      : ''}
                                 </p>
                               )}
                               {(ord.status === 'cancelled' || (ord.refunds && ord.refunds.length > 0)) && (
@@ -652,7 +656,9 @@ export const AccountPage: React.FC = () => {
                                     : 'bg-gray-100 text-gray-700'
                                   }`}
                               >
-                                {(ord.status || 'confirmed').replace(/_/g, ' ')}
+                                {ord.status === 'cancelled'
+                                  ? 'Order Cancelled'
+                                  : (ord.status || 'confirmed').replace(/_/g, ' ')}
                               </span>
                               <span
                                 className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
@@ -676,9 +682,11 @@ export const AccountPage: React.FC = () => {
                               <p className="text-[11px] text-[#285A3C] font-semibold">
                                 {ord.courierPartner || 'Delhivery One'}
                                 {ord.trackingId ? ` • AWB: ${ord.trackingId}` : ''}
-                                {ord.shipment?.currentStatus && !ord.shipment.cancelledAt
-                                  ? ` (${ord.shipment.currentStatus})`
-                                  : ''}
+                                {ord.status === 'cancelled'
+                                  ? ' (Order Cancelled)'
+                                  : ord.shipment?.currentStatus && !ord.shipment.cancelledAt
+                                    ? ` (${ord.shipment.currentStatus})`
+                                    : ''}
                               </p>
                             )}
                             {(ord.status === 'cancelled' || (ord.refunds && ord.refunds.length > 0)) && (

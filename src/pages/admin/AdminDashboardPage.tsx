@@ -78,6 +78,7 @@ import {
   type AdminTabId,
   type UsersSubTabId,
 } from '../../utils/rolePermissions';
+import { extractShipmentCancellationInfo } from '../../utils/orderCancellation';
 import {
   DEFAULT_SITE_SETTINGS,
   DEFAULT_EXPLORE_CATEGORIES_CONFIG,
@@ -169,35 +170,53 @@ const getAdminCancellationMeta = (ord: any) => {
     (h) => String(h?.new_status || '').toLowerCase() === 'cancelled'
   );
 
+  const courierCancel = extractShipmentCancellationInfo(getShipmentsFromOrder(ord));
+  const isStrictlyAdminCancelled = Boolean(
+    ord?.cancelled_by ||
+      adminRefundNote ||
+      adminNoteMatch
+  );
+  const isCancelledByCourier = courierCancel.isCancelledInCourier;
   const isCancelledByAdmin = Boolean(
     statusLower === 'cancelled' ||
       ord?.cancelled_by ||
       ord?.cancelled_at ||
       adminRefundNote ||
       adminNoteMatch ||
-      hasCancelledHistory
+      hasCancelledHistory ||
+      isCancelledByCourier
   );
+  const cancelBadgeLabel = isStrictlyAdminCancelled
+    ? 'Cancelled by Admin'
+    : isCancelledByCourier
+      ? 'Order Cancelled'
+      : 'Order Cancelled';
   const hasAnyRefund = refundsList.length > 0 || paymentStatusLower === 'refunded';
   const effectiveOrderStatus = isCancelledByAdmin ? 'cancelled' : statusLower || 'confirmed';
   const effectivePaymentStatus =
     hasAnyRefund && paymentStatusLower === 'paid' ? 'refunded' : paymentStatusLower || 'pending';
   const canCancelOrder =
-    !isCancelledByAdmin &&
+    (!isCancelledByAdmin || (isCancelledByCourier && !hasAnyRefund && paymentStatusLower === 'paid')) &&
     !hasAnyRefund &&
-    !['cancelled', 'refunded', 'returned', 'delivered'].includes(statusLower);
+    !['refunded', 'returned', 'delivered'].includes(statusLower);
 
   const derivedReason =
     ord?.cancellation_reason ||
     (adminRefundNote ? adminRefundNote.replace(/^Admin cancelled order:\s*/i, '').trim() : '') ||
     adminNoteMatch?.[1]?.trim() ||
+    courierCancel.reason ||
     '';
   const derivedCancelledAt =
-    ord?.cancelled_at || (isCancelledByAdmin ? latestRefund?.created_at || ord?.updated_at : null);
+    ord?.cancelled_at ||
+    courierCancel.cancelledAt ||
+    (isCancelledByAdmin ? latestRefund?.created_at || ord?.updated_at : null);
 
   return {
     refundsList,
     latestRefund,
     isCancelledByAdmin,
+    isCancelledByCourier,
+    cancelBadgeLabel,
     hasAnyRefund,
     effectiveOrderStatus,
     effectivePaymentStatus,
@@ -3944,7 +3963,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     }`}
                                   >
                                     {cancelMeta.isCancelledByAdmin
-                                      ? 'Cancelled by Admin'
+                                      ? cancelMeta.cancelBadgeLabel
                                       : effStatus.replace(/_/g, ' ')}
                                   </span>
                                 </td>
@@ -4459,7 +4478,7 @@ export const AdminDashboardPage: React.FC = () => {
                                   {isCancelledByAdmin && <XCircle className="w-3 h-3 shrink-0" />}
                                   <span>
                                     {isCancelledByAdmin
-                                      ? 'Cancelled by Admin'
+                                      ? cancelMeta.cancelBadgeLabel
                                       : effectiveOrderStatus.replace(/_/g, ' ')}
                                   </span>
                                 </span>
@@ -10628,7 +10647,7 @@ export const AdminDashboardPage: React.FC = () => {
                             }`}
                           >
                             {detailsCancelMeta.isCancelledByAdmin
-                              ? 'Cancelled by Admin'
+                              ? detailsCancelMeta.cancelBadgeLabel
                               : detailsCancelMeta.effectiveOrderStatus.replace(/_/g, ' ')}
                           </span>
                         </div>

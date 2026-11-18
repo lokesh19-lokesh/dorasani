@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { extractShipmentCancellationInfo } from '../utils/orderCancellation';
 import type {
   Order,
   OrderRefund,
@@ -291,11 +292,13 @@ function buildOrderTimeline(
   const createdFormatted = formatTimestamp(o.created_at || new Date().toISOString());
   const updatedFormatted = formatTimestamp(o.updated_at);
   const cancelledFormatted =
-    formatTimestamp(o.cancelled_at || refundsList[0]?.createdAt) || updatedFormatted || createdFormatted;
+    formatTimestamp(
+      o.cancelled_at || activeShipment?.cancelledAt || refundsList[0]?.createdAt
+    ) || updatedFormatted || createdFormatted;
 
   if (status === 'cancelled' || status === 'returned' || status === 'refunded') {
     const labelMap: Record<string, string> = {
-      cancelled: 'Order Cancelled by Admin',
+      cancelled: 'Order Cancelled',
       returned: 'Order Returned',
       refunded: 'Order Refunded',
     };
@@ -492,14 +495,20 @@ export function mapDbOrderToOrder(o: any): Order {
     typeof o.admin_notes === 'string'
       ? o.admin_notes.match(/\[Cancelled by admin(?: at [^\]:]+)?:\s*([^\]]+)\]/i)
       : null;
+  const shipmentCancel = extractShipmentCancellationInfo(shipmentsList);
   const derivedCancellationReason =
-    o.cancellation_reason || extractedFromRefund || adminNoteMatch?.[1]?.trim() || undefined;
+    o.cancellation_reason ||
+    extractedFromRefund ||
+    adminNoteMatch?.[1]?.trim() ||
+    shipmentCancel.reason ||
+    undefined;
   const hasAdminCancelledSignal = Boolean(
     o.cancelled_by ||
     o.cancelled_at ||
     adminRefundNote ||
     adminNoteMatch ||
-    statusHistory.some((h) => h.newStatus === 'cancelled')
+    statusHistory.some((h) => h.newStatus === 'cancelled') ||
+    shipmentCancel.isCancelledInCourier
   );
   const derivedStatus =
     hasAdminCancelledSignal && !['cancelled', 'returned', 'refunded'].includes(String(o.order_status || '').toLowerCase())
@@ -511,6 +520,7 @@ export function mapDbOrderToOrder(o: any): Order {
       : ((o.payment_status as any) || 'pending');
   const derivedCancelledAt =
     o.cancelled_at ||
+    shipmentCancel.cancelledAt ||
     (derivedStatus === 'cancelled' ? refunds[0]?.createdAt || o.updated_at : undefined) ||
     undefined;
 

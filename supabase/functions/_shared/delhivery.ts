@@ -395,16 +395,58 @@ export async function calculateDelhiveryRates(
   };
 }
 
+const DELHIVERY_CANCEL_PHRASE_REGEX =
+  /\b(seller\s+cancell?ed|order\s+cancell?ed|cancell?ed\s+by\s+(?:the\s+)?(?:seller|client|admin|shipper|merchant)|shipment\s+cancell?ed|cancell?ed\s+order|pickup\s+cancell?ed)\b/i;
+
+export function extractDelhiveryCancellationReason(
+  statusText?: string | null,
+  instructions?: string | null,
+  scans?: NormalizedDelhiveryScan[] | null
+): string | null {
+  const topInstr = String(instructions || '').trim();
+  if (topInstr && DELHIVERY_CANCEL_PHRASE_REGEX.test(topInstr)) {
+    return topInstr;
+  }
+  if (Array.isArray(scans)) {
+    for (const s of scans) {
+      const scanInstr = String(s?.instructions || '').trim();
+      const scanTxt = String(s?.scan || '').trim();
+      const scanType = String(s?.scanType || '').trim().toUpperCase();
+      const scanCode = String(s?.statusCode || '').trim().toUpperCase();
+      if (scanInstr && DELHIVERY_CANCEL_PHRASE_REGEX.test(scanInstr)) {
+        return scanInstr;
+      }
+      if (
+        scanType === 'CN' ||
+        scanCode === 'CN' ||
+        scanCode === 'EOD-108' ||
+        /^\s*(order\s+)?cancell?ed\s*$/i.test(scanTxt) ||
+        DELHIVERY_CANCEL_PHRASE_REGEX.test(scanTxt)
+      ) {
+        return scanInstr || scanTxt || 'Cancelled in Delhivery One';
+      }
+    }
+  }
+  const txt = String(statusText || '').trim();
+  if (/^\s*(order\s+)?cancell?ed\s*$/i.test(txt) || DELHIVERY_CANCEL_PHRASE_REGEX.test(txt)) {
+    return topInstr || txt;
+  }
+  return null;
+}
+
 export function mapDelhiveryScanToOrderStatus(
   statusText?: string | null,
   statusType?: string | null,
   nslCode?: string | null,
-  currentOrderStatus?: string | null
+  currentOrderStatus?: string | null,
+  instructions?: string | null,
+  scans?: NormalizedDelhiveryScan[] | null
 ): string {
   const txt = String(statusText || '').trim().toLowerCase();
   const sType = String(statusType || '').trim().toUpperCase();
   const nsl = String(nslCode || '').trim().toUpperCase();
   const cur = String(currentOrderStatus || 'confirmed').trim().toLowerCase();
+  const cancelReasonFromScans = extractDelhiveryCancellationReason(statusText, instructions, scans);
 
   let candidate: string | null = null;
 
@@ -412,7 +454,8 @@ export function mapDelhiveryScanToOrderStatus(
     sType === 'CN' ||
     txt === 'canceled' ||
     txt === 'cancelled' ||
-    nsl === 'EOD-108'
+    nsl === 'EOD-108' ||
+    Boolean(cancelReasonFromScans)
   ) {
     candidate = 'cancelled';
   } else if (
@@ -555,7 +598,14 @@ export async function trackDelhiveryWaybill(
       return tb - ta;
     });
 
-  const mappedOrderStatus = mapDelhiveryScanToOrderStatus(currentStatus, statusType, statusCode);
+  const mappedOrderStatus = mapDelhiveryScanToOrderStatus(
+    currentStatus,
+    statusType,
+    statusCode,
+    undefined,
+    instructions,
+    scans
+  );
 
   return {
     found: true,
@@ -631,7 +681,14 @@ export async function syncOrderAndShipmentFromDelhivery(
     trackingResult.currentStatus,
     trackingResult.statusType,
     trackingResult.statusCode,
-    orderRow.order_status
+    orderRow.order_status,
+    trackingResult.instructions,
+    trackingResult.scans
+  );
+  const cancelReasonFromDelhivery = extractDelhiveryCancellationReason(
+    trackingResult.currentStatus,
+    trackingResult.instructions,
+    trackingResult.scans
   );
 
   const trackingUrl = normalizeDelhiveryTrackingUrl(trackingResult.trackingUrl, waybill);
@@ -666,6 +723,14 @@ export async function syncOrderAndShipmentFromDelhivery(
     shipmentPatch.actual_delivery = parsedStatusDt ? parsedStatusDt.toISOString() : nowIso;
   }
 
+  if (nextOrderStatus === 'cancelled') {
+    const parsedStatusDt = parseDelhiveryTimestamp(trackingResult.statusDateTime);
+    shipmentPatch.cancelled_at = parsedStatusDt ? parsedStatusDt.toISOString() : nowIso;
+    if (cancelReasonFromDelhivery) {
+      shipmentPatch.cancellation_reason = cancelReasonFromDelhivery;
+    }
+  }
+
   const { data: existingShipment } = await admin
     .from('shipments')
     .select('id')
@@ -689,6 +754,13 @@ export async function syncOrderAndShipmentFromDelhivery(
   }
   if (nextOrderStatus && nextOrderStatus !== orderRow.order_status) {
     orderUpdate.order_status = nextOrderStatus;
+    if (nextOrderStatus === 'cancelled') {
+      const parsedStatusDt = parseDelhiveryTimestamp(trackingResult.statusDateTime);
+      orderUpdate.cancelled_at = parsedStatusDt ? parsedStatusDt.toISOString() : nowIso;
+      if (cancelReasonFromDelhivery) {
+        orderUpdate.cancellation_reason = cancelReasonFromDelhivery;
+      }
+    }
   }
 
   await admin.from('orders').update(orderUpdate).eq('id', orderRow.id);
