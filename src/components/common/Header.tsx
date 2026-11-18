@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
+import { getRoleConfig } from '../../utils/rolePermissions';
 import { OptimizedPicture } from './OptimizedPicture';
 
 const MobileDrawer = lazy(() =>
@@ -110,10 +111,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCart }) => {
                     <Link
                       to="/admin"
                       className="flex items-center gap-1 px-2 py-0.5 text-[#113520] bg-[#D0E9C0]/70 hover:bg-[#D0E9C0] transition-colors rounded-full font-bold"
-                      title="Open Admin Dashboard"
+                      title={`Open ${getRoleConfig(user.role).portalTitle}`}
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-[#18482C]" />
-                      <span className="text-[11px] tracking-wider">Admin</span>
+                      <span className="text-[11px] tracking-wider">
+                        {getRoleConfig(user.role).shortNavLabel}
+                      </span>
                     </Link>
                     <span className="text-[#18482C]/25 text-xs">|</span>
                   </>

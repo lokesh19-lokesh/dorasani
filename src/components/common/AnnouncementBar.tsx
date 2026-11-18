@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Truck, RotateCcw, ShieldCheck, Headphones, LayoutDashboard, Shield } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
+import { getRoleConfig } from '../../utils/rolePermissions';
 
 export const AnnouncementBar: React.FC = () => {
   const { user, siteSettings } = useStore();
@@ -35,7 +36,7 @@ export const AnnouncementBar: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D0E9C0] hover:bg-white text-[#113520] font-bold text-[10.5px] sm:text-[11px] transition-colors shadow-xs whitespace-nowrap"
               >
                 <LayoutDashboard className="w-3 h-3" />
-                <span>Open Admin Dashboard</span>
+                <span>Open {getRoleConfig(user.role).portalTitle}</span>
               </Link>
             </div>
           </div>

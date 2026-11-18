@@ -71,6 +71,14 @@ import {
   OverviewAnalyticsPulse,
 } from '../../components/admin/AdminAnalyticsPanel';
 import {
+  canAccessTab,
+  canAccessUsersSubTab,
+  getRoleConfig,
+  hasDashboardAccess,
+  type AdminTabId,
+  type UsersSubTabId,
+} from '../../utils/rolePermissions';
+import {
   DEFAULT_SITE_SETTINGS,
   DEFAULT_EXPLORE_CATEGORIES_CONFIG,
   DEFAULT_COLLECTION_FILTERS_CONFIG,
@@ -596,11 +604,30 @@ export const AdminDashboardPage: React.FC = () => {
     refreshStoreCategories,
   } = useStore();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
-  const [usersSubTab, setUsersSubTab] = useState<'users' | 'messages' | 'newsletter' | 'reviews'>('users');
+  const [verifiedRole, setVerifiedRole] = useState<UserRole | null>(null);
+  const effectiveRole: UserRole = verifiedRole || (user?.role as UserRole) || 'customer';
+  const effectiveRoleRef = useRef<UserRole>(effectiveRole);
+  effectiveRoleRef.current = effectiveRole;
+  const roleConfig = getRoleConfig(effectiveRole);
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => roleConfig.defaultTab as AdminTab);
+  const [usersSubTab, setUsersSubTab] = useState<UsersSubTabId>(() => roleConfig.defaultUsersSubTab);
   const [verifyingAdmin, setVerifyingAdmin] = useState<boolean>(true);
   const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Enforce role-scoped tab & sub-tab boundaries whenever role or tab changes
+  useEffect(() => {
+    if (!roleConfig.hasDashboardAccess) return;
+    if (!roleConfig.allowedTabs.includes(activeTab as AdminTabId)) {
+      setActiveTab(roleConfig.defaultTab as AdminTab);
+    }
+    if (
+      roleConfig.allowedUsersSubTabs.length > 0 &&
+      !roleConfig.allowedUsersSubTabs.includes(usersSubTab)
+    ) {
+      setUsersSubTab(roleConfig.defaultUsersSubTab);
+    }
+  }, [roleConfig, activeTab, usersSubTab]);
 
   // Metrics
   const [metrics, setMetrics] = useState<any>({
@@ -830,8 +857,28 @@ export const AdminDashboardPage: React.FC = () => {
   const [deletingBenefit, setDeletingBenefit] = useState(false);
 
   // Load All Live Admin Data
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (roleOverride?: UserRole) => {
     setLoading(true);
+    const activeRole = roleOverride || effectiveRoleRef.current;
+    const rc = getRoleConfig(activeRole);
+    const allow = (tab: AdminTabId) => rc.allowedTabs.includes(tab);
+    const allowUsersSub = (sub: UsersSubTabId) => rc.allowedUsersSubTabs.includes(sub);
+
+    const needsMetrics = allow('overview') || allow('reports');
+    const needsProducts = allow('products') || allow('inventory') || allow('reports');
+    const needsOrders = allow('overview') || allow('orders') || allow('reports');
+    const needsCategories = allow('products') || allow('categories') || allow('cms');
+    const needsCoupons = allow('coupons');
+    const needsBanners = allow('cms');
+    const needsInventory = allow('inventory');
+    const needsUsersList = allow('users') && allowUsersSub('users');
+    const needsMessages = allow('overview') || (allow('users') && allowUsersSub('messages'));
+    const needsNewsletter = allow('users') && allowUsersSub('newsletter');
+    const needsReviews = allow('overview') || (allow('users') && allowUsersSub('reviews'));
+    const needsBenefits = allow('cms');
+    const needsSettings = allow('cms') || allow('orders') || allow('categories') || allow('products');
+    const needsAllowlist = rc.canManageAllowlist;
+
     try {
       const [
         m,
@@ -849,23 +896,31 @@ export const AdminDashboardPage: React.FC = () => {
         settingsRows,
         allowlistEmails,
       ] = await Promise.all([
-        adminService.getDashboardMetrics(),
-        adminService.getProducts(1, 250),
-        adminService.getAllOrders(),
-        adminService.getCategories(),
-        adminService.getCoupons(),
-        adminService.getBanners(),
-        adminService.getInventoryLedger(),
-        adminService.getUsersOverview().catch(() => []),
-        adminService.getContactMessages().catch(() => []),
-        adminService.getNewsletterSubscribers().catch(() => []),
-        adminService.getAllReviews().catch(() => []),
-        adminService.getAllServiceBenefits().catch(() => []),
-        adminService.getSettings().catch(() => []),
-        adminService.getAdminEmails().catch(() => []),
+        needsMetrics ? adminService.getDashboardMetrics() : Promise.resolve(null),
+        needsProducts ? adminService.getProducts(1, 250) : Promise.resolve({ products: [], total: 0 }),
+        needsOrders ? adminService.getAllOrders() : Promise.resolve({ orders: [], total: 0 }),
+        needsCategories ? adminService.getCategories() : Promise.resolve([]),
+        needsCoupons ? adminService.getCoupons() : Promise.resolve([]),
+        needsBanners ? adminService.getBanners() : Promise.resolve([]),
+        needsInventory ? adminService.getInventoryLedger() : Promise.resolve([]),
+        needsUsersList ? adminService.getUsersOverview().catch(() => []) : Promise.resolve([]),
+        needsMessages ? adminService.getContactMessages().catch(() => []) : Promise.resolve([]),
+        needsNewsletter ? adminService.getNewsletterSubscribers().catch(() => []) : Promise.resolve([]),
+        needsReviews ? adminService.getAllReviews().catch(() => []) : Promise.resolve([]),
+        needsBenefits ? adminService.getAllServiceBenefits().catch(() => []) : Promise.resolve([]),
+        needsSettings ? adminService.getSettings().catch(() => []) : Promise.resolve([]),
+        needsAllowlist ? adminService.getAdminEmails().catch(() => []) : Promise.resolve([]),
       ]);
 
-      setMetrics(m);
+      if (m) {
+        setMetrics(m);
+      } else {
+        setMetrics((prev: any) => ({
+          ...prev,
+          unreadMessages: msgList.filter((msg: any) => (msg.status || 'new') === 'new').length,
+          pendingReviews: revList.filter((rev: any) => rev.status === 'pending').length,
+        }));
+      }
       setProducts(pRes.products);
       setOrders(oRes.orders);
       setCategories(cList);
@@ -1063,15 +1118,29 @@ export const AdminDashboardPage: React.FC = () => {
 
       setVerifyingAdmin(true);
       const roleInfo = await authService.getUserRoleInfo(user.id);
-      const authorized = Boolean(roleInfo.authenticated && roleInfo.isAdmin);
+      const authorized = Boolean(
+        roleInfo.authenticated && (roleInfo.isAdmin || hasDashboardAccess(roleInfo.role))
+      );
 
       if (!active) return;
 
+      setVerifiedRole(roleInfo.role);
       setIsAuthorizedAdmin(authorized);
       setVerifyingAdmin(false);
 
       if (authorized) {
-        await loadData();
+        const nextConfig = getRoleConfig(roleInfo.role);
+        setActiveTab((prev) =>
+          nextConfig.allowedTabs.includes(prev as AdminTabId)
+            ? prev
+            : (nextConfig.defaultTab as AdminTab)
+        );
+        if (nextConfig.allowedUsersSubTabs.length > 0) {
+          setUsersSubTab((prev) =>
+            nextConfig.allowedUsersSubTabs.includes(prev) ? prev : nextConfig.defaultUsersSubTab
+          );
+        }
+        await loadData(roleInfo.role);
       } else {
         setLoading(false);
       }
@@ -3330,14 +3399,16 @@ export const AdminDashboardPage: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-golden text-lg sm:text-xl font-bold leading-tight">
-                  Admin Dashboard
+                  {roleConfig.portalTitle}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#18482C] text-white text-[10px] font-bold uppercase tracking-wider">
                   <ShieldCheck className="w-3 h-3" />
-                  <span>{(user.role || 'admin').replace(/_/g, ' ')}</span>
+                  <span>{roleConfig.label}</span>
                 </span>
               </div>
-              <p className="text-xs text-[#647268]">{user.email} • Live Store Management</p>
+              <p className="text-xs text-[#647268]">
+                {user.email} • {roleConfig.label} Workspace
+              </p>
             </div>
           </div>
 
@@ -3382,21 +3453,23 @@ export const AdminDashboardPage: React.FC = () => {
       >
         <div className="max-w-7xl mx-auto flex items-center gap-2 py-2">
           {[
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-            { id: 'products', label: 'Products', icon: Package },
-            { id: 'orders', label: 'Orders', icon: ShoppingBag },
-            { id: 'inventory', label: 'Inventory', icon: Layers },
-            { id: 'categories', label: 'Categories', icon: Layers },
-            { id: 'coupons', label: 'Coupons', icon: Tag },
+            { id: 'overview' as AdminTabId, label: 'Overview', icon: LayoutDashboard },
+            { id: 'products' as AdminTabId, label: 'Products', icon: Package },
+            { id: 'orders' as AdminTabId, label: 'Orders', icon: ShoppingBag },
+            { id: 'inventory' as AdminTabId, label: 'Inventory', icon: Layers },
+            { id: 'categories' as AdminTabId, label: 'Categories', icon: Layers },
+            { id: 'coupons' as AdminTabId, label: 'Coupons', icon: Tag },
             {
-              id: 'users',
-              label: 'Users & Inquiries',
+              id: 'users' as AdminTabId,
+              label: effectiveRole === 'support_agent' ? 'Support & Inquiries' : 'Users & Inquiries',
               icon: Users,
               badge: (metrics.unreadMessages || 0) + (metrics.pendingReviews || 0),
             },
-            { id: 'cms', label: 'Banners & CMS', icon: ImageIcon },
-            { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
-          ].map((tab) => {
+            { id: 'cms' as AdminTabId, label: 'Banners & CMS', icon: ImageIcon },
+            { id: 'reports' as AdminTabId, label: 'Reports & Export', icon: BarChart3 },
+          ]
+            .filter((tab) => canAccessTab(effectiveRole, tab.id))
+            .map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -3437,7 +3510,7 @@ export const AdminDashboardPage: React.FC = () => {
         ) : (
           <>
             {/* TAB: OVERVIEW */}
-            {activeTab === 'overview' && (
+            {activeTab === 'overview' && canAccessTab(effectiveRole, 'overview') && (
               <div className="space-y-8">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <div className="bg-white p-5 rounded-2xl border border-[#D8C7B5] shadow-xs space-y-2">
@@ -3735,7 +3808,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: PRODUCTS */}
-            {activeTab === 'products' && (
+            {activeTab === 'products' && canAccessTab(effectiveRole, 'products') && (
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
@@ -3969,7 +4042,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: ORDERS */}
-            {activeTab === 'orders' && (
+            {activeTab === 'orders' && canAccessTab(effectiveRole, 'orders') && (
               <div className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="relative flex-1 min-w-[260px] max-w-md">
@@ -4371,7 +4444,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: INVENTORY */}
-            {activeTab === 'inventory' && (
+            {activeTab === 'inventory' && canAccessTab(effectiveRole, 'inventory') && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
@@ -4632,7 +4705,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: CATEGORIES, EXPLORE STRIP & DYNAMIC FILTERS */}
-            {activeTab === 'categories' && (
+            {activeTab === 'categories' && canAccessTab(effectiveRole, 'categories') && (
               <div className="space-y-6">
                 {/* Sub-navigation bar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-[#D8C7B5] shadow-xs">
@@ -5870,7 +5943,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: COUPONS */}
-            {activeTab === 'coupons' && (
+            {activeTab === 'coupons' && canAccessTab(effectiveRole, 'coupons') && (
               <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -5979,71 +6052,79 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: USERS & INQUIRIES */}
-            {activeTab === 'users' && (
+            {activeTab === 'users' && canAccessTab(effectiveRole, 'users') && (
               <div className="space-y-6">
                 {/* Sub-navigation bar */}
                 <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-2xl border border-[#D8C7B5] shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => setUsersSubTab('users')}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'users'
-                      ? 'bg-[#285A3C] text-white'
-                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
-                      }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Registered Users & Roles ({usersList.length})</span>
-                  </button>
+                  {canAccessUsersSubTab(effectiveRole, 'users') && (
+                    <button
+                      type="button"
+                      onClick={() => setUsersSubTab('users')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'users'
+                        ? 'bg-[#285A3C] text-white'
+                        : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                        }`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>Registered Users & Roles ({usersList.length})</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setUsersSubTab('messages')}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'messages'
-                      ? 'bg-[#285A3C] text-white'
-                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
-                      }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Contact Inquiries ({contactMessages.length})</span>
-                    {metrics.unreadMessages > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                        {metrics.unreadMessages} new
-                      </span>
-                    )}
-                  </button>
+                  {canAccessUsersSubTab(effectiveRole, 'messages') && (
+                    <button
+                      type="button"
+                      onClick={() => setUsersSubTab('messages')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'messages'
+                        ? 'bg-[#285A3C] text-white'
+                        : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                        }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Contact Inquiries ({contactMessages.length})</span>
+                      {metrics.unreadMessages > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          {metrics.unreadMessages} new
+                        </span>
+                      )}
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setUsersSubTab('newsletter')}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'newsletter'
-                      ? 'bg-[#285A3C] text-white'
-                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
-                      }`}
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Newsletter ({subscribers.length})</span>
-                  </button>
+                  {canAccessUsersSubTab(effectiveRole, 'newsletter') && (
+                    <button
+                      type="button"
+                      onClick={() => setUsersSubTab('newsletter')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'newsletter'
+                        ? 'bg-[#285A3C] text-white'
+                        : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                        }`}
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Newsletter ({subscribers.length})</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setUsersSubTab('reviews')}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'reviews'
-                      ? 'bg-[#285A3C] text-white'
-                      : 'text-[#4F6355] hover:bg-[#FAF5EE]'
-                      }`}
-                  >
-                    <Star className="w-3.5 h-3.5" />
-                    <span>Product Reviews ({reviewsList.length})</span>
-                    {metrics.pendingReviews > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                        {metrics.pendingReviews} pending
-                      </span>
-                    )}
-                  </button>
+                  {canAccessUsersSubTab(effectiveRole, 'reviews') && (
+                    <button
+                      type="button"
+                      onClick={() => setUsersSubTab('reviews')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${usersSubTab === 'reviews'
+                        ? 'bg-[#285A3C] text-white'
+                        : 'text-[#4F6355] hover:bg-[#FAF5EE]'
+                        }`}
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                      <span>Product Reviews ({reviewsList.length})</span>
+                      {metrics.pendingReviews > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                          {metrics.pendingReviews} pending
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Sub-tab 1: Users, Roles & Admin Allowlist */}
-                {usersSubTab === 'users' && (
+                {usersSubTab === 'users' && canAccessUsersSubTab(effectiveRole, 'users') && (
                   <div className="space-y-6">
                     <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -6714,7 +6795,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: CMS, SETTINGS & BANNERS */}
-            {activeTab === 'cms' && (
+            {activeTab === 'cms' && canAccessTab(effectiveRole, 'cms') && (
               <div className="space-y-8">
                 {/* 0. Shortcut to Explore Categories & Dynamic Filters Builder */}
                 <div className="bg-[#D0E9C0]/35 rounded-2xl border border-[#BCD8AA] p-5 flex flex-wrap items-center justify-between gap-4">
@@ -6755,6 +6836,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 {/* 1. Storefront & Shipping Settings */}
+                {roleConfig.canManageSettings && (
                 <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
                   <div className="flex items-start gap-3">
                     <Settings className="w-5 h-5 text-[#285A3C] shrink-0 mt-0.5" />
@@ -7467,6 +7549,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   </form>
                 </div>
+                )}
 
                 {/* 2. Service Benefits Manager */}
                 <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
@@ -7642,7 +7725,7 @@ export const AdminDashboardPage: React.FC = () => {
             )}
 
             {/* TAB: REPORTS & EXPORT */}
-            {activeTab === 'reports' && (
+            {activeTab === 'reports' && canAccessTab(effectiveRole, 'reports') && (
               <div className="space-y-6">
                 <AdminAnalyticsPanel
                   orders={orders}

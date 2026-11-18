@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { UserProfile, UserRole } from '../types';
+import { STAFF_DASHBOARD_ROLES, hasDashboardAccess } from '../utils/rolePermissions';
 
 export interface UserRoleInfo {
   authenticated: boolean;
@@ -9,13 +10,7 @@ export interface UserRoleInfo {
   isAdmin: boolean;
 }
 
-const ADMIN_ROLES: UserRole[] = [
-  'super_admin',
-  'admin',
-  'catalog_manager',
-  'inventory_manager',
-  'order_manager',
-];
+const ADMIN_ROLES: UserRole[] = STAFF_DASHBOARD_ROLES;
 
 const ROLE_PRIORITY: UserRole[] = [
   'super_admin',
@@ -234,12 +229,13 @@ export const authService = {
       if (!rpcErr && rpcData && typeof rpcData === 'object' && !Array.isArray(rpcData)) {
         const info = rpcData as Record<string, any>;
         if (info.authenticated) {
+          const resolvedRole = (info.role as UserRole) || 'customer';
           return {
             authenticated: true,
             userId: info.user_id || userId,
             email: info.email || undefined,
-            role: (info.role as UserRole) || 'customer',
-            isAdmin: Boolean(info.is_admin),
+            role: resolvedRole,
+            isAdmin: Boolean(info.is_admin) || hasDashboardAccess(resolvedRole),
           };
         }
         return { authenticated: false, role: 'customer', isAdmin: false };

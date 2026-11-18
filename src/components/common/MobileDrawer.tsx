@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { X, ChevronRight, Package, Sparkles, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { WishlistIcon } from './WishlistIcon';
 import { useStore } from '../../context/StoreContext';
+import { getRoleConfig } from '../../utils/rolePermissions';
 import { OptimizedPicture } from './OptimizedPicture';
 
 interface MobileDrawerProps {
@@ -101,7 +102,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
                     {user.isAdmin && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#18482C] text-white text-[9px] font-bold uppercase shrink-0">
                         <ShieldCheck className="w-2.5 h-2.5" />
-                        Admin
+                        {getRoleConfig(user.role).label}
                       </span>
                     )}
                   </div>
@@ -115,7 +116,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
                   className="w-full flex items-center justify-center gap-2 bg-[#18482C] hover:bg-[#113520] text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors shadow-xs"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>Open Admin Dashboard</span>
+                  <span>Open {getRoleConfig(user.role).portalTitle}</span>
                 </Link>
               )}
             </>

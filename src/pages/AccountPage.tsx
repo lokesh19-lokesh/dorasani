@@ -23,6 +23,7 @@ import { OptimizedPicture } from '../components/common/OptimizedPicture';
 import { useStore } from '../context/StoreContext';
 import { authService } from '../services/authService';
 import { SeoHead } from '../components/common/SeoHead';
+import { getRoleConfig } from '../utils/rolePermissions';
 
 export const AccountPage: React.FC = () => {
   const {
@@ -221,14 +222,14 @@ export const AccountPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Admin Suite Shortcut */}
+            {/* Staff / Admin Portal Shortcut */}
             {user.isAdmin && (
               <Link
                 to="/admin"
                 className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#18482C] hover:bg-[#113520] text-white text-xs font-bold shadow-xs transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span>Open Admin Dashboard</span>
+                <span>Open {getRoleConfig(user.role).portalTitle}</span>
               </Link>
             )}
 
@@ -319,13 +320,13 @@ export const AccountPage: React.FC = () => {
                   {user.isAdmin && (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#18482C] text-white text-[10px] font-bold uppercase tracking-wider">
                       <ShieldCheck className="w-3 h-3" />
-                      Administrator
+                      {getRoleConfig(user.role).label}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-[#4F6355] mt-1">
                   {user.isAdmin
-                    ? 'You have full administrator privileges. Switch between the Admin Dashboard and Storefront UI anytime.'
+                    ? getRoleConfig(user.role).accountSummary
                     : 'Explore timeless collections, track your orders and manage your account with ease.'}
                 </p>
               </div>
@@ -336,7 +337,7 @@ export const AccountPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 bg-[#18482C] hover:bg-[#113520] text-white text-xs px-4 py-2 rounded font-bold transition-colors shadow-xs"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5" />
-                    <span>Admin Dashboard</span>
+                    <span>{getRoleConfig(user.role).portalTitle}</span>
                   </Link>
                 )}
                 <Link
