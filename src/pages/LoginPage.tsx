@@ -38,15 +38,13 @@ export const LoginPage: React.FC = () => {
   // If already authenticated (or returning from confirmation / magic link), route based on DB role
   useEffect(() => {
     if (!authLoading && user && !passwordRecoveryPending) {
-      if (user.isAdmin) {
-        navigate(redirectParam && redirectParam.startsWith('/admin') ? redirectParam : '/admin', {
-          replace: true,
-        });
-      } else {
-        navigate(redirectParam && !redirectParam.startsWith('/admin') ? redirectParam : '/account', {
-          replace: true,
-        });
+      if (redirectParam && redirectParam.startsWith('/')) {
+        if (!redirectParam.startsWith('/admin') || user.isAdmin) {
+          navigate(redirectParam, { replace: true });
+          return;
+        }
       }
+      navigate(user.isAdmin ? '/admin' : '/account', { replace: true });
     }
   }, [authLoading, user, passwordRecoveryPending, navigate, redirectParam]);
 
@@ -66,13 +64,13 @@ export const LoginPage: React.FC = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        if (result.isAdmin) {
-          navigate('/admin', { replace: true });
-        } else {
-          navigate(redirectParam && !redirectParam.startsWith('/admin') ? redirectParam : '/account', {
-            replace: true,
-          });
+        if (redirectParam && redirectParam.startsWith('/')) {
+          if (!redirectParam.startsWith('/admin') || result.isAdmin) {
+            navigate(redirectParam, { replace: true });
+            return;
+          }
         }
+        navigate(result.isAdmin ? '/admin' : '/account', { replace: true });
         return;
       }
 

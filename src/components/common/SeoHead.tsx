@@ -107,6 +107,7 @@ export const SeoHead: React.FC<SeoHeadProps> = ({
     upsertMeta('property', 'og:image', resolvedOgImage);
     upsertMeta('property', 'og:image:secure_url', resolvedOgImage);
     upsertMeta('property', 'og:image:alt', resolvedOgAlt);
+    upsertMeta('name', 'thumbnail', resolvedOgImage);
 
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', title);

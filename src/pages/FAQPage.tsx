@@ -16,10 +16,14 @@ export const FAQPage: React.FC = () => {
   const faqGroups: FaqGroup[] = useMemo(
     () => [
       {
-        category: 'Handloom Authenticity & Craft',
+        category: 'About Dorasani Sarees & Authenticity',
         items: [
           {
-            q: 'Are all DORASANI sarees certified pure handloom silk?',
+            q: 'What is Dorasani Sarees A Symbol of Tradition (Dorasani Collections)?',
+            a: 'Dorasani Sarees — A Symbol of Tradition, available online at Dorasani Collections (dorasanicollections.com), is a South Indian handloom boutique founded by Jyothi in Quthbullapur, Hyderabad. We curate authentic Kanchipuram pure silk sarees, Banarasi brocades, Chanderi & Tussar sarees, bridal lehengas, kurthis, and kids Pattu Pavadai.',
+          },
+          {
+            q: 'Are all Dorasani Collections sarees certified pure handloom silk?',
             a: 'Yes, 100% of our silk sarees are crafted with pure mulberry silk and authentic zari, sourced directly from generational weaving clusters in Kanchipuram, Varanasi, Chanderi, and South India with quality inspection for weave integrity.',
           },
           {
@@ -37,9 +41,7 @@ export const FAQPage: React.FC = () => {
         items: [
           {
             q: 'What are the delivery timelines and shipping charges across India?',
-            a: `DORASANI offers free standard pan-India shipping on orders of ₹${siteSettings.freeShippingThreshold.toLocaleString(
-              'en-IN'
-            )} or above. Orders below that threshold carry ₹${siteSettings.standardShippingFee} standard shipping (3–5 business days for metro cities, 5–7 days rest of India) or ₹${siteSettings.expressShippingFee} express priority air dispatch (1–2 business days in select metros).`,
+            a: 'Dorasani Collections offers 100% FREE standard pan-India shipping on every order with no minimum order value. Orders dispatch within 1–2 business days and typically arrive in 3–5 business days across India.',
           },
           {
             q: 'Do you offer international shipping outside India?',
@@ -111,10 +113,10 @@ export const FAQPage: React.FC = () => {
   return (
     <div className="space-y-10 pb-16">
       <SeoHead
-        title="Frequently Asked Questions (FAQ) | Handloom Care, Shipping & Returns | DORASANI"
-        description="Find answers about DORASANI pure silk authenticity, Kanchipuram & Banarasi care, unstitched blouse pieces, pan-India shipping fees, Razorpay payments, and 7-day returns."
+        title="FAQ | Dorasani Sarees A Symbol of Tradition & Dorasani Collections"
+        description="Find answers about Dorasani Sarees — A Symbol of Tradition and Dorasani Collections: pure silk authenticity, Kanchipuram & Banarasi care, unstitched blouse pieces, free pan-India shipping, Razorpay payments, and 7-day returns."
         canonicalPath="/faq"
-        keywords="DORASANI FAQ, silk saree care instructions, Kanchipuram saree blouse piece, pan India saree shipping, 7 day saree return policy"
+        keywords="Dorasani Sarees A Symbol of Tradition FAQ, Dorasani Collections FAQ, silk saree care instructions, Kanchipuram saree blouse piece, free pan India saree shipping, 7 day saree return policy"
         jsonLd={faqJsonLd}
       />
 

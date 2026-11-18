@@ -257,6 +257,71 @@ const BANNER_TYPES = [
   { value: 'announcement', label: 'Announcement' },
 ];
 
+type BannerSizeGuide = {
+  desktopRatio: string;
+  desktopSize: string;
+  mobileRatio: string;
+  mobileSize: string;
+  tip: string;
+};
+
+const BANNER_SIZE_GUIDES: Record<string, BannerSizeGuide> = {
+  hero: {
+    desktopRatio: '3:1',
+    desktopSize: '1920 × 640 px (min 1280 × 427 px)',
+    mobileRatio: '9:16',
+    mobileSize: '720 × 1280 px (or 1080 × 1920 px)',
+    tip: 'Desktop text overlays the left side (place subject on the right); mobile text overlays the top (keep subject in the lower half).',
+  },
+  promotional: {
+    desktopRatio: '16:7 (~2.4:1)',
+    desktopSize: '1600 × 680 px (or 1920 × 820 px)',
+    mobileRatio: '16:7 or 16:9',
+    mobileSize: '1200 × 515 px (or reuse desktop)',
+    tip: 'Order #1 appears beside Shop by Category (text on left); Order #2 appears beside New Arrivals (text on right).',
+  },
+  subpage: {
+    desktopRatio: '3:1',
+    desktopSize: '1920 × 640 px (min 1280 × 428 px)',
+    mobileRatio: '9:16',
+    mobileSize: '720 × 1280 px (or 1080 × 1920 px)',
+    tip: 'Displayed as a full-width top header banner on collection pages.',
+  },
+  announcement: {
+    desktopRatio: '4:1',
+    desktopSize: '1920 × 480 px (or 1600 × 400 px)',
+    mobileRatio: '16:9',
+    mobileSize: '1080 × 608 px',
+    tip: 'Wide horizontal strip banner for storewide promotions and announcements.',
+  },
+};
+
+const getBannerSizeGuide = (bannerType: string): BannerSizeGuide =>
+  BANNER_SIZE_GUIDES[bannerType] || BANNER_SIZE_GUIDES.hero;
+
+const formatImageRatioLabel = (width: number, height: number): string => {
+  if (!width || !height) return '';
+  const ratio = width / height;
+  const known: Array<[number, string]> = [
+    [4, '4:1'],
+    [3, '3:1'],
+    [2.8, '14:5'],
+    [16 / 7, '16:7'],
+    [16 / 9, '16:9'],
+    [3 / 2, '3:2'],
+    [4 / 3, '4:3'],
+    [1, '1:1'],
+    [3 / 4, '3:4'],
+    [9 / 16, '9:16'],
+  ];
+  for (const [target, label] of known) {
+    if (Math.abs(ratio - target) / target <= 0.06) {
+      return label;
+    }
+  }
+  return ratio >= 1 ? `${ratio.toFixed(2)}:1` : `1:${(1 / ratio).toFixed(2)}`;
+};
+
 const USER_ROLES: { value: UserRole; label: string }[] = [
   { value: 'customer', label: 'Customer' },
   { value: 'support_agent', label: 'Support Agent' },
@@ -602,6 +667,7 @@ export const AdminDashboardPage: React.FC = () => {
     refreshCoupons,
     refreshSiteSettings,
     refreshStoreCategories,
+    refreshOrders,
   } = useStore();
   const navigate = useNavigate();
   const [verifiedRole, setVerifiedRole] = useState<UserRole | null>(null);
@@ -697,6 +763,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Order Details, Fulfillment & Delete Modal State
   const [orderDetailsTarget, setOrderDetailsTarget] = useState<any | null>(null);
+  const [linkingOrderUser, setLinkingOrderUser] = useState(false);
   const [orderEditTarget, setOrderEditTarget] = useState<any | null>(null);
   const [orderEditStatus, setOrderEditStatus] = useState<string>('confirmed');
   const [orderEditCourier, setOrderEditCourier] = useState<string>('');
@@ -829,6 +896,8 @@ export const AdminDashboardPage: React.FC = () => {
   const [bannerModalOpen, setBannerModalOpen] = useState(false);
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
   const [bannerForm, setBannerForm] = useState<BannerFormState>(DEFAULT_BANNER_FORM);
+  const [bannerDesktopDims, setBannerDesktopDims] = useState<{ w: number; h: number } | null>(null);
+  const [bannerMobileDims, setBannerMobileDims] = useState<{ w: number; h: number } | null>(null);
   const [bannerFormError, setBannerFormError] = useState<string | null>(null);
   const [savingBanner, setSavingBanner] = useState(false);
   const [deleteBannerTarget, setDeleteBannerTarget] = useState<any | null>(null);
@@ -1690,6 +1759,32 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   // ==================== ORDER HANDLERS ====================
+  const handleLinkOrderToUser = async (orderId: string, targetUserId: string | null) => {
+    setLinkingOrderUser(true);
+    try {
+      await adminService.linkOrderToUser(orderId, targetUserId);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, user_id: targetUserId } : o))
+      );
+      setOrderDetailsTarget((prev: any) =>
+        prev && prev.id === orderId ? { ...prev, user_id: targetUserId } : prev
+      );
+      await refreshOrders();
+      const linkedProfile = targetUserId
+        ? usersList.find((u) => u.id === targetUserId)
+        : null;
+      showToast(
+        targetUserId
+          ? `Order linked to ${linkedProfile?.email || user?.email || 'account'} — it will now appear under My Orders.`
+          : 'Order unlinked from account.'
+      );
+    } catch (err: any) {
+      showToast('Failed to update order account link: ' + err.message, 'error');
+    } finally {
+      setLinkingOrderUser(false);
+    }
+  };
+
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
       await adminService.updateOrderStatus(orderId, status);
@@ -2628,6 +2723,8 @@ export const AdminDashboardPage: React.FC = () => {
   const openCreateBannerModal = () => {
     setEditingBannerId(null);
     setBannerFormError(null);
+    setBannerDesktopDims(null);
+    setBannerMobileDims(null);
     setBannerForm({
       ...DEFAULT_BANNER_FORM,
       display_order: banners.length + 1,
@@ -2638,6 +2735,8 @@ export const AdminDashboardPage: React.FC = () => {
   const openEditBannerModal = (b: any) => {
     setEditingBannerId(b.id);
     setBannerFormError(null);
+    setBannerDesktopDims(null);
+    setBannerMobileDims(null);
     setBannerForm({
       banner_type: b.banner_type || 'hero',
       tagline: b.tagline || '',
@@ -3222,6 +3321,62 @@ export const AdminDashboardPage: React.FC = () => {
       (u.email && u.email.toLowerCase().includes(q)) ||
       (u.phone && String(u.phone).toLowerCase().includes(q)) ||
       (u.role && u.role.toLowerCase().includes(q))
+    );
+  });
+
+  const registeredEmailSet = new Set(
+    usersList.map((u) => String(u.email || '').trim().toLowerCase()).filter(Boolean)
+  );
+  const guestBuyersMap = new Map<
+    string,
+    {
+      key: string;
+      name: string;
+      email: string;
+      phone: string;
+      orderCount: number;
+      lastOrderAt: string;
+      latestOrderNumber: string;
+    }
+  >();
+  for (const ord of orders) {
+    const emailClean = String(ord.customer_email || '').trim().toLowerCase();
+    const phoneClean = String(ord.customer_phone || '').trim();
+    if (ord.user_id) continue;
+    if (emailClean && registeredEmailSet.has(emailClean)) continue;
+    const key = emailClean || phoneClean;
+    if (!key) continue;
+    const existing = guestBuyersMap.get(key);
+    if (existing) {
+      existing.orderCount += 1;
+      if (
+        ord.created_at &&
+        (!existing.lastOrderAt ||
+          new Date(ord.created_at).getTime() > new Date(existing.lastOrderAt).getTime())
+      ) {
+        existing.lastOrderAt = ord.created_at;
+        existing.latestOrderNumber = ord.order_number || existing.latestOrderNumber;
+      }
+    } else {
+      guestBuyersMap.set(key, {
+        key,
+        name: ord.customer_name || 'Guest Customer',
+        email: emailClean,
+        phone: phoneClean,
+        orderCount: 1,
+        lastOrderAt: ord.created_at || '',
+        latestOrderNumber: ord.order_number || '',
+      });
+    }
+  }
+  const filteredGuestBuyers = Array.from(guestBuyersMap.values()).filter((g) => {
+    const q = usersSearch.trim().toLowerCase();
+    return (
+      !q ||
+      g.name.toLowerCase().includes(q) ||
+      g.email.toLowerCase().includes(q) ||
+      g.phone.toLowerCase().includes(q) ||
+      g.latestOrderNumber.toLowerCase().includes(q)
     );
   });
 
@@ -6254,6 +6409,77 @@ export const AdminDashboardPage: React.FC = () => {
                       )}
                     </div>
 
+                    {/* Past Guest Checkout Buyers (Ordered without creating an account) */}
+                    {filteredGuestBuyers.length > 0 && (
+                      <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <h3 className="font-golden text-lg font-bold text-[#1A3B2B]">
+                              Guest Checkout Buyers ({filteredGuestBuyers.length})
+                            </h3>
+                            <p className="text-xs text-[#647268]">
+                              Customers who placed an order before account-required checkout was enabled (no registered account yet)
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="admin-table-wrapper">
+                          <table className="admin-responsive-table w-full text-left text-xs">
+                            <thead className="text-[#647268]">
+                              <tr>
+                                <th scope="col" className="p-3 font-semibold">Buyer</th>
+                                <th scope="col" className="p-3 font-semibold">Phone</th>
+                                <th scope="col" className="p-3 font-semibold">Status</th>
+                                <th scope="col" className="p-3 font-semibold">Orders</th>
+                                <th scope="col" className="p-3 font-semibold text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E8DCCF]">
+                              {filteredGuestBuyers.map((g) => (
+                                <tr key={g.key} className="hover:bg-[#FAF5EE]/50">
+                                  <th scope="row" className="p-3 text-left font-normal">
+                                    <p className="font-semibold text-[#1A3B2B]">{g.name}</p>
+                                    <p className="text-[11px] font-mono text-[#647268]">
+                                      {g.email || '—'}
+                                    </p>
+                                  </th>
+                                  <td className="p-3 text-[#4F6355]">{g.phone || '—'}</td>
+                                  <td className="p-3">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800">
+                                      Guest Checkout
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-[#4F6355]">
+                                    <span className="font-semibold text-[#1A3B2B]">
+                                      {g.orderCount} {g.orderCount === 1 ? 'order' : 'orders'}
+                                    </span>
+                                    {g.lastOrderAt && (
+                                      <span className="block text-[10px] text-[#647268]">
+                                        Last: {new Date(g.lastOrderAt).toLocaleDateString('en-GB')}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOrderSearch(g.email || g.phone || g.name);
+                                        setOrderStatusFilter('all');
+                                        setActiveTab('orders');
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#D8C7B5] bg-white text-[11px] font-semibold text-[#285A3C] hover:bg-[#D0E9C0]/30"
+                                    >
+                                      <span>View Orders</span>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Super Admin Allowlist Management */}
                     {user?.role === 'super_admin' && (
                       <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 shadow-xs space-y-5">
@@ -7695,6 +7921,16 @@ export const AdminDashboardPage: React.FC = () => {
                                 CTA: {b.primary_cta_label || 'None'} ({b.primary_cta_link || '—'})
                               </span>
                               <span>Order: #{b.display_order}</span>
+                            </div>
+                            <div className="pt-1 text-[10px] text-[#647268]">
+                              Recommended Ratio: Desktop{' '}
+                              <span className="font-semibold text-[#1A3B2B]">
+                                {getBannerSizeGuide(b.banner_type).desktopRatio}
+                              </span>{' '}
+                              • Mobile{' '}
+                              <span className="font-semibold text-[#1A3B2B]">
+                                {getBannerSizeGuide(b.banner_type).mobileRatio}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -9809,6 +10045,35 @@ export const AdminDashboardPage: React.FC = () => {
                 </label>
               ))}
             </div>
+            {(() => {
+              const guide = getBannerSizeGuide(bannerForm.banner_type);
+              return (
+                <div className="mt-2 rounded-xl border border-[#285A3C]/25 bg-[#FAF5EE] px-3 py-2.5 text-[11px] text-[#1A3B2B] space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-[#1A3B2B]">
+                      Recommended Banner Size &amp; Ratio (
+                      {BANNER_TYPES.find((bt) => bt.value === bannerForm.banner_type)?.label || 'Hero Slider'})
+                    </span>
+                    <span className="text-[10px] font-medium text-[#647268]">
+                      JPG, PNG, WebP • Max 15 MB
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                    <div className="rounded-lg bg-white/80 border border-[#E8DCCF] px-2.5 py-1.5">
+                      <span className="font-semibold text-[#285A3C]">Desktop:</span>{' '}
+                      <span className="font-bold">{guide.desktopRatio}</span>{' '}
+                      <span className="text-[#647268]">• {guide.desktopSize}</span>
+                    </div>
+                    <div className="rounded-lg bg-white/80 border border-[#E8DCCF] px-2.5 py-1.5">
+                      <span className="font-semibold text-[#285A3C]">Mobile:</span>{' '}
+                      <span className="font-bold">{guide.mobileRatio}</span>{' '}
+                      <span className="text-[#647268]">• {guide.mobileSize}</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[#647268] leading-snug">{guide.tip}</p>
+                </div>
+              );
+            })()}
           </fieldset>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -9962,9 +10227,15 @@ export const AdminDashboardPage: React.FC = () => {
 
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label htmlFor="banner-img-desktop" className="font-semibold text-[#1A3B2B] block">
-                  Desktop Image URL *
-                </label>
+                <div>
+                  <label htmlFor="banner-img-desktop" className="font-semibold text-[#1A3B2B] block">
+                    Desktop Image URL *
+                  </label>
+                  <span className="text-[10px] font-medium text-[#285A3C]">
+                    Ratio {getBannerSizeGuide(bannerForm.banner_type).desktopRatio} •{' '}
+                    {getBannerSizeGuide(bannerForm.banner_type).desktopSize}
+                  </span>
+                </div>
                 <label
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[10px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
                     uploadingTarget === 'banner-desktop' ? 'opacity-60 pointer-events-none' : ''
@@ -9987,12 +10258,14 @@ export const AdminDashboardPage: React.FC = () => {
                         'homepage-banners',
                         'desktop',
                         'banner-desktop',
-                        (url) =>
+                        (url) => {
+                          setBannerDesktopDims(null);
                           setBannerForm((prev) => ({
                             ...prev,
                             desktop_image_url: url,
                             mobile_image_url: prev.mobile_image_url || url,
-                          }))
+                          }));
+                        }
                       );
                     }}
                   />
@@ -10007,18 +10280,54 @@ export const AdminDashboardPage: React.FC = () => {
                 autoCapitalize="off"
                 spellCheck={false}
                 value={bannerForm.desktop_image_url}
-                onChange={(e) =>
-                  setBannerForm({ ...bannerForm, desktop_image_url: e.target.value })
-                }
+                onChange={(e) => {
+                  setBannerDesktopDims(null);
+                  setBannerForm({ ...bannerForm, desktop_image_url: e.target.value });
+                }}
                 className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
               />
+              {bannerForm.desktop_image_url.trim() && (
+                <div className="flex items-center gap-2.5 rounded-lg border border-[#E8DCCF] bg-[#FAF5EE] p-1.5">
+                  <img
+                    src={bannerForm.desktop_image_url}
+                    alt="Desktop banner preview"
+                    onLoad={(e) =>
+                      setBannerDesktopDims({
+                        w: e.currentTarget.naturalWidth,
+                        h: e.currentTarget.naturalHeight,
+                      })
+                    }
+                    onError={() => setBannerDesktopDims({ w: -1, h: -1 })}
+                    className="h-10 w-24 rounded object-cover border border-[#D8C7B5] bg-white shrink-0"
+                  />
+                  <div className="text-[10px] text-[#647268] leading-tight">
+                    <div className="font-semibold text-[#1A3B2B]">Desktop Preview</div>
+                    {bannerDesktopDims && bannerDesktopDims.w > 0 ? (
+                      <span>
+                        Actual: {bannerDesktopDims.w} × {bannerDesktopDims.h} px (
+                        {formatImageRatioLabel(bannerDesktopDims.w, bannerDesktopDims.h)})
+                      </span>
+                    ) : bannerDesktopDims && bannerDesktopDims.w < 0 ? (
+                      <span className="text-rose-700">Preview unavailable</span>
+                    ) : (
+                      <span>Checking dimensions...</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label htmlFor="banner-img-mobile" className="font-semibold text-[#1A3B2B] block">
-                  Mobile Image URL *
-                </label>
+                <div>
+                  <label htmlFor="banner-img-mobile" className="font-semibold text-[#1A3B2B] block">
+                    Mobile Image URL *
+                  </label>
+                  <span className="text-[10px] font-medium text-[#285A3C]">
+                    Ratio {getBannerSizeGuide(bannerForm.banner_type).mobileRatio} •{' '}
+                    {getBannerSizeGuide(bannerForm.banner_type).mobileSize}
+                  </span>
+                </div>
                 <label
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 text-[10px] font-semibold text-[#1A3B2B] hover:bg-[#D0E9C0] cursor-pointer transition-colors ${
                     uploadingTarget === 'banner-mobile' ? 'opacity-60 pointer-events-none' : ''
@@ -10041,11 +10350,13 @@ export const AdminDashboardPage: React.FC = () => {
                         'homepage-banners',
                         'mobile',
                         'banner-mobile',
-                        (url) =>
+                        (url) => {
+                          setBannerMobileDims(null);
                           setBannerForm((prev) => ({
                             ...prev,
                             mobile_image_url: url,
-                          }))
+                          }));
+                        }
                       );
                     }}
                   />
@@ -10060,11 +10371,41 @@ export const AdminDashboardPage: React.FC = () => {
                 autoCapitalize="off"
                 spellCheck={false}
                 value={bannerForm.mobile_image_url}
-                onChange={(e) =>
-                  setBannerForm({ ...bannerForm, mobile_image_url: e.target.value })
-                }
+                onChange={(e) => {
+                  setBannerMobileDims(null);
+                  setBannerForm({ ...bannerForm, mobile_image_url: e.target.value });
+                }}
                 className="w-full p-2.5 rounded-lg border border-[#D8C7B5] bg-white font-mono focus:outline-none focus:border-[#285A3C]"
               />
+              {bannerForm.mobile_image_url.trim() && (
+                <div className="flex items-center gap-2.5 rounded-lg border border-[#E8DCCF] bg-[#FAF5EE] p-1.5">
+                  <img
+                    src={bannerForm.mobile_image_url}
+                    alt="Mobile banner preview"
+                    onLoad={(e) =>
+                      setBannerMobileDims({
+                        w: e.currentTarget.naturalWidth,
+                        h: e.currentTarget.naturalHeight,
+                      })
+                    }
+                    onError={() => setBannerMobileDims({ w: -1, h: -1 })}
+                    className="h-10 w-10 rounded object-cover border border-[#D8C7B5] bg-white shrink-0"
+                  />
+                  <div className="text-[10px] text-[#647268] leading-tight">
+                    <div className="font-semibold text-[#1A3B2B]">Mobile Preview</div>
+                    {bannerMobileDims && bannerMobileDims.w > 0 ? (
+                      <span>
+                        Actual: {bannerMobileDims.w} × {bannerMobileDims.h} px (
+                        {formatImageRatioLabel(bannerMobileDims.w, bannerMobileDims.h)})
+                      </span>
+                    ) : bannerMobileDims && bannerMobileDims.w < 0 ? (
+                      <span className="text-rose-700">Preview unavailable</span>
+                    ) : (
+                      <span>Checking dimensions...</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -10206,6 +10547,42 @@ export const AdminDashboardPage: React.FC = () => {
                   <p className="font-bold text-[#1A3B2B]">{ord.customer_name}</p>
                   <p className="font-mono text-[11px] text-[#4F6355]">{ord.customer_email}</p>
                   <p className="text-[#4F6355]">{ord.customer_phone}</p>
+                  {(() => {
+                    const linkedUser = ord.user_id
+                      ? usersList.find((u) => u.id === ord.user_id)
+                      : null;
+                    const isLinkedToMe = Boolean(user?.id && ord.user_id === user.id);
+                    return (
+                      <div className="pt-1.5 mt-1 border-t border-[#E8DCCF]/80 space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                          <span className="text-[#647268] font-semibold">Placed By Account:</span>
+                          {ord.user_id ? (
+                            <span className="font-mono text-[10px] font-semibold text-[#18482C] bg-[#D0E9C0]/50 px-2 py-0.5 rounded-full">
+                              {isLinkedToMe
+                                ? `${user?.email} (You)`
+                                : linkedUser?.email || ord.user_id.slice(0, 8)}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                              Unlinked (Guest / Old Checkout)
+                            </span>
+                          )}
+                        </div>
+                        {!isLinkedToMe && user?.id && (
+                          <button
+                            type="button"
+                            disabled={linkingOrderUser}
+                            onClick={() => void handleLinkOrderToUser(ord.id, user.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#285A3C] text-white text-[10px] font-semibold hover:bg-[#1E432D] transition-colors disabled:opacity-60"
+                          >
+                            {linkingOrderUser
+                              ? 'Linking...'
+                              : `Link to My Account (${user.email})`}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {addr ? (
                     <div className="pt-1 text-[11px] text-[#4F6355] leading-relaxed border-t border-[#E8DCCF]/80">
                       {addr.fullName || addr.full_name ? (

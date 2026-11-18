@@ -220,6 +220,28 @@ serve(async (req: Request) => {
       );
     }
 
+    // If checkout_session had no user_id attached, resolve signed-in user from JWT and backfill it
+    if (!session.user_id) {
+      try {
+        const authHeader = req.headers.get('Authorization') || '';
+        const bearerJwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+        if (bearerJwt && bearerJwt.split('.').length === 3) {
+          const {
+            data: { user: jwtUser },
+          } = await admin.auth.getUser(bearerJwt);
+          if (jwtUser?.id) {
+            session = { ...session, user_id: jwtUser.id };
+            await admin
+              .from('checkout_sessions')
+              .update({ user_id: jwtUser.id, updated_at: new Date().toISOString() })
+              .eq('id', session.id);
+          }
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+
     const result = await finalizePaidOrderFromSession({
       admin,
       session,

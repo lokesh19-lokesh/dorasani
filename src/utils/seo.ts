@@ -2,12 +2,13 @@ import type { Product, ProductReview, SiteSettings } from '../types';
 import { getProductTypeLabel } from '../types';
 
 export const SITE_ORIGIN = 'https://dorasanicollections.com';
-export const SITE_NAME = 'DORASANI';
-export const SITE_LEGAL_NAME = 'DORASANI Heritage Handlooms';
-export const SITE_TAGLINE = 'Where Heritage Meets Divine Elegance';
-export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/assets/products/kanjivaram_silk_saree.jpg`;
+export const SITE_NAME = 'Dorasani Collections';
+export const SITE_BRAND_FULL = 'Dorasani Sarees A Symbol of Tradition';
+export const SITE_LEGAL_NAME = 'Dorasani Collections — Dorasani Sarees A Symbol of Tradition';
+export const SITE_TAGLINE = 'A Symbol of Tradition — Where Heritage Meets Divine Elegance';
+export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/assets/jyothi.jpeg`;
 export const DEFAULT_OG_IMAGE_ALT =
-  'DORASANI Kanchipuram pure silk saree with intricate gold zari weave';
+  'Jyothi — Founder of Dorasani Sarees A Symbol of Tradition (Dorasani Collections)';
 
 const GENERIC_SOCIAL_ROOTS = new Set([
   'https://instagram.com',
@@ -74,20 +75,51 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
   const organizationNode: Record<string, unknown> = {
     '@type': ['Organization', 'ClothingStore', 'OnlineStore'],
     '@id': `${SITE_ORIGIN}/#organization`,
-    name: SITE_NAME,
-    alternateName: ['DORASANI Sarees', 'Dorasani Collections', settings.storeName],
+    name: 'Dorasani Sarees — A Symbol of Tradition',
+    legalName: 'Dorasani Collections',
+    alternateName: [
+      'Dorasani Sarees A Symbol of Tradition',
+      'Dorasani Collections',
+      'dorasani collections',
+      'DORASANI',
+      'DORASANI Sarees',
+      'dorasanicollections.com',
+      settings.storeName,
+    ],
     url: `${SITE_ORIGIN}/`,
+    brand: {
+      '@type': 'Brand',
+      '@id': `${SITE_ORIGIN}/#brand`,
+      name: 'Dorasani Sarees A Symbol of Tradition',
+      alternateName: 'Dorasani Collections',
+      slogan: 'A Symbol of Tradition',
+      logo: `${SITE_ORIGIN}/assets/logo.png`,
+      url: `${SITE_ORIGIN}/`,
+    },
     logo: {
       '@type': 'ImageObject',
       '@id': `${SITE_ORIGIN}/#logo`,
       url: `${SITE_ORIGIN}/assets/logo.png`,
       width: 921,
       height: 427,
-      caption: 'DORASANI — A Symbol of Tradition',
+      caption: 'Dorasani Sarees — A Symbol of Tradition | Dorasani Collections',
     },
-    image: DEFAULT_OG_IMAGE,
+    image: {
+      '@type': 'ImageObject',
+      '@id': `${SITE_ORIGIN}/#primaryimage`,
+      url: DEFAULT_OG_IMAGE,
+      width: 960,
+      height: 1280,
+      caption: DEFAULT_OG_IMAGE_ALT,
+    },
+    founder: {
+      '@type': 'Person',
+      name: 'Jyothi',
+      jobTitle: 'Founder',
+      image: DEFAULT_OG_IMAGE,
+    },
     description:
-      'DORASANI is a luxury South Indian handloom boutique offering Silk Mark authentic Kanchipuram, Banarasi, Chanderi, and Tussar silk sarees, bridal lehengas, kurthis, kids pattu pavadai, and ethnic wear.',
+      'Dorasani Sarees — A Symbol of Tradition (Dorasani Collections) is a luxury South Indian handloom boutique founded by Jyothi in Hyderabad offering authentic Kanchipuram, Banarasi, Chanderi, and Tussar silk sarees, bridal lehengas, kurthis, kids pattu pavadai, and ethnic wear with free pan-India shipping.',
     slogan: SITE_TAGLINE,
     email: settings.supportEmail || 'dorasanisarees@gmail.com',
     ...(settings.supportPhone ? { telephone: settings.supportPhone } : {}),
@@ -108,6 +140,7 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
     },
     areaServed: [
       { '@type': 'Country', name: 'India' },
+      { '@type': 'State', name: 'Telangana' },
       { '@type': 'City', name: addressLocality },
     ],
     currenciesAccepted: 'INR',
@@ -139,7 +172,20 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
       areaServed: ['IN', 'US', 'GB', 'AE', 'SG', 'AU', 'CA'],
       availableLanguage: ['English', 'Telugu', 'Hindi'],
     },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Dorasani Collections — Handloom Sarees & Ethnic Couture',
+      itemListElement: [
+        { '@type': 'OfferCatalog', name: 'Pure Silk & Handloom Sarees', url: `${SITE_ORIGIN}/collections/sarees` },
+        { '@type': 'OfferCatalog', name: 'Bridal & Festive Lehengas', url: `${SITE_ORIGIN}/collections/lehengas` },
+        { '@type': 'OfferCatalog', name: 'Ethnic Wear & Anarkalis', url: `${SITE_ORIGIN}/collections/ethnic-wear` },
+        { '@type': 'OfferCatalog', name: 'Handcrafted Kurthis', url: `${SITE_ORIGIN}/collections/kurtis` },
+        { '@type': 'OfferCatalog', name: 'Kids Pattu Pavadai & Heritage Wear', url: `${SITE_ORIGIN}/collections/kids-wear` },
+      ],
+    },
     knowsAbout: [
+      'Dorasani Sarees A Symbol of Tradition',
+      'Dorasani Collections',
       'Kanchipuram Silk Sarees',
       'Banarasi Silk Sarees',
       'Chanderi Cotton Sarees',
@@ -156,10 +202,11 @@ export function buildBaseStoreGraph(settings: SiteSettings): Record<string, unkn
     '@type': 'WebSite',
     '@id': `${SITE_ORIGIN}/#website`,
     url: `${SITE_ORIGIN}/`,
-    name: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    alternateName: 'dorasanicollections.com',
+    name: `${SITE_BRAND_FULL} | ${SITE_NAME}`,
+    alternateName: ['Dorasani Collections', 'Dorasani Sarees A Symbol of Tradition', 'dorasanicollections.com'],
     inLanguage: 'en-IN',
     publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+    image: { '@id': `${SITE_ORIGIN}/#primaryimage` },
     potentialAction: {
       '@type': 'SearchAction',
       target: {

@@ -212,18 +212,26 @@ export const HomePage: React.FC = () => {
   const homeFaqs = useMemo(
     () => [
       {
-        question: 'Are DORASANI Kanchipuram and Banarasi sarees authentic handlooms?',
+        question: 'What is Dorasani Sarees A Symbol of Tradition (Dorasani Collections)?',
         answer:
-          'Yes. Every DORASANI Kanchipuram, Banarasi, Chanderi, Tussar, and organza saree is sourced from generational artisan clusters across South India and Varanasi and undergoes stringent quality checks for silk purity, zari integrity, and loom weave finishing.',
+          'Dorasani Sarees — A Symbol of Tradition, officially shoppable online at Dorasani Collections (dorasanicollections.com), is a South Indian handloom boutique founded by Jyothi in Hyderabad. We curate authentic Kanchipuram pure silk sarees, Banarasi brocades, Chanderi & Tussar sarees, bridal lehengas, handcrafted kurthis, and kids pattu pavadai.',
       },
       {
-        question: 'What is the shipping fee and delivery timeline across India?',
-        answer: `DORASANI offers free standard pan-India shipping on orders of ₹${siteSettings.freeShippingThreshold.toLocaleString(
-          'en-IN'
-        )} or above. Orders below this threshold carry ₹${siteSettings.standardShippingFee} standard shipping or ₹${siteSettings.expressShippingFee} express priority dispatch, typically arriving in 3–5 business days in metro cities.`,
+        question: 'Where can I buy Dorasani Collections sarees online and in Hyderabad?',
+        answer: `You can shop the complete Dorasani Collections catalog online at dorasanicollections.com with 100% free pan-India shipping, or visit the Dorasani Sarees flagship boutique at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin} (open ${siteSettings.studioHours}).`,
       },
       {
-        question: 'Can I return or exchange a saree or bridal lehenga from DORASANI?',
+        question: 'Are Dorasani Collections Kanchipuram and Banarasi sarees authentic handlooms?',
+        answer:
+          'Yes. Every saree at Dorasani Sarees — A Symbol of Tradition (Kanchipuram, Banarasi, Chanderi, Tussar, linen silk, and organza) is sourced from generational artisan clusters across South India and Varanasi and inspected for silk purity, zari integrity, and loom weave finishing.',
+      },
+      {
+        question: 'Does Dorasani Collections offer free shipping across India?',
+        answer:
+          'Yes. Dorasani Collections offers 100% FREE pan-India shipping on every order with no minimum spend, dispatched within 1–2 business days and typically delivered in 3–5 business days across India.',
+      },
+      {
+        question: 'Can I return or exchange a saree or bridal lehenga from Dorasani Collections?',
         answer:
           'Yes. Eligible unworn items with original tags intact may be returned or exchanged within 7 days of delivery with complimentary reverse pickup and full refund or store credit.',
       },
@@ -233,11 +241,7 @@ export const HomePage: React.FC = () => {
           'Dry clean pure silk sarees only, wrap them individually in breathable unbleached muslin or cotton cloth in a cool dark wardrobe, refold along alternate creases every few months, and steam or press on low heat on the reverse side away from zari threads.',
       },
     ],
-    [
-      siteSettings.freeShippingThreshold,
-      siteSettings.standardShippingFee,
-      siteSettings.expressShippingFee,
-    ]
+    [siteSettings.storeAddress, siteSettings.storeCityStatePin, siteSettings.studioHours]
   );
 
   const homeJsonLd = useMemo(() => {
@@ -246,11 +250,25 @@ export const HomePage: React.FC = () => {
         '@type': 'WebPage',
         '@id': `${SITE_ORIGIN}/#webpage`,
         url: `${SITE_ORIGIN}/`,
-        name: 'DORASANI — Where Heritage Meets Divine Elegance | Luxury South Indian Handloom Sarees',
+        name: 'Dorasani Sarees A Symbol of Tradition | Dorasani Collections — South Indian Handloom Sarees',
         description:
-          'Discover Silk Mark authentic Kanchipuram sarees, Banarasi silks, Chanderi cottons, bridal lehengas, kurthis, and kids pattu pavadai crafted across heritage looms in India.',
+          'Shop Dorasani Sarees — A Symbol of Tradition at Dorasani Collections (dorasanicollections.com). Authentic Kanchipuram silk sarees, Banarasi weaves, Chanderi cottons, bridal lehengas, kurthis & kids pattu pavadai with free pan-India shipping.',
         isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
         about: { '@id': `${SITE_ORIGIN}/#organization` },
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          '@id': `${SITE_ORIGIN}/#primaryimage`,
+          url: `${SITE_ORIGIN}/assets/jyothi.jpeg`,
+          width: 960,
+          height: 1280,
+          caption: 'Jyothi — Founder of Dorasani Sarees A Symbol of Tradition (Dorasani Collections)',
+        },
+        thumbnailUrl: `${SITE_ORIGIN}/assets/jyothi.jpeg`,
+        image: `${SITE_ORIGIN}/assets/jyothi.jpeg`,
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', '#aeo-guide-heading', '.aeo-answer'],
+        },
         inLanguage: 'en-IN',
       },
       {
@@ -291,12 +309,12 @@ export const HomePage: React.FC = () => {
   return (
     <div className="space-y-10 sm:space-y-14 lg:space-y-0 bg-[#FAF5EE]">
       <SeoHead
-        title="DORASANI — Where Heritage Meets Divine Elegance | Luxury South Indian Handloom Sarees"
-        description="Shop Silk Mark authentic Kanchipuram pure silk sarees, Banarasi brocades, Chanderi cottons, Tussar weaves, bridal lehengas, kurthis, and kids pattu pavadai crafted across India."
+        title="Dorasani Sarees A Symbol of Tradition | Dorasani Collections — South Indian Handloom Sarees"
+        description="Shop Dorasani Sarees — A Symbol of Tradition at Dorasani Collections (dorasanicollections.com). Authentic Kanchipuram pure silk sarees, Banarasi brocades, Chanderi cottons, Tussar weaves, bridal lehengas, kurthis & kids pattu pavadai with free pan-India shipping."
         canonicalPath="/"
-        keywords="DORASANI, dorasanicollections, Kanchipuram silk saree, Banarasi silk saree, Chanderi cotton saree, Tussar silk saree, bridal lehenga, pattu pavadai, Hyderabad handloom sarees"
-        ogImage="/assets/products/kanjivaram_silk_saree.jpg"
-        ogImageAlt="DORASANI Kanchipuram pure silk saree with intricate gold zari weave"
+        keywords="Dorasani Sarees A Symbol of Tradition, Dorasani Collections, dorasani collections, Dorasani Sarees, dorasanicollections, Dorasani Sarees Hyderabad, Kanchipuram silk saree, Banarasi silk saree, Chanderi cotton saree, Tussar silk saree, bridal lehenga, pattu pavadai"
+        ogImage="/assets/jyothi.jpeg"
+        ogImageAlt="Jyothi — Founder of Dorasani Sarees A Symbol of Tradition (Dorasani Collections)"
         jsonLd={homeJsonLd}
       />
       {/* 1. HERO SECTION */}
@@ -750,10 +768,13 @@ export const HomePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-[#E8DCCF] pb-4">
             <div>
               <span className="text-[11px] font-bold tracking-[0.22em] text-[#285A3C] uppercase">
-                ✦ Handloom &amp; Boutique Guide ✦
+                ✦ Dorasani Collections • Boutique Guide ✦
               </span>
-              <h2 className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B] mt-1">
-                Quick Questions About DORASANI
+              <h2
+                id="aeo-guide-heading"
+                className="font-serif-royal text-xl sm:text-2xl font-bold text-[#1A3B2B] mt-1"
+              >
+                Dorasani Sarees — A Symbol of Tradition: Quick Answers
               </h2>
             </div>
             <Link
@@ -775,7 +796,7 @@ export const HomePage: React.FC = () => {
                     aria-hidden="true"
                   />
                 </summary>
-                <p className="mt-2.5 text-xs sm:text-sm text-[#4F6355] leading-relaxed pr-6">
+                <p className="aeo-answer mt-2.5 text-xs sm:text-sm text-[#4F6355] leading-relaxed pr-6">
                   {faq.answer}
                 </p>
               </details>

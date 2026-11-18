@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   User,
   Phone,
@@ -22,6 +22,8 @@ import { SeoHead } from '../components/common/SeoHead';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
 
 export const RegisterPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -38,9 +40,13 @@ export const RegisterPage: React.FC = () => {
 
   useEffect(() => {
     if (!authLoading && user) {
+      if (redirectParam && redirectParam.startsWith('/') && (!redirectParam.startsWith('/admin') || user.isAdmin)) {
+        navigate(redirectParam, { replace: true });
+        return;
+      }
       navigate(user.isAdmin ? '/admin' : '/account', { replace: true });
     }
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user, navigate, redirectParam]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +70,9 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
-      if (result.isAdmin) {
+      if (redirectParam && redirectParam.startsWith('/') && (!redirectParam.startsWith('/admin') || result.isAdmin)) {
+        navigate(redirectParam, { replace: true });
+      } else if (result.isAdmin) {
         navigate('/admin', { replace: true });
       } else {
         navigate('/account', { replace: true });

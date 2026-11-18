@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { WishlistIcon } from '../components/common/WishlistIcon';
 import { OptimizedPicture } from '../components/common/OptimizedPicture';
@@ -34,6 +35,7 @@ export const AccountPage: React.FC = () => {
     logout,
     updateProfile,
     orders,
+    refreshOrders,
     wishlist,
     addresses,
     siteSettings,
@@ -65,6 +67,22 @@ export const AccountPage: React.FC = () => {
   const [newEmailInput, setNewEmailInput] = useState('');
   const [updatingEmail, setUpdatingEmail] = useState(false);
   const [emailChangeNotice, setEmailChangeNotice] = useState<string | null>(null);
+  const [refreshingOrders, setRefreshingOrders] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      void refreshOrders();
+    }
+  }, [user?.id, activeTab, refreshOrders]);
+
+  const handleRefreshOrders = async () => {
+    setRefreshingOrders(true);
+    try {
+      await refreshOrders();
+    } finally {
+      setRefreshingOrders(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -237,11 +255,10 @@ export const AccountPage: React.FC = () => {
             <nav aria-label="Account" className="space-y-1 text-xs font-semibold">
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${
-                  activeTab === 'dashboard'
-                    ? 'bg-[#285A3C] text-white shadow-xs'
-                    : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${activeTab === 'dashboard'
+                  ? 'bg-[#285A3C] text-white shadow-xs'
+                  : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
+                  }`}
               >
                 <User className="w-4 h-4" />
                 <span>Dashboard</span>
@@ -249,11 +266,10 @@ export const AccountPage: React.FC = () => {
 
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${
-                  activeTab === 'orders'
-                    ? 'bg-[#285A3C] text-white shadow-xs'
-                    : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${activeTab === 'orders'
+                  ? 'bg-[#285A3C] text-white shadow-xs'
+                  : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
+                  }`}
               >
                 <Package className="w-4 h-4" />
                 <span>My Orders ({orders.length})</span>
@@ -269,11 +285,10 @@ export const AccountPage: React.FC = () => {
 
               <button
                 onClick={() => setActiveTab('addresses')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${
-                  activeTab === 'addresses'
-                    ? 'bg-[#285A3C] text-white shadow-xs'
-                    : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
-                }`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors text-left ${activeTab === 'addresses'
+                  ? 'bg-[#285A3C] text-white shadow-xs'
+                  : 'text-[#1A3B2B] hover:bg-[#FAF5EE]'
+                  }`}
               >
                 <MapPin className="w-4 h-4" />
                 <span>Saved Addresses ({addresses.length})</span>
@@ -454,24 +469,22 @@ export const AccountPage: React.FC = () => {
                                   Order #{ord.orderNumber}
                                 </span>
                                 <span
-                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                                    ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
-                                      ? 'bg-[#D0E9C0] text-[#1A3B2B]'
-                                      : ord.status === 'cancelled' || ord.status === 'refunded'
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
+                                    ? 'bg-[#D0E9C0] text-[#1A3B2B]'
+                                    : ord.status === 'cancelled' || ord.status === 'refunded'
                                       ? 'bg-rose-100 text-rose-800'
                                       : 'bg-gray-100 text-gray-700'
-                                  }`}
+                                    }`}
                                 >
                                   {ord.status.replace(/_/g, ' ')}
                                 </span>
                                 <span
-                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                                    ord.paymentStatus === 'paid'
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : ord.paymentStatus === 'failed'
+                                  className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : ord.paymentStatus === 'failed'
                                       ? 'bg-rose-100 text-rose-800'
                                       : 'bg-amber-100 text-amber-800'
-                                  }`}
+                                    }`}
                                 >
                                   {ord.paymentMethod} • {ord.paymentStatus}
                                 </span>
@@ -576,11 +589,40 @@ export const AccountPage: React.FC = () => {
 
             {activeTab === 'orders' && (
               <div className="bg-white rounded-xl border border-[#D8C7B5] p-5 sm:p-6 shadow-xs space-y-4">
-                <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider pb-3 border-b border-[#E8DCCF]">
-                  All Orders ({orders.length})
-                </h2>
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#E8DCCF]">
+                  <h2 className="font-cinzel-royal font-bold text-sm text-[#1A3B2B] uppercase tracking-wider">
+                    All Orders ({orders.length})
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => void handleRefreshOrders()}
+                    disabled={refreshingOrders}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#D8C7B5] bg-[#FAF5EE] hover:bg-[#D0E9C0]/40 text-[11px] font-semibold text-[#1A3B2B] transition-colors disabled:opacity-60"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${refreshingOrders ? 'animate-spin' : ''}`} />
+                    <span>{refreshingOrders ? 'Refreshing...' : 'Refresh'}</span>
+                  </button>
+                </div>
                 {orders.length === 0 ? (
-                  <p className="text-xs text-[#4F6355] py-6 text-center">No orders found for your account.</p>
+                  <div className="py-6 text-center space-y-3">
+                    <p className="text-xs text-[#4F6355]">
+                      No personal orders found for <span className="font-semibold text-[#1A3B2B]">{user.email}</span>.
+                    </p>
+                    {user.isAdmin && (
+                      <div className="pt-1 space-y-2">
+                        <p className="text-[11px] text-[#647268]">
+                          This tab lists orders placed under your own account. To view all customer orders across the store, open the Admin Dashboard.
+                        </p>
+                        <Link
+                          to="/admin"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#18482C] hover:bg-[#113520] text-white text-xs font-semibold transition-colors"
+                        >
+                          <LayoutDashboard className="w-3.5 h-3.5" />
+                          <span>View All Store Orders in Admin Dashboard</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {orders.map((ord) => (
@@ -603,24 +645,22 @@ export const AccountPage: React.FC = () => {
                                 Order #{ord.orderNumber}
                               </span>
                               <span
-                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                                  ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
-                                    ? 'bg-[#D0E9C0] text-[#1A3B2B]'
-                                    : ord.status === 'cancelled' || ord.status === 'refunded'
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.status === 'out_for_delivery' || ord.status === 'confirmed' || ord.status === 'delivered'
+                                  ? 'bg-[#D0E9C0] text-[#1A3B2B]'
+                                  : ord.status === 'cancelled' || ord.status === 'refunded'
                                     ? 'bg-rose-100 text-rose-800'
                                     : 'bg-gray-100 text-gray-700'
-                                }`}
+                                  }`}
                               >
                                 {ord.status.replace(/_/g, ' ')}
                               </span>
                               <span
-                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                                  ord.paymentStatus === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : ord.paymentStatus === 'failed'
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${ord.paymentStatus === 'paid'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : ord.paymentStatus === 'failed'
                                     ? 'bg-rose-100 text-rose-800'
                                     : 'bg-amber-100 text-amber-800'
-                                }`}
+                                  }`}
                               >
                                 {ord.paymentMethod} • {ord.paymentStatus}
                               </span>

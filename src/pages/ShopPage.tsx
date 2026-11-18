@@ -16,12 +16,12 @@ export const ShopPage: React.FC = () => {
       highlights={['Hereditary Looms', 'Certified Pure Silks', 'Heirloom Craftsmanship']}
       categorySlug="all"
       seo={{
-        title: 'Shop All Collections | Authentic Handloom Sarees & Bridal Couture | DORASANI',
+        title: 'Dorasani Collections — Shop All Sarees & Ethnic Wear | Dorasani Sarees A Symbol of Tradition',
         description:
-          'Browse all DORASANI collections online — Kanchipuram pure silk sarees, Banarasi weaves, Chanderi cottons, bridal lehengas, kurthis, ethnic wear, and pattu pavadai.',
+          'Shop Dorasani Collections online (Dorasani Sarees — A Symbol of Tradition) — Kanchipuram pure silk sarees, Banarasi weaves, Chanderi cottons, bridal lehengas, kurthis, ethnic wear & pattu pavadai with free pan-India shipping.',
         canonicalPath: '/shop',
         keywords:
-          'shop handloom sarees online, DORASANI all collections, South Indian bridal couture, silk sarees India',
+          'Dorasani Collections, dorasani collections, Dorasani Sarees A Symbol of Tradition, shop handloom sarees online, South Indian bridal couture, silk sarees India',
         ogImage: '/assets/hero/subpageshero/ShopAllhero.png',
       }}
     />

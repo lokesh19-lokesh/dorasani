@@ -144,10 +144,10 @@ export const ContactPage: React.FC = () => {
   return (
     <div className="space-y-12 pb-16">
       <SeoHead
-        title="Contact Us | Bridal Styling & Flagship Studio in Quthbullapur, Hyderabad | DORASANI"
-        description={`Contact DORASANI at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}, call ${siteSettings.supportPhone || '+91 7780673360'}, or email ${siteSettings.supportEmail} for custom bridal saree orders, styling appointments, and support.`}
+        title="Contact Dorasani Collections | Dorasani Sarees A Symbol of Tradition — Hyderabad Studio"
+        description={`Contact Dorasani Sarees — A Symbol of Tradition (Dorasani Collections) at ${siteSettings.storeAddress}, ${siteSettings.storeCityStatePin}, call ${siteSettings.supportPhone || '+91 7780673360'}, or email ${siteSettings.supportEmail} for bridal saree orders, styling appointments, and support.`}
         canonicalPath="/contact"
-        keywords="contact DORASANI, DORASANI Hyderabad studio, Quthbullapur handloom saree boutique, Shapur Road sarees, Medchal Dist silk boutique, bridal saree styling appointment"
+        keywords="Dorasani Sarees A Symbol of Tradition contact, Dorasani Collections Hyderabad, Dorasani Sarees Quthbullapur, Shapur Road saree boutique, Medchal Dist silk boutique, bridal saree styling appointment"
         jsonLd={contactJsonLd}
       />
       {/* Header */}

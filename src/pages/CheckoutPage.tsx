@@ -94,6 +94,7 @@ export const CheckoutPage: React.FC = () => {
     siteSettings,
     placeOrder,
     user,
+    authLoading,
   } = useStore();
 
   const [couponInput, setCouponInput] = useState('');
@@ -501,6 +502,71 @@ export const CheckoutPage: React.FC = () => {
       setCheckoutStage('idle');
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="py-24 text-center max-w-md mx-auto px-4 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#285A3C] mx-auto" aria-hidden="true" />
+        <p className="text-xs text-[#4F6355]">Verifying your DORASANI account...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="py-16 sm:py-20 px-4 max-w-lg mx-auto">
+        <SeoHead
+          title="Sign In to Checkout | DORASANI"
+          description="Sign in or create your DORASANI account before placing your order."
+          canonicalPath="/checkout"
+          robots="noindex, nofollow"
+        />
+        <div className="bg-white rounded-2xl border border-[#D8C7B5] p-6 sm:p-8 shadow-sm text-center space-y-5">
+          <div className="w-14 h-14 rounded-full bg-[#D0E9C0] border border-[#BCD8AA] text-[#18482C] flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold tracking-[0.22em] text-[#285A3C] uppercase block">
+              ✦ Account Required ✦
+            </span>
+            <h1 className="font-serif-royal text-2xl font-bold text-[#1A3B2B]">
+              Sign In or Create an Account to Order
+            </h1>
+            <p className="text-xs sm:text-sm text-[#4F6355] leading-relaxed">
+              Please create an account or sign in before completing your checkout so you can track
+              shipments, receive order updates, and save your delivery addresses. Your shopping bag
+              {selectedCartItems.length > 0
+                ? ` (${selectedCartItems.length} item${selectedCartItems.length === 1 ? '' : 's'})`
+                : ''}{' '}
+              will stay saved.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+            <Link
+              to="/register?redirect=/checkout"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg bg-[#285A3C] hover:bg-[#1E432D] text-white text-xs sm:text-sm font-bold transition-colors shadow-xs"
+            >
+              Create Account
+            </Link>
+            <Link
+              to="/login?redirect=/checkout"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg border border-[#285A3C] bg-[#D0E9C0]/40 hover:bg-[#D0E9C0] text-[#1A3B2B] text-xs sm:text-sm font-bold transition-colors"
+            >
+              Sign In
+            </Link>
+          </div>
+          <div className="pt-2 border-t border-[#E8DCCF]">
+            <Link
+              to="/cart"
+              className="text-xs font-semibold text-[#4F6355] hover:text-[#285A3C] hover:underline"
+            >
+              ← Return to Shopping Bag
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (selectedCartItems.length === 0) {
     return (

@@ -41,12 +41,12 @@ export const AboutPage: React.FC = () => {
   return (
     <div className="font-poppins space-y-12 sm:space-y-16 pb-16">
       <SeoHead
-        title="About Us — A Symbol of Tradition | Our Story & Weavers | DORASANI"
-        description="Discover the heritage story of DORASANI — curating Silk Mark authentic Kanchipuram sarees, bridal lehengas, kids wear, and handloom textiles with personal care in Hyderabad."
+        title="About Dorasani Sarees A Symbol of Tradition | Dorasani Collections Story"
+        description="Meet Jyothi, Founder of Dorasani Sarees — A Symbol of Tradition (Dorasani Collections). Explore our Hyderabad handloom boutique curating Kanchipuram pure silk sarees, bridal lehengas, kids pattu pavadai & festive couture."
         canonicalPath="/about"
-        keywords="About DORASANI, Dorasani Sarees Hyderabad, South Indian handloom boutique, temple silk heritage, Kanchipuram weavers"
-        ogImage="/assets/banners/about_heritage_showcase.jpg"
-        ogImageAlt="Woman in an emerald Kanchipuram pure silk saree at DORASANI Heritage Handloom Boutique"
+        keywords="Dorasani Sarees A Symbol of Tradition, Dorasani Collections, About Dorasani Sarees, Jyothi Dorasani founder, Dorasani Sarees Hyderabad, South Indian handloom boutique, Kanchipuram weavers"
+        ogImage="/assets/jyothi.jpeg"
+        ogImageAlt="Jyothi — Founder of Dorasani Sarees A Symbol of Tradition (Dorasani Collections)"
         jsonLd={aboutJsonLd}
       />
       {/* 1. Breadcrumbs */}

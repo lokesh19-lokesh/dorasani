@@ -102,6 +102,7 @@ interface StoreContextType {
 
   // Orders
   orders: Order[];
+  refreshOrders: () => Promise<void>;
   placeOrder: (
     orderData: Partial<Order> & { customerEmail?: string },
     onStageChange?: (stage: CheckoutStage) => void
@@ -336,7 +337,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const [profile, roleInfo, liveOrders, addressRes, dbCart, dbWishlist] = await Promise.all([
         authService.getProfile(authUser.id),
         authService.getUserRoleInfo(authUser.id),
-        checkoutService.getCustomerOrders(authUser.id),
+        checkoutService.getCustomerOrders(authUser.id, authUser.email),
         supabase
           .from('customer_addresses')
           .select('*')
@@ -1157,14 +1158,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           paymentMethod: finalOrder.paymentMethod,
           paymentStatus: finalOrder.paymentStatus,
         });
-        checkoutService
-          .getCustomerOrders(user.id)
-          .then((liveOrders) => {
-            if (liveOrders && liveOrders.length > 0) {
-              setOrders(liveOrders);
-            }
-          })
-          .catch(() => {});
+        void (async () => {
+          await checkoutService.linkOrderToCurrentUserIfUnassigned(finalOrder.id, user.id);
+          const liveOrders = await checkoutService.getCustomerOrders(user.id, user.email);
+          if (liveOrders && liveOrders.length > 0) {
+            setOrders(liveOrders);
+          }
+        })().catch(() => {});
       }
 
       onStageChange?.('idle');
@@ -1337,6 +1337,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const refreshOrders = useCallback(async () => {
+    if (!isSupabaseConfigured || !user?.id) return;
+    const liveOrders = await checkoutService.getCustomerOrders(user.id, user.email);
+    setOrders(liveOrders);
+  }, [user?.id, user?.email]);
+
   const getOrder = (orderNumber: string) => {
     const clean = orderNumber.trim().toLowerCase();
     const fromState = orders.find(
@@ -1390,6 +1396,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         refreshSiteSettings,
         refreshStoreCategories,
         orders,
+        refreshOrders,
         placeOrder,
         getOrder,
         toasts,

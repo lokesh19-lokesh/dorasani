@@ -701,6 +701,25 @@ export const checkoutService = {
       const idempotencyKey =
         payload.idempotencyKey || `idem-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
+      // Ensure active signed-in session JWT (customer or admin) is explicitly forwarded
+      const invokeHeaders: Record<string, string> = {
+        'idempotency-key': idempotencyKey,
+      };
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        let accessToken = sessionData?.session?.access_token;
+        const expiresAt = sessionData?.session?.expires_at ?? 0;
+        if (!accessToken || (expiresAt > 0 && expiresAt * 1000 < Date.now() + 60_000)) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          accessToken = refreshed?.session?.access_token || accessToken;
+        }
+        if (accessToken) {
+          invokeHeaders.Authorization = `Bearer ${accessToken}`;
+        }
+      } catch {
+        // Proceed with default supabase-js auth header handling
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           customerName: payload.customerName,
@@ -715,9 +734,7 @@ export const checkoutService = {
           orderNotes: payload.orderNotes || null,
           idempotencyKey,
         },
-        headers: {
-          'idempotency-key': idempotencyKey,
-        },
+        headers: invokeHeaders,
       });
 
       if (error || !data?.success) {
@@ -781,6 +798,22 @@ export const checkoutService = {
     }
 
     try {
+      const invokeHeaders: Record<string, string> = {};
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        let accessToken = sessionData?.session?.access_token;
+        const expiresAt = sessionData?.session?.expires_at ?? 0;
+        if (!accessToken || (expiresAt > 0 && expiresAt * 1000 < Date.now() + 60_000)) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          accessToken = refreshed?.session?.access_token || accessToken;
+        }
+        if (accessToken) {
+          invokeHeaders.Authorization = `Bearer ${accessToken}`;
+        }
+      } catch {
+        // Proceed with default supabase-js auth header handling
+      }
+
       const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
         body: {
           action: 'verify',
@@ -789,6 +822,7 @@ export const checkoutService = {
           razorpayPaymentId: params.razorpayPaymentId,
           razorpaySignature: params.razorpaySignature,
         },
+        headers: invokeHeaders,
       });
 
       if (error || !data?.success) {
@@ -907,29 +941,72 @@ export const checkoutService = {
     }
   },
 
-  // Fetch orders for signed-in customer
-  async getCustomerOrders(userId: string): Promise<Order[]> {
+  // Ensure an order just placed while signed in is linked to the active user account if user_id was left null
+  async linkOrderToCurrentUserIfUnassigned(orderId: string, userId: string): Promise<void> {
+    if (!isSupabaseConfigured || !orderId || !userId) return;
+    if (!/^[0-9a-f-]{36}$/i.test(orderId)) return;
+    try {
+      await supabase
+        .from('orders')
+        .update({ user_id: userId, updated_at: new Date().toISOString() })
+        .eq('id', orderId)
+        .is('user_id', null);
+    } catch {
+      // Non-blocking: RLS permits admins; deployed Edge Function handles all users server-side
+    }
+  },
+
+  // Fetch orders for signed-in customer or admin account (matching user_id OR account email)
+  async getCustomerOrders(userId: string, userEmail?: string): Promise<Order[]> {
     if (!isSupabaseConfigured || !userId) return [];
 
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(
-          `
+    const normalizedEmail = (userEmail || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[,()]/g, '');
+
+    const buildQuery = (selectClause: string) => {
+      let q = supabase.from('orders').select(selectClause);
+      if (normalizedEmail) {
+        q = q.or(`user_id.eq.${userId},customer_email.ilike.${normalizedEmail}`);
+      } else {
+        q = q.eq('user_id', userId);
+      }
+      return q.order('created_at', { ascending: false });
+    };
+
+    const selectCandidates = [
+      `
           *,
           order_items (*),
           payments (*),
           shipments (*),
           refunds (*),
           order_status_history (*)
-        `
-        )
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        `,
+      `
+          *,
+          order_items (*),
+          payments (*),
+          shipments (*)
+        `,
+      `
+          *,
+          order_items (*)
+        `,
+    ];
 
-      if (error || !data) return [];
-
-      return data.map(mapDbOrderToOrder);
+    try {
+      for (const selectClause of selectCandidates) {
+        const { data, error } = await buildQuery(selectClause);
+        if (!error && data) {
+          return data.map(mapDbOrderToOrder);
+        }
+        if (error) {
+          console.warn('Customer orders query failed, trying simpler select:', error.message);
+        }
+      }
+      return [];
     } catch (err) {
       console.error('Failed to load customer orders:', err);
       return [];

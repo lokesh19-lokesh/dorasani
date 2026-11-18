@@ -33,11 +33,23 @@ serve(async (req: Request) => {
     // Resolve authenticated user cleanly from JWT if signed in (ignore spoofed client userId)
     let resolvedUserId: string | null = null;
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user?.id) {
-        resolvedUserId = user.id;
+      const authHeader = req.headers.get('Authorization') || '';
+      const bearerJwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+      if (bearerJwt && bearerJwt.split('.').length === 3) {
+        const {
+          data: { user: jwtUser },
+        } = await admin.auth.getUser(bearerJwt);
+        if (jwtUser?.id) {
+          resolvedUserId = jwtUser.id;
+        }
+      }
+      if (!resolvedUserId) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user?.id) {
+          resolvedUserId = user.id;
+        }
       }
     } catch {
       resolvedUserId = null;

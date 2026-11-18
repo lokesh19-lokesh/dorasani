@@ -964,6 +964,22 @@ export const adminService = {
     return data;
   },
 
+  async linkOrderToUser(orderId: string, userId: string | null) {
+    if (!isSupabaseConfigured) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async cancelOrder(params: AdminCancelOrderParams): Promise<AdminCancelOrderResult> {
     if (!isSupabaseConfigured) throw new Error('Supabase not configured');
     const { data, error } = await supabase.functions.invoke('admin-cancel-order', {
